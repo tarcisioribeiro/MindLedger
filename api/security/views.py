@@ -48,6 +48,7 @@ def log_activity(request, action, model_name, object_id, description):
 class PasswordListCreateView(generics.ListCreateAPIView):
     """Lista todas as senhas ou cria uma nova."""
     permission_classes = [IsAuthenticated, GlobalDefaultPermission]
+    queryset = Password.objects.all()
 
     def get_queryset(self):
         return Password.objects.filter(
@@ -77,6 +78,7 @@ class PasswordListCreateView(generics.ListCreateAPIView):
 class PasswordDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Recupera, atualiza ou deleta uma senha."""
     permission_classes = [IsAuthenticated, GlobalDefaultPermission]
+    queryset = Password.objects.all()
 
     def get_queryset(self):
         return Password.objects.filter(
@@ -117,6 +119,7 @@ class PasswordRevealView(generics.RetrieveAPIView):
     """Revela a senha descriptografada (com log de auditoria)."""
     permission_classes = [IsAuthenticated, GlobalDefaultPermission]
     serializer_class = PasswordRevealSerializer
+    queryset = Password.objects.all()
 
     def get_queryset(self):
         return Password.objects.filter(
@@ -147,6 +150,7 @@ class PasswordRevealView(generics.RetrieveAPIView):
 class StoredCreditCardListCreateView(generics.ListCreateAPIView):
     """Lista todos os cartões ou cria um novo."""
     permission_classes = [IsAuthenticated, GlobalDefaultPermission]
+    queryset = StoredCreditCard.objects.all()
 
     def get_queryset(self):
         return StoredCreditCard.objects.filter(
@@ -176,6 +180,7 @@ class StoredCreditCardListCreateView(generics.ListCreateAPIView):
 class StoredCreditCardDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Recupera, atualiza ou deleta um cartão."""
     permission_classes = [IsAuthenticated, GlobalDefaultPermission]
+    queryset = StoredCreditCard.objects.all()
 
     def get_queryset(self):
         return StoredCreditCard.objects.filter(
@@ -215,6 +220,7 @@ class StoredCreditCardRevealView(generics.RetrieveAPIView):
     """Revela dados completos do cartão (com log de auditoria)."""
     permission_classes = [IsAuthenticated, GlobalDefaultPermission]
     serializer_class = StoredCreditCardRevealSerializer
+    queryset = StoredCreditCard.objects.all()
 
     def get_queryset(self):
         return StoredCreditCard.objects.filter(
@@ -244,6 +250,7 @@ class StoredCreditCardRevealView(generics.RetrieveAPIView):
 class StoredBankAccountListCreateView(generics.ListCreateAPIView):
     """Lista todas as contas bancárias ou cria uma nova."""
     permission_classes = [IsAuthenticated, GlobalDefaultPermission]
+    queryset = StoredBankAccount.objects.all()
 
     def get_queryset(self):
         return StoredBankAccount.objects.filter(
@@ -273,6 +280,7 @@ class StoredBankAccountListCreateView(generics.ListCreateAPIView):
 class StoredBankAccountDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Recupera, atualiza ou deleta uma conta bancária."""
     permission_classes = [IsAuthenticated, GlobalDefaultPermission]
+    queryset = StoredBankAccount.objects.all()
 
     def get_queryset(self):
         return StoredBankAccount.objects.filter(
@@ -312,6 +320,7 @@ class StoredBankAccountRevealView(generics.RetrieveAPIView):
     """Revela dados completos da conta bancária (com log de auditoria)."""
     permission_classes = [IsAuthenticated, GlobalDefaultPermission]
     serializer_class = StoredBankAccountRevealSerializer
+    queryset = StoredBankAccount.objects.all()
 
     def get_queryset(self):
         return StoredBankAccount.objects.filter(
@@ -341,6 +350,7 @@ class StoredBankAccountRevealView(generics.RetrieveAPIView):
 class ArchiveListCreateView(generics.ListCreateAPIView):
     """Lista todos os arquivos ou cria um novo."""
     permission_classes = [IsAuthenticated, GlobalDefaultPermission]
+    queryset = Archive.objects.all()
 
     def get_queryset(self):
         return Archive.objects.filter(
@@ -370,6 +380,7 @@ class ArchiveListCreateView(generics.ListCreateAPIView):
 class ArchiveDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Recupera, atualiza ou deleta um arquivo."""
     permission_classes = [IsAuthenticated, GlobalDefaultPermission]
+    queryset = Archive.objects.all()
 
     def get_queryset(self):
         return Archive.objects.filter(
@@ -409,6 +420,7 @@ class ArchiveRevealView(generics.RetrieveAPIView):
     """Revela conteúdo de texto do arquivo (com log de auditoria)."""
     permission_classes = [IsAuthenticated, GlobalDefaultPermission]
     serializer_class = ArchiveRevealSerializer
+    queryset = Archive.objects.all()
 
     def get_queryset(self):
         return Archive.objects.filter(
@@ -439,6 +451,7 @@ class ActivityLogListView(generics.ListAPIView):
     """Lista logs de atividades (somente leitura)."""
     permission_classes = [IsAuthenticated, GlobalDefaultPermission]
     serializer_class = ActivityLogSerializer
+    queryset = ActivityLog.objects.all()
 
     def get_queryset(self):
         return ActivityLog.objects.filter(

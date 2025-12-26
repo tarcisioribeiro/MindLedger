@@ -45,6 +45,7 @@ def get_client_ip(request):
 class AuthorListCreateView(generics.ListCreateAPIView):
     """Lista todos os autores ou cria um novo."""
     permission_classes = [IsAuthenticated, GlobalDefaultPermission]
+    queryset = Author.objects.all()
 
     def get_queryset(self):
         return Author.objects.filter(
@@ -74,6 +75,7 @@ class AuthorListCreateView(generics.ListCreateAPIView):
 class AuthorDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Recupera, atualiza ou deleta um autor."""
     permission_classes = [IsAuthenticated, GlobalDefaultPermission]
+    queryset = Author.objects.all()
 
     def get_queryset(self):
         return Author.objects.filter(
@@ -116,6 +118,7 @@ class AuthorDetailView(generics.RetrieveUpdateDestroyAPIView):
 class PublisherListCreateView(generics.ListCreateAPIView):
     """Lista todas as editoras ou cria uma nova."""
     permission_classes = [IsAuthenticated, GlobalDefaultPermission]
+    queryset = Publisher.objects.all()
 
     def get_queryset(self):
         return Publisher.objects.filter(
@@ -145,6 +148,7 @@ class PublisherListCreateView(generics.ListCreateAPIView):
 class PublisherDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Recupera, atualiza ou deleta uma editora."""
     permission_classes = [IsAuthenticated, GlobalDefaultPermission]
+    queryset = Publisher.objects.all()
 
     def get_queryset(self):
         return Publisher.objects.filter(
@@ -187,6 +191,7 @@ class PublisherDetailView(generics.RetrieveUpdateDestroyAPIView):
 class BookListCreateView(generics.ListCreateAPIView):
     """Lista todos os livros ou cria um novo."""
     permission_classes = [IsAuthenticated, GlobalDefaultPermission]
+    queryset = Book.objects.all()
 
     def get_queryset(self):
         return Book.objects.filter(
@@ -216,6 +221,7 @@ class BookListCreateView(generics.ListCreateAPIView):
 class BookDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Recupera, atualiza ou deleta um livro."""
     permission_classes = [IsAuthenticated, GlobalDefaultPermission]
+    queryset = Book.objects.all()
 
     def get_queryset(self):
         return Book.objects.filter(
@@ -258,6 +264,7 @@ class BookDetailView(generics.RetrieveUpdateDestroyAPIView):
 class SummaryListCreateView(generics.ListCreateAPIView):
     """Lista todos os resumos ou cria um novo."""
     permission_classes = [IsAuthenticated, GlobalDefaultPermission]
+    queryset = Summary.objects.all()
 
     def get_queryset(self):
         return Summary.objects.filter(
@@ -287,6 +294,7 @@ class SummaryListCreateView(generics.ListCreateAPIView):
 class SummaryDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Recupera, atualiza ou deleta um resumo."""
     permission_classes = [IsAuthenticated, GlobalDefaultPermission]
+    queryset = Summary.objects.all()
 
     def get_queryset(self):
         return Summary.objects.filter(
@@ -329,6 +337,7 @@ class SummaryDetailView(generics.RetrieveUpdateDestroyAPIView):
 class ReadingListCreateView(generics.ListCreateAPIView):
     """Lista todas as leituras ou cria uma nova."""
     permission_classes = [IsAuthenticated, GlobalDefaultPermission]
+    queryset = Reading.objects.all()
 
     def get_queryset(self):
         return Reading.objects.filter(
@@ -358,6 +367,7 @@ class ReadingListCreateView(generics.ListCreateAPIView):
 class ReadingDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Recupera, atualiza ou deleta uma leitura."""
     permission_classes = [IsAuthenticated, GlobalDefaultPermission]
+    queryset = Reading.objects.all()
 
     def get_queryset(self):
         return Reading.objects.filter(
