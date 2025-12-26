@@ -139,7 +139,7 @@ if [ "$MODE" == "auto" ]; then
     print_info "Modo automático ativado - usando valores padrão..."
 
     DB_HOST="db"
-    DB_PORT="5435"
+    DB_PORT="39102"
     DB_NAME="personalhub_db"
     DB_USER="personalhub_user"
     DB_PASSWORD="$(openssl rand -base64 32 | tr -d /=+ | cut -c1-25)"
@@ -153,14 +153,14 @@ if [ "$MODE" == "auto" ]; then
 
     DEBUG="True"
     ALLOWED_HOSTS="localhost,127.0.0.1"
-    CORS_ALLOWED_ORIGINS="http://localhost:3000,http://127.0.0.1:3000"
+    CORS_ALLOWED_ORIGINS="http://localhost:39101,http://127.0.0.1:39101"
 
     LOG_FORMAT="json"
     LOG_LEVEL="INFO"
 
-    API_PORT="8002"
-    FRONTEND_PORT="3000"
-    VITE_API_BASE_URL="http://localhost:8002"
+    API_PORT="39100"
+    FRONTEND_PORT="39101"
+    VITE_API_BASE_URL="http://localhost:39100"
 
     SECURE_SSL_REDIRECT="False"
     SESSION_COOKIE_SECURE="False"
@@ -175,8 +175,8 @@ else
     read -p "Host do banco de dados [db]: " DB_HOST
     DB_HOST=${DB_HOST:-db}
 
-    read -p "Porta do banco de dados [5435]: " DB_PORT
-    DB_PORT=${DB_PORT:-5435}
+    read -p "Porta do banco de dados [39102]: " DB_PORT
+    DB_PORT=${DB_PORT:-39102}
 
     read -p "Nome do banco de dados [personalhub_db]: " DB_NAME
     DB_NAME=${DB_NAME:-personalhub_db}
@@ -224,14 +224,14 @@ else
     read -p "Hosts permitidos [localhost,127.0.0.1]: " ALLOWED_HOSTS
     ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
 
-    read -p "Origens CORS [http://localhost:3000,http://127.0.0.1:3000]: " CORS_ALLOWED_ORIGINS
-    CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+    read -p "Origens CORS [http://localhost:39101,http://127.0.0.1:39101]: " CORS_ALLOWED_ORIGINS
+    CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:39101,http://127.0.0.1:39101}
 
-    read -p "Porta da API [8002]: " API_PORT
-    API_PORT=${API_PORT:-8002}
+    read -p "Porta da API [39100]: " API_PORT
+    API_PORT=${API_PORT:-39100}
 
-    read -p "Porta do Frontend [3000]: " FRONTEND_PORT
-    FRONTEND_PORT=${FRONTEND_PORT:-3000}
+    read -p "Porta do Frontend [39101]: " FRONTEND_PORT
+    FRONTEND_PORT=${FRONTEND_PORT:-39101}
 
     VITE_API_BASE_URL="http://localhost:${API_PORT}"
 

@@ -45,4 +45,4 @@ echo "🔧 Configurando grupos e permissões do sistema..."
 python setup_members.py
 
 echo "🚀 Iniciando servidor Django..."
-python manage.py runserver 0.0.0.0:8002
+python manage.py runserver 0.0.0.0:${API_PORT:-39100}

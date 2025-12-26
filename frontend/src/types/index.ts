@@ -355,6 +355,7 @@ export interface Member {
   uuid: string;
   member_name: string;
   member_type: string;
+  user: number | null;
   created_at: string;
   updated_at: string;
 }

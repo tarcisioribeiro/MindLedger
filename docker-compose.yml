@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # PostgreSQL Database
   db:
@@ -14,7 +12,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./backups:/backups
     ports:
-      - "${DB_PORT:-5435}:5432"
+      - "${DB_PORT:-39102}:5432"
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME:-personalhub_db}"]
@@ -32,7 +30,7 @@ services:
       dockerfile: Dockerfile
     container_name: personalhub-api
     ports:
-      - "${API_PORT:-8002}:8002"
+      - "${API_PORT:-39100}:${API_PORT:-39100}"
     env_file:
       - .env
     environment:
@@ -53,7 +51,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "curl -f http://localhost:8002/health/ || wget -q --spider http://localhost:8002/health/",
+          "curl -f http://localhost:${API_PORT:-39100}/health/ || wget -q --spider http://localhost:${API_PORT:-39100}/health/",
         ]
       interval: 30s
       timeout: 10s
@@ -68,10 +66,10 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost:8002}
+        - VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost:39100}
     container_name: personalhub-frontend
     ports:
-      - "${FRONTEND_PORT:-3000}:80"
+      - "${FRONTEND_PORT:-39101}:80"
     depends_on:
       - api
     restart: unless-stopped

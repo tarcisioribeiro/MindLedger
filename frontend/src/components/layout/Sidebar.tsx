@@ -13,19 +13,6 @@ import {
   Library,
   ChevronDown,
   ChevronRight,
-  CreditCard,
-  TrendingDown,
-  TrendingUp,
-  ArrowLeftRight,
-  DollarSign,
-  Key,
-  FileArchive,
-  Activity,
-  BookOpen,
-  UserPen,
-  Building2,
-  FileText,
-  BookMarked,
 } from 'lucide-react';
 
 interface NavSubItem {
