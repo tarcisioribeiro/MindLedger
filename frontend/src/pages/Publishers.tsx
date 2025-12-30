@@ -3,43 +3,30 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { useAlertDialog } from '@/hooks/use-alert-dialog';
 import { publishersService } from '@/services/publishers-service';
 import type { Publisher, PublisherFormData } from '@/types';
-import { Loader2, Plus, Search, Edit, Trash2, Building2, Globe, Calendar, BookOpen } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Building2, Globe, Calendar, BookOpen } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { COUNTRIES } from '@/types';
+import { PageHeader } from '@/components/common/PageHeader';
+import { LoadingState } from '@/components/common/LoadingState';
+import { PublisherForm } from '@/components/library/PublisherForm';
 
 export default function Publishers() {
   const [publishers, setPublishers] = useState<Publisher[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedPublisher, setSelectedPublisher] = useState<Publisher | null>(null);
-  const [formData, setFormData] = useState<PublisherFormData>({
-    name: '',
-    website: '',
-    country: 'Brazil',
-    founded_year: undefined,
-    owner: 0,
-  });
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedPublisher, setSelectedPublisher] = useState<Publisher | undefined>();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const { showConfirm } = useAlertDialog();
 
   useEffect(() => {
     loadPublishers();
@@ -50,10 +37,10 @@ export default function Publishers() {
       setLoading(true);
       const data = await publishersService.getAll();
       setPublishers(data);
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: 'Erro ao carregar editoras',
-        description: 'Não foi possível carregar a lista de editoras.',
+        description: error.message,
         variant: 'destructive',
       });
     } finally {
@@ -61,51 +48,26 @@ export default function Publishers() {
     }
   };
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await publishersService.create(formData);
-      toast({
-        title: 'Editora criada',
-        description: 'A editora foi criada com sucesso.',
-      });
-      setIsCreateDialogOpen(false);
-      setFormData({ name: '', website: '', country: 'Brazil', founded_year: undefined, owner: 0 });
-      loadPublishers();
-    } catch (error) {
-      toast({
-        title: 'Erro ao criar editora',
-        description: 'Não foi possível criar a editora.',
-        variant: 'destructive',
-      });
-    }
+  const handleCreate = () => {
+    setSelectedPublisher(undefined);
+    setIsDialogOpen(true);
   };
 
-  const handleEdit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedPublisher) return;
-
-    try {
-      await publishersService.update(selectedPublisher.id, formData);
-      toast({
-        title: 'Editora atualizada',
-        description: 'A editora foi atualizada com sucesso.',
-      });
-      setIsEditDialogOpen(false);
-      setSelectedPublisher(null);
-      setFormData({ name: '', website: '', country: 'Brazil', founded_year: undefined, owner: 0 });
-      loadPublishers();
-    } catch (error) {
-      toast({
-        title: 'Erro ao atualizar editora',
-        description: 'Não foi possível atualizar a editora.',
-        variant: 'destructive',
-      });
-    }
+  const handleEdit = (publisher: Publisher) => {
+    setSelectedPublisher(publisher);
+    setIsDialogOpen(true);
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Tem certeza que deseja excluir esta editora?')) return;
+    const confirmed = await showConfirm({
+      title: 'Excluir editora',
+      description: 'Tem certeza que deseja excluir esta editora? Esta ação não pode ser desfeita.',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      variant: 'destructive',
+    });
+
+    if (!confirmed) return;
 
     try {
       await publishersService.delete(id);
@@ -114,25 +76,42 @@ export default function Publishers() {
         description: 'A editora foi excluída com sucesso.',
       });
       loadPublishers();
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: 'Erro ao excluir editora',
-        description: 'Não foi possível excluir a editora.',
+        description: error.message,
         variant: 'destructive',
       });
     }
   };
 
-  const openEditDialog = (publisher: Publisher) => {
-    setSelectedPublisher(publisher);
-    setFormData({
-      name: publisher.name,
-      website: publisher.website || '',
-      country: publisher.country || '',
-      founded_year: publisher.founded_year,
-      owner: publisher.owner,
-    });
-    setIsEditDialogOpen(true);
+  const handleSubmit = async (data: PublisherFormData) => {
+    try {
+      setIsSubmitting(true);
+      if (selectedPublisher) {
+        await publishersService.update(selectedPublisher.id, data);
+        toast({
+          title: 'Editora atualizada',
+          description: 'A editora foi atualizada com sucesso.',
+        });
+      } else {
+        await publishersService.create(data);
+        toast({
+          title: 'Editora criada',
+          description: 'A editora foi criada com sucesso.',
+        });
+      }
+      setIsDialogOpen(false);
+      loadPublishers();
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao salvar',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const filteredPublishers = publishers.filter(
@@ -142,95 +121,20 @@ export default function Publishers() {
   );
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+    return <LoadingState />;
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Editoras</h1>
-          <p className="text-muted-foreground">Gerencie as editoras da sua biblioteca</p>
-        </div>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Nova Editora
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <form onSubmit={handleCreate}>
-              <DialogHeader>
-                <DialogTitle>Criar Nova Editora</DialogTitle>
-                <DialogDescription>Adicione uma nova editora à sua biblioteca.</DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Nome *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="country">País *</Label>
-                  <Select
-                    value={formData.country}
-                    onValueChange={(value) => setFormData({ ...formData, country: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {COUNTRIES.map((country) => (
-                        <SelectItem key={country.value} value={country.value}>
-                          {country.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="website">Website</Label>
-                  <Input
-                    id="website"
-                    type="url"
-                    value={formData.website}
-                    onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                    placeholder="https://exemplo.com.br"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="founded_year">Ano de Fundação</Label>
-                  <Input
-                    id="founded_year"
-                    type="number"
-                    min="1000"
-                    max={new Date().getFullYear()}
-                    value={formData.founded_year || ''}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        founded_year: e.target.value ? parseInt(e.target.value) : undefined,
-                      })
-                    }
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button type="submit">Criar Editora</Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
+      <PageHeader
+        title="Editoras"
+        description="Gerencie as editoras da sua biblioteca"
+        action={{
+          label: 'Nova Editora',
+          icon: <Plus className="h-4 w-4" />,
+          onClick: handleCreate,
+        }}
+      />
 
       <div className="flex items-center gap-4">
         <div className="relative flex-1">
@@ -255,7 +159,7 @@ export default function Publishers() {
                 : 'Comece adicionando sua primeira editora'}
             </p>
             {!searchTerm && (
-              <Button onClick={() => setIsCreateDialogOpen(true)}>
+              <Button onClick={handleCreate}>
                 <Plus className="w-4 h-4 mr-2" />
                 Adicionar Editora
               </Button>
@@ -278,7 +182,7 @@ export default function Publishers() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => openEditDialog(publisher)}
+                      onClick={() => handleEdit(publisher)}
                     >
                       <Edit className="w-4 h-4" />
                     </Button>
@@ -326,72 +230,24 @@ export default function Publishers() {
         </div>
       )}
 
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
-          <form onSubmit={handleEdit}>
-            <DialogHeader>
-              <DialogTitle>Editar Editora</DialogTitle>
-              <DialogDescription>Atualize as informações da editora.</DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-name">Nome *</Label>
-                <Input
-                  id="edit-name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-country">País *</Label>
-                <Select
-                  value={formData.country}
-                  onValueChange={(value) => setFormData({ ...formData, country: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {COUNTRIES.map((country) => (
-                      <SelectItem key={country.value} value={country.value}>
-                        {country.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-website">Website</Label>
-                <Input
-                  id="edit-website"
-                  type="url"
-                  value={formData.website}
-                  onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                  placeholder="https://exemplo.com.br"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-founded_year">Ano de Fundação</Label>
-                <Input
-                  id="edit-founded_year"
-                  type="number"
-                  min="1000"
-                  max={new Date().getFullYear()}
-                  value={formData.founded_year || ''}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      founded_year: e.target.value ? parseInt(e.target.value) : undefined,
-                    })
-                  }
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="submit">Salvar Alterações</Button>
-            </DialogFooter>
-          </form>
+          <DialogHeader>
+            <DialogTitle>
+              {selectedPublisher ? 'Editar' : 'Nova'} Editora
+            </DialogTitle>
+            <DialogDescription>
+              {selectedPublisher
+                ? 'Atualize as informações da editora'
+                : 'Adicione uma nova editora à sua biblioteca'}
+            </DialogDescription>
+          </DialogHeader>
+          <PublisherForm
+            publisher={selectedPublisher}
+            onSubmit={handleSubmit}
+            onCancel={() => setIsDialogOpen(false)}
+            isLoading={isSubmitting}
+          />
         </DialogContent>
       </Dialog>
     </div>

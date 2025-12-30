@@ -5,48 +5,12 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { aiService } from '@/services/ai-service';
+import { formatDate } from '@/lib/formatters';
+import { getModuleBadgeColor, getModuleLabel, getEntityLabel } from '@/lib/helpers';
+import { PageHeader } from '@/components/common/PageHeader';
 import type { ChatMessage } from '@/types';
 import { Loader2, Send, Bot, User } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
-
-const getModuleBadgeColor = (module: string) => {
-  switch (module) {
-    case 'finance':
-      return 'bg-green-500';
-    case 'security':
-      return 'bg-blue-500';
-    case 'library':
-      return 'bg-purple-500';
-    default:
-      return 'bg-gray-500';
-  }
-};
-
-const getModuleLabel = (module: string) => {
-  switch (module) {
-    case 'finance':
-      return 'Finanças';
-    case 'security':
-      return 'Segurança';
-    case 'library':
-      return 'Biblioteca';
-    default:
-      return module;
-  }
-};
-
-const getEntityLabel = (type: string) => {
-  const labels: Record<string, string> = {
-    expense: 'Despesa',
-    revenue: 'Receita',
-    account: 'Conta',
-    password: 'Senha',
-    archive: 'Arquivo',
-    book: 'Livro',
-    summary: 'Resumo',
-  };
-  return labels[type] || type;
-};
 
 export default function AIAssistant() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -109,15 +73,13 @@ export default function AIAssistant() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)]">
-      <div className="mb-4">
-        <h1 className="text-3xl font-bold tracking-tight">AI Assistant</h1>
-        <p className="text-muted-foreground">
-          Faça perguntas sobre seus dados pessoais em linguagem natural
-        </p>
-      </div>
+      <PageHeader
+        title="AI Assistant"
+        description="Faça perguntas sobre seus dados pessoais em linguagem natural"
+      />
 
       {/* Chat Messages */}
-      <Card className="flex-1 flex flex-col">
+      <Card className="flex-1 flex flex-col mt-6">
         <ScrollArea className="flex-1 p-4">
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center py-12">
@@ -213,10 +175,7 @@ export default function AIAssistant() {
                       )}
 
                       <p className="text-xs text-muted-foreground mt-2">
-                        {message.timestamp.toLocaleTimeString('pt-BR', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
+                        {formatDate(message.timestamp, 'HH:mm')}
                       </p>
                     </div>
                   </div>

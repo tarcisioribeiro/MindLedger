@@ -287,6 +287,337 @@ export const memberSchema = z.object({
 });
 
 // ============================================================================
+// SCHEMAS DE FATURAS DE CARTÃO DE CRÉDITO
+// ============================================================================
+
+export const creditCardBillSchema = z.object({
+  card: z
+    .number({ message: 'Cartão inválido' })
+    .int('Cartão deve ser um número inteiro')
+    .positive('Selecione um cartão'),
+  reference_month: z
+    .number({ message: numberError('Mês de referência') })
+    .int('Mês deve ser um número inteiro')
+    .min(1, 'Mês deve estar entre 1 e 12')
+    .max(12, 'Mês deve estar entre 1 e 12'),
+  reference_year: z
+    .number({ message: numberError('Ano de referência') })
+    .int('Ano deve ser um número inteiro')
+    .min(2000, 'Ano deve ser maior que 2000'),
+  due_date: z.string()
+    .min(1, requiredError('Data de vencimento')),
+  total_value: z
+    .number({ message: numberError('Valor total') })
+    .min(0, 'Valor total não pode ser negativo'),
+  status: z.enum(['pending', 'paid', 'partial', 'late'], {
+    message: 'Selecione um status válido',
+  }).default('pending'),
+});
+
+export const creditCardExpenseSchema = z.object({
+  value: z
+    .number({ message: numberError('Valor') })
+    .positive(positiveError('Valor')),
+  description: z.string()
+    .min(1, requiredError('Descrição'))
+    .max(500, maxError('Descrição', 500)),
+  date: z.string()
+    .min(1, requiredError('Data')),
+  category: z.enum([
+    'food and drink', 'bills and services', 'electronics',
+    'purchases', 'transportation', 'home', 'education',
+    'entertainment', 'clothing', 'health', 'investment',
+    'gifts and donations', 'taxes', 'personal care',
+    'travel', 'pets', 'savings', 'loans', 'other',
+  ], {
+    message: 'Selecione uma categoria válida',
+  }),
+  installments: z
+    .number({ message: numberError('Parcelas') })
+    .int('Parcelas deve ser um número inteiro')
+    .min(1, 'Mínimo 1 parcela')
+    .max(48, 'Máximo 48 parcelas')
+    .default(1),
+  card: z
+    .number({ message: 'Cartão inválido' })
+    .int('Cartão deve ser um número inteiro')
+    .positive('Selecione um cartão'),
+});
+
+// ============================================================================
+// SCHEMAS DO MÓDULO DE SEGURANÇA
+// ============================================================================
+
+export const passwordSchema = z.object({
+  title: z.string()
+    .min(1, requiredError('Título'))
+    .max(255, maxError('Título', 255)),
+  site: z.string()
+    .url('URL inválida')
+    .optional()
+    .or(z.literal('')),
+  username: z.string()
+    .min(1, requiredError('Usuário'))
+    .max(255, maxError('Usuário', 255)),
+  password: z.string()
+    .min(8, 'Senha deve ter no mínimo 8 caracteres'),
+  category: z.enum(['social', 'email', 'banking', 'work', 'entertainment', 'shopping', 'streaming', 'gaming', 'other'], {
+    message: 'Selecione uma categoria válida',
+  }),
+  notes: z.string()
+    .max(1000, maxError('Observações', 1000))
+    .optional()
+    .or(z.literal('')),
+  owner: z
+    .number({ message: 'Proprietário inválido' })
+    .int('Proprietário deve ser um número inteiro')
+    .positive('Selecione um proprietário'),
+});
+
+export const storedCardSchema = z.object({
+  name: z.string()
+    .min(1, requiredError('Nome do cartão'))
+    .max(255, maxError('Nome', 255)),
+  card_number: z.string()
+    .min(16, 'Número do cartão deve ter 16 dígitos')
+    .max(16, 'Número do cartão deve ter 16 dígitos')
+    .regex(/^\d{16}$/, 'Apenas números'),
+  security_code: z.string()
+    .min(3, 'CVV deve ter 3 ou 4 dígitos')
+    .max(4, 'CVV deve ter 3 ou 4 dígitos')
+    .regex(/^\d{3,4}$/, 'Apenas números'),
+  cardholder_name: z.string()
+    .min(1, requiredError('Nome do titular'))
+    .max(255, maxError('Nome do titular', 255)),
+  expiration_month: z
+    .number({ message: numberError('Mês de validade') })
+    .int('Mês deve ser um número inteiro')
+    .min(1, 'Mês deve estar entre 1 e 12')
+    .max(12, 'Mês deve estar entre 1 e 12'),
+  expiration_year: z
+    .number({ message: numberError('Ano de validade') })
+    .int('Ano deve ser um número inteiro')
+    .min(new Date().getFullYear(), 'Ano não pode ser no passado'),
+  flag: z.enum(['MSC', 'VSA', 'ELO', 'EXP', 'HCD', 'DIN', 'OTHER'], {
+    message: 'Selecione uma bandeira válida',
+  }),
+  notes: z.string()
+    .max(1000, maxError('Observações', 1000))
+    .optional()
+    .or(z.literal('')),
+  owner: z
+    .number({ message: 'Proprietário inválido' })
+    .int('Proprietário deve ser um número inteiro')
+    .positive('Selecione um proprietário'),
+  finance_card: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .nullable(),
+});
+
+export const storedAccountSchema = z.object({
+  name: z.string()
+    .min(1, requiredError('Nome'))
+    .max(255, maxError('Nome', 255)),
+  institution_name: z.string()
+    .min(1, requiredError('Nome da instituição'))
+    .max(255, maxError('Nome da instituição', 255)),
+  account_type: z.enum(['CC', 'CS', 'CP', 'CI', 'OTHER'], {
+    message: 'Selecione um tipo de conta válido',
+  }),
+  account_number: z.string()
+    .min(1, requiredError('Número da conta'))
+    .max(50, maxError('Número da conta', 50)),
+  agency: z.string()
+    .max(20, maxError('Agência', 20))
+    .optional()
+    .or(z.literal('')),
+  password: z.string()
+    .max(255, maxError('Senha', 255))
+    .optional()
+    .or(z.literal('')),
+  digital_password: z.string()
+    .max(255, maxError('Senha digital', 255))
+    .optional()
+    .or(z.literal('')),
+  notes: z.string()
+    .max(1000, maxError('Observações', 1000))
+    .optional()
+    .or(z.literal('')),
+  owner: z
+    .number({ message: 'Proprietário inválido' })
+    .int('Proprietário deve ser um número inteiro')
+    .positive('Selecione um proprietário'),
+  finance_account: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .nullable(),
+});
+
+export const archiveSchema = z.object({
+  title: z.string()
+    .min(1, requiredError('Título'))
+    .max(255, maxError('Título', 255)),
+  category: z.enum(['personal', 'financial', 'legal', 'medical', 'tax', 'work', 'other'], {
+    message: 'Selecione uma categoria válida',
+  }),
+  archive_type: z.enum(['text', 'pdf', 'image', 'document', 'other'], {
+    message: 'Selecione um tipo válido',
+  }),
+  text_content: z.string()
+    .max(50000, maxError('Conteúdo de texto', 50000))
+    .optional()
+    .or(z.literal('')),
+  notes: z.string()
+    .max(1000, maxError('Observações', 1000))
+    .optional()
+    .or(z.literal('')),
+  tags: z.string()
+    .max(500, maxError('Tags', 500))
+    .optional()
+    .or(z.literal('')),
+  owner: z
+    .number({ message: 'Proprietário inválido' })
+    .int('Proprietário deve ser um número inteiro')
+    .positive('Selecione um proprietário'),
+});
+
+// ============================================================================
+// SCHEMAS DO MÓDULO DE BIBLIOTECA
+// ============================================================================
+
+export const authorSchema = z.object({
+  name: z.string()
+    .min(1, requiredError('Nome'))
+    .max(200, maxError('Nome', 200)),
+  birthday: z.string()
+    .optional()
+    .or(z.literal('')),
+  death_date: z.string()
+    .optional()
+    .or(z.literal('')),
+  nationality: z.string()
+    .min(1, requiredError('Nacionalidade'))
+    .max(100, maxError('Nacionalidade', 100)),
+  biography: z.string()
+    .max(2000, maxError('Biografia', 2000))
+    .optional()
+    .or(z.literal('')),
+  owner: z
+    .number({ message: 'Proprietário inválido' })
+    .int('Proprietário deve ser um número inteiro')
+    .positive('Selecione um proprietário'),
+});
+
+export const publisherSchema = z.object({
+  name: z.string()
+    .min(1, requiredError('Nome'))
+    .max(200, maxError('Nome', 200)),
+  description: z.string()
+    .max(1000, maxError('Descrição', 1000))
+    .optional()
+    .or(z.literal('')),
+  website: z.string()
+    .max(500, maxError('Website', 500))
+    .url('URL inválida')
+    .optional()
+    .or(z.literal('')),
+  country: z.string()
+    .min(1, requiredError('País'))
+    .max(100, maxError('País', 100)),
+  founded_year: z
+    .number({ message: numberError('Ano de fundação') })
+    .int('Ano deve ser um número inteiro')
+    .min(1000, 'Ano inválido')
+    .max(new Date().getFullYear(), 'Ano não pode ser no futuro')
+    .optional(),
+  owner: z
+    .number({ message: 'Proprietário inválido' })
+    .int('Proprietário deve ser um número inteiro')
+    .positive('Selecione um proprietário'),
+});
+
+export const bookSchema = z.object({
+  title: z.string()
+    .min(1, requiredError('Título'))
+    .max(300, maxError('Título', 300)),
+  authors: z
+    .array(z.number({ message: 'Autor inválido' }))
+    .min(1, 'Selecione pelo menos um autor'),
+  pages: z
+    .number({ message: numberError('Páginas') })
+    .int('Páginas deve ser um número inteiro')
+    .positive(positiveError('Páginas')),
+  publisher: z
+    .number({ message: 'Editora inválida' })
+    .int('Editora deve ser um número inteiro')
+    .positive('Selecione uma editora'),
+  language: z.string()
+    .min(1, requiredError('Idioma'))
+    .max(50, maxError('Idioma', 50)),
+  genre: z.string()
+    .min(1, requiredError('Gênero'))
+    .max(100, maxError('Gênero', 100)),
+  literarytype: z.string()
+    .min(1, requiredError('Tipo literário'))
+    .max(100, maxError('Tipo literário', 100)),
+  publish_date: z.string()
+    .optional()
+    .or(z.literal('')),
+  synopsis: z.string()
+    .min(1, requiredError('Sinopse'))
+    .max(5000, maxError('Sinopse', 5000)),
+  edition: z.string()
+    .min(1, requiredError('Edição'))
+    .max(100, maxError('Edição', 100)),
+  media_type: z.string()
+    .max(50, maxError('Tipo de mídia', 50))
+    .optional()
+    .or(z.literal('')),
+  rating: z
+    .number({ message: numberError('Avaliação') })
+    .int('Avaliação deve ser um número inteiro')
+    .min(0, 'Avaliação mínima é 0')
+    .max(5, 'Avaliação máxima é 5'),
+  read_status: z.string()
+    .min(1, requiredError('Status de leitura'))
+    .max(50, maxError('Status de leitura', 50)),
+  owner: z
+    .number({ message: 'Proprietário inválido' })
+    .int('Proprietário deve ser um número inteiro')
+    .positive('Selecione um proprietário'),
+});
+
+export const readingSchema = z.object({
+  book: z
+    .number({ message: 'Livro inválido' })
+    .int('Livro deve ser um número inteiro')
+    .positive('Selecione um livro'),
+  reading_date: z.string()
+    .min(1, requiredError('Data de leitura')),
+  reading_time: z
+    .number({ message: numberError('Tempo de leitura') })
+    .int('Tempo deve ser um número inteiro')
+    .min(0, 'Tempo não pode ser negativo'),
+  pages_read: z
+    .number({ message: numberError('Páginas lidas') })
+    .int('Páginas deve ser um número inteiro')
+    .positive(positiveError('Páginas lidas')),
+  notes: z.string()
+    .max(2000, maxError('Anotações', 2000))
+    .optional()
+    .or(z.literal('')),
+  owner: z
+    .number({ message: 'Proprietário inválido' })
+    .int('Proprietário deve ser um número inteiro')
+    .positive('Selecione um proprietário'),
+});
+
+// ============================================================================
 // TYPE INFERENCE (Types automáticos dos schemas)
 // ============================================================================
 
@@ -296,6 +627,18 @@ export type AccountFormData = z.infer<typeof accountSchema>;
 export type ExpenseFormData = z.infer<typeof expenseSchema>;
 export type RevenueFormData = z.infer<typeof revenueSchema>;
 export type CreditCardFormData = z.infer<typeof creditCardSchema>;
+export type CreditCardBillFormData = z.infer<typeof creditCardBillSchema>;
+export type CreditCardExpenseFormData = z.infer<typeof creditCardExpenseSchema>;
 export type TransferFormData = z.infer<typeof transferSchema>;
 export type LoanFormData = z.infer<typeof loanSchema>;
 export type MemberFormData = z.infer<typeof memberSchema>;
+export type PasswordFormData = z.infer<typeof passwordSchema>;
+export type StoredCardFormData = z.infer<typeof storedCardSchema>;
+export type StoredCreditCardFormData = z.infer<typeof storedCardSchema>;
+export type StoredAccountFormData = z.infer<typeof storedAccountSchema>;
+export type StoredBankAccountFormData = z.infer<typeof storedAccountSchema>;
+export type ArchiveFormData = z.infer<typeof archiveSchema>;
+export type AuthorFormData = z.infer<typeof authorSchema>;
+export type PublisherFormData = z.infer<typeof publisherSchema>;
+export type BookFormData = z.infer<typeof bookSchema>;
+export type ReadingFormData = z.infer<typeof readingSchema>;

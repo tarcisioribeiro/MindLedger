@@ -3,43 +3,30 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { useAlertDialog } from '@/hooks/use-alert-dialog';
 import { authorsService } from '@/services/authors-service';
 import type { Author, AuthorFormData } from '@/types';
-import { Loader2, Plus, Search, Edit, Trash2, BookOpen, User } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, BookOpen, User } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { NATIONALITIES } from '@/types';
+import { PageHeader } from '@/components/common/PageHeader';
+import { LoadingState } from '@/components/common/LoadingState';
+import { AuthorForm } from '@/components/library/AuthorForm';
 
 export default function Authors() {
   const [authors, setAuthors] = useState<Author[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedAuthor, setSelectedAuthor] = useState<Author | null>(null);
-  const [formData, setFormData] = useState<AuthorFormData>({
-    name: '',
-    biography: '',
-    nationality: 'Brazilian',
-    owner: 0,
-  });
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedAuthor, setSelectedAuthor] = useState<Author | undefined>();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const { showConfirm } = useAlertDialog();
 
   useEffect(() => {
     loadAuthors();
@@ -50,10 +37,10 @@ export default function Authors() {
       setLoading(true);
       const data = await authorsService.getAll();
       setAuthors(data);
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: 'Erro ao carregar autores',
-        description: 'Não foi possível carregar a lista de autores.',
+        description: error.message,
         variant: 'destructive',
       });
     } finally {
@@ -61,51 +48,26 @@ export default function Authors() {
     }
   };
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await authorsService.create(formData);
-      toast({
-        title: 'Autor criado',
-        description: 'O autor foi criado com sucesso.',
-      });
-      setIsCreateDialogOpen(false);
-      setFormData({ name: '', biography: '', nationality: 'Brazilian', owner: 0 });
-      loadAuthors();
-    } catch (error) {
-      toast({
-        title: 'Erro ao criar autor',
-        description: 'Não foi possível criar o autor.',
-        variant: 'destructive',
-      });
-    }
+  const handleCreate = () => {
+    setSelectedAuthor(undefined);
+    setIsDialogOpen(true);
   };
 
-  const handleEdit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedAuthor) return;
-
-    try {
-      await authorsService.update(selectedAuthor.id, formData);
-      toast({
-        title: 'Autor atualizado',
-        description: 'O autor foi atualizado com sucesso.',
-      });
-      setIsEditDialogOpen(false);
-      setSelectedAuthor(null);
-      setFormData({ name: '', biography: '', nationality: 'Brazilian', owner: 0 });
-      loadAuthors();
-    } catch (error) {
-      toast({
-        title: 'Erro ao atualizar autor',
-        description: 'Não foi possível atualizar o autor.',
-        variant: 'destructive',
-      });
-    }
+  const handleEdit = (author: Author) => {
+    setSelectedAuthor(author);
+    setIsDialogOpen(true);
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Tem certeza que deseja excluir este autor?')) return;
+    const confirmed = await showConfirm({
+      title: 'Excluir autor',
+      description: 'Tem certeza que deseja excluir este autor? Esta ação não pode ser desfeita.',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      variant: 'destructive',
+    });
+
+    if (!confirmed) return;
 
     try {
       await authorsService.delete(id);
@@ -114,24 +76,42 @@ export default function Authors() {
         description: 'O autor foi excluído com sucesso.',
       });
       loadAuthors();
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: 'Erro ao excluir autor',
-        description: 'Não foi possível excluir o autor.',
+        description: error.message,
         variant: 'destructive',
       });
     }
   };
 
-  const openEditDialog = (author: Author) => {
-    setSelectedAuthor(author);
-    setFormData({
-      name: author.name,
-      biography: author.biography || '',
-      nationality: author.nationality || '',
-      owner: author.owner,
-    });
-    setIsEditDialogOpen(true);
+  const handleSubmit = async (data: AuthorFormData) => {
+    try {
+      setIsSubmitting(true);
+      if (selectedAuthor) {
+        await authorsService.update(selectedAuthor.id, data);
+        toast({
+          title: 'Autor atualizado',
+          description: 'O autor foi atualizado com sucesso.',
+        });
+      } else {
+        await authorsService.create(data);
+        toast({
+          title: 'Autor criado',
+          description: 'O autor foi criado com sucesso.',
+        });
+      }
+      setIsDialogOpen(false);
+      loadAuthors();
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao salvar',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const filteredAuthors = authors.filter(
@@ -141,78 +121,20 @@ export default function Authors() {
   );
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+    return <LoadingState />;
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Autores</h1>
-          <p className="text-muted-foreground">Gerencie os autores da sua biblioteca</p>
-        </div>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Novo Autor
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <form onSubmit={handleCreate}>
-              <DialogHeader>
-                <DialogTitle>Criar Novo Autor</DialogTitle>
-                <DialogDescription>Adicione um novo autor à sua biblioteca.</DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Nome *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="nationality">Nacionalidade *</Label>
-                  <Select
-                    value={formData.nationality}
-                    onValueChange={(value) => setFormData({ ...formData, nationality: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {NATIONALITIES.map((nat) => (
-                        <SelectItem key={nat.value} value={nat.value}>
-                          {nat.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="biography">Biografia</Label>
-                  <Textarea
-                    id="biography"
-                    value={formData.biography}
-                    onChange={(e) => setFormData({ ...formData, biography: e.target.value })}
-                    rows={4}
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button type="submit">Criar Autor</Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
+      <PageHeader
+        title="Autores"
+        description="Gerencie os autores da sua biblioteca"
+        action={{
+          label: 'Novo Autor',
+          icon: <Plus className="h-4 w-4" />,
+          onClick: handleCreate,
+        }}
+      />
 
       <div className="flex items-center gap-4">
         <div className="relative flex-1">
@@ -237,7 +159,7 @@ export default function Authors() {
                 : 'Comece adicionando seu primeiro autor'}
             </p>
             {!searchTerm && (
-              <Button onClick={() => setIsCreateDialogOpen(true)}>
+              <Button onClick={handleCreate}>
                 <Plus className="w-4 h-4 mr-2" />
                 Adicionar Autor
               </Button>
@@ -260,7 +182,7 @@ export default function Authors() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => openEditDialog(author)}
+                      onClick={() => handleEdit(author)}
                     >
                       <Edit className="w-4 h-4" />
                     </Button>
@@ -292,55 +214,24 @@ export default function Authors() {
         </div>
       )}
 
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
-          <form onSubmit={handleEdit}>
-            <DialogHeader>
-              <DialogTitle>Editar Autor</DialogTitle>
-              <DialogDescription>Atualize as informações do autor.</DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-name">Nome *</Label>
-                <Input
-                  id="edit-name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-nationality">Nacionalidade *</Label>
-                <Select
-                  value={formData.nationality}
-                  onValueChange={(value) => setFormData({ ...formData, nationality: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {NATIONALITIES.map((nat) => (
-                      <SelectItem key={nat.value} value={nat.value}>
-                        {nat.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-biography">Biografia</Label>
-                <Textarea
-                  id="edit-biography"
-                  value={formData.biography}
-                  onChange={(e) => setFormData({ ...formData, biography: e.target.value })}
-                  rows={4}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="submit">Salvar Alterações</Button>
-            </DialogFooter>
-          </form>
+          <DialogHeader>
+            <DialogTitle>
+              {selectedAuthor ? 'Editar' : 'Novo'} Autor
+            </DialogTitle>
+            <DialogDescription>
+              {selectedAuthor
+                ? 'Atualize as informações do autor'
+                : 'Adicione um novo autor à sua biblioteca'}
+            </DialogDescription>
+          </DialogHeader>
+          <AuthorForm
+            author={selectedAuthor}
+            onSubmit={handleSubmit}
+            onCancel={() => setIsDialogOpen(false)}
+            isLoading={isSubmitting}
+          />
         </DialogContent>
       </Dialog>
     </div>

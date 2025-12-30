@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, Loader2, Filter } from 'lucide-react';
+import { Plus, Pencil, Trash2, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -11,8 +11,11 @@ import { accountsService } from '@/services/accounts-service';
 import { useToast } from '@/hooks/use-toast';
 import { useAlertDialog } from '@/hooks/use-alert-dialog';
 import { translate, TRANSLATIONS } from '@/config/constants';
+import { formatCurrency, formatDate } from '@/lib/formatters';
+import { sumByProperty } from '@/lib/helpers';
+import { PageHeader } from '@/components/common/PageHeader';
+import { DataTable, type Column } from '@/components/common/DataTable';
 import type { Expense, ExpenseFormData, Account } from '@/types';
-import { format } from 'date-fns';
 
 export default function Expenses() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -117,24 +120,80 @@ export default function Expenses() {
     }
   };
 
-  const formatCurrency = (value: string | number) => {
-    const num = typeof value === 'string' ? parseFloat(value) : value;
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(num);
+  const totalExpenses = sumByProperty(
+    filteredExpenses.map((e) => ({ value: parseFloat(e.value) })),
+    'value'
+  );
+
+  const handleEdit = (expense: Expense) => {
+    setSelectedExpense(expense);
+    setIsDialogOpen(true);
   };
 
-  const totalExpenses = filteredExpenses.reduce((sum, exp) => sum + parseFloat(exp.value), 0);
+  // Definir colunas da tabela
+  const columns: Column<Expense>[] = [
+    {
+      key: 'description',
+      label: 'Descrição',
+      render: (expense) => <div className="font-medium">{expense.description}</div>,
+    },
+    {
+      key: 'value',
+      label: 'Valor',
+      align: 'right',
+      render: (expense) => (
+        <span className="font-semibold text-red-600 dark:text-red-400">
+          {formatCurrency(expense.value)}
+        </span>
+      ),
+    },
+    {
+      key: 'account_name',
+      label: 'Conta',
+      render: (expense) => (
+        <Badge variant="outline" className="font-medium">
+          {expense.account_name || 'N/A'}
+        </Badge>
+      ),
+    },
+    {
+      key: 'category',
+      label: 'Categoria',
+      render: (expense) => (
+        <Badge variant="secondary">{translate('expenseCategories', expense.category)}</Badge>
+      ),
+    },
+    {
+      key: 'payed',
+      label: 'Status',
+      render: (expense) => (
+        <Badge variant={expense.payed ? 'success' : 'warning'}>
+          {expense.payed ? 'Pago' : 'Pendente'}
+        </Badge>
+      ),
+    },
+    {
+      key: 'date',
+      label: 'Data',
+      render: (expense) => (
+        <span className="text-sm text-muted-foreground">
+          {formatDate(expense.date, 'dd/MM/yyyy HH:mm')}
+        </span>
+      ),
+    },
+  ];
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Despesas</h1>
-          <p className="text-muted-foreground mt-2">Acompanhe suas despesas</p>
-        </div>
-        <Button onClick={handleCreate} className="gap-2">
-          <Plus className="w-4 h-4" />Nova Despesa
-        </Button>
-      </div>
+      <PageHeader
+        title="Despesas"
+        description="Acompanhe suas despesas"
+        action={{
+          label: 'Nova Despesa',
+          icon: <Plus className="w-4 h-4" />,
+          onClick: handleCreate,
+        }}
+      />
 
       <div className="bg-card border rounded-xl p-4 space-y-4">
         <div className="flex items-center gap-2">
@@ -142,16 +201,28 @@ export default function Expenses() {
           <span className="font-semibold">Filtros</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Input placeholder="Buscar por descrição..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+          <Input
+            placeholder="Buscar por descrição..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas Categorias</SelectItem>
-              {Object.entries(TRANSLATIONS.expenseCategories).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+              {Object.entries(TRANSLATIONS.expenseCategories).map(([k, v]) => (
+                <SelectItem key={k} value={k}>
+                  {v}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos Status</SelectItem>
               <SelectItem value="paid">Pago</SelectItem>
@@ -160,66 +231,34 @@ export default function Expenses() {
           </Select>
         </div>
         <div className="flex justify-between items-center pt-2 border-t">
-          <span className="text-sm text-muted-foreground">{filteredExpenses.length} despesa(s) encontrada(s)</span>
-          <span className="text-lg font-bold text-red-600 dark:text-red-400">Total: {formatCurrency(totalExpenses)}</span>
+          <span className="text-sm text-muted-foreground">
+            {filteredExpenses.length} despesa(s) encontrada(s)
+          </span>
+          <span className="text-lg font-bold text-red-600 dark:text-red-400">
+            Total: {formatCurrency(totalExpenses)}
+          </span>
         </div>
       </div>
 
-      {isLoading ? (
-        <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
-      ) : filteredExpenses.length === 0 ? (
-        <div className="bg-card border rounded-xl p-12 text-center">
-          <p className="text-muted-foreground">Nenhuma despesa encontrada.</p>
-        </div>
-      ) : (
-        <div className="bg-card border rounded-xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-muted/50 border-b">
-                <tr>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Descrição</th>
-                  <th className="px-6 py-4 text-right text-sm font-semibold">Valor</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Conta</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Categoria</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Status</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Data</th>
-                  <th className="px-6 py-4 text-right text-sm font-semibold">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {filteredExpenses.map((expense) => (
-                  <tr key={expense.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-6 py-4"><div className="font-medium">{expense.description}</div></td>
-                    <td className="px-6 py-4 text-right font-semibold text-red-600 dark:text-red-400">{formatCurrency(expense.value)}</td>
-                    <td className="px-6 py-4">
-                      <Badge variant="outline" className="font-medium">
-                        {expense.account_name || 'N/A'}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4"><Badge variant="secondary">{translate('expenseCategories', expense.category)}</Badge></td>
-                    <td className="px-6 py-4">
-                      <Badge variant={expense.payed ? 'success' : 'warning'}>
-                        {expense.payed ? 'Pago' : 'Pendente'}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-muted-foreground">{format(new Date(expense.date), 'dd/MM/yyyy HH:mm')}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => { setSelectedExpense(expense); setIsDialogOpen(true); }}>
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(expense.id)}>
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <DataTable
+        data={filteredExpenses}
+        columns={columns}
+        keyExtractor={(expense) => expense.id}
+        isLoading={isLoading}
+        emptyState={{
+          message: 'Nenhuma despesa encontrada.',
+        }}
+        actions={(expense) => (
+          <div className="flex items-center justify-end gap-2">
+            <Button variant="ghost" size="icon" onClick={() => handleEdit(expense)}>
+              <Pencil className="w-4 h-4" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => handleDelete(expense.id)}>
+              <Trash2 className="w-4 h-4 text-destructive" />
+            </Button>
           </div>
-        </div>
-      )}
+        )}
+      />
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl">

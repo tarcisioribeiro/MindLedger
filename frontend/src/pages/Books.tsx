@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Loader2, BookOpen, TrendingUp } from 'lucide-react';
+import { Plus, BookOpen, TrendingUp, Edit, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -10,18 +10,36 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { booksService } from '@/services/books-service';
+import { authorsService } from '@/services/authors-service';
+import { publishersService } from '@/services/publishers-service';
 import { useToast } from '@/hooks/use-toast';
-import type { Book } from '@/types';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { useAlertDialog } from '@/hooks/use-alert-dialog';
+import { formatDate } from '@/lib/formatters';
+import { PageHeader } from '@/components/common/PageHeader';
+import { LoadingState } from '@/components/common/LoadingState';
+import { BookForm } from '@/components/library/BookForm';
+import type { Book, BookFormData, Author, Publisher } from '@/types';
 
 export default function Books() {
   const [books, setBooks] = useState<Book[]>([]);
+  const [authors, setAuthors] = useState<Author[]>([]);
+  const [publishers, setPublishers] = useState<Publisher[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedBook, setSelectedBook] = useState<Book | undefined>();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const { showConfirm } = useAlertDialog();
 
   useEffect(() => {
     loadData();
@@ -30,8 +48,14 @@ export default function Books() {
   const loadData = async () => {
     try {
       setIsLoading(true);
-      const data = await booksService.getAll();
-      setBooks(data);
+      const [booksData, authorsData, publishersData] = await Promise.all([
+        booksService.getAll(),
+        authorsService.getAll(),
+        publishersService.getAll(),
+      ]);
+      setBooks(booksData);
+      setAuthors(authorsData);
+      setPublishers(publishersData);
     } catch (error: any) {
       toast({
         title: 'Erro ao carregar dados',
@@ -40,6 +64,72 @@ export default function Books() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleCreate = () => {
+    setSelectedBook(undefined);
+    setIsDialogOpen(true);
+  };
+
+  const handleEdit = (book: Book) => {
+    setSelectedBook(book);
+    setIsDialogOpen(true);
+  };
+
+  const handleDelete = async (id: number) => {
+    const confirmed = await showConfirm({
+      title: 'Excluir livro',
+      description: 'Tem certeza que deseja excluir este livro? Esta ação não pode ser desfeita.',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      variant: 'destructive',
+    });
+
+    if (!confirmed) return;
+
+    try {
+      await booksService.delete(id);
+      toast({
+        title: 'Livro excluído',
+        description: 'O livro foi excluído com sucesso.',
+      });
+      loadData();
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao excluir livro',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleSubmit = async (data: BookFormData) => {
+    try {
+      setIsSubmitting(true);
+      if (selectedBook) {
+        await booksService.update(selectedBook.id, data);
+        toast({
+          title: 'Livro atualizado',
+          description: 'O livro foi atualizado com sucesso.',
+        });
+      } else {
+        await booksService.create(data);
+        toast({
+          title: 'Livro criado',
+          description: 'O livro foi criado com sucesso.',
+        });
+      }
+      setIsDialogOpen(false);
+      loadData();
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao salvar',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -66,27 +156,20 @@ export default function Books() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <LoadingState />;
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Biblioteca</h1>
-          <p className="text-muted-foreground">
-            Gerencie sua coleção de livros
-          </p>
-        </div>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Novo Livro
-        </Button>
-      </div>
+      <PageHeader
+        title="Biblioteca"
+        description="Gerencie sua coleção de livros"
+        action={{
+          label: 'Novo Livro',
+          icon: <Plus className="h-4 w-4" />,
+          onClick: handleCreate,
+        }}
+      />
 
       <div className="flex gap-4">
         <Input
@@ -110,12 +193,32 @@ export default function Books() {
                     {book.authors_names.join(', ')}
                   </CardDescription>
                 </div>
-                <Badge
-                  className={getStatusColor(book.read_status)}
-                  variant="default"
-                >
-                  {book.read_status_display}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge
+                    className={getStatusColor(book.read_status)}
+                    variant="default"
+                  >
+                    {book.read_status_display}
+                  </Badge>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handleEdit(book)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handleDelete(book.id)}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -167,10 +270,7 @@ export default function Books() {
                 )}
 
                 <div className="text-xs text-muted-foreground pt-2">
-                  Adicionado em{' '}
-                  {format(new Date(book.created_at), 'dd/MM/yyyy', {
-                    locale: ptBR,
-                  })}
+                  Adicionado em {formatDate(book.created_at, 'dd/MM/yyyy')}
                 </div>
               </div>
             </CardContent>
@@ -182,12 +282,35 @@ export default function Books() {
         <div className="text-center py-12">
           <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <p className="text-muted-foreground">Nenhum livro encontrado.</p>
-          <Button className="mt-4">
+          <Button className="mt-4" onClick={handleCreate}>
             <Plus className="mr-2 h-4 w-4" />
             Adicionar primeiro livro
           </Button>
         </div>
       )}
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedBook ? 'Editar' : 'Novo'} Livro
+            </DialogTitle>
+            <DialogDescription>
+              {selectedBook
+                ? 'Atualize as informações do livro'
+                : 'Adicione um novo livro à sua biblioteca'}
+            </DialogDescription>
+          </DialogHeader>
+          <BookForm
+            book={selectedBook}
+            authors={authors}
+            publishers={publishers}
+            onSubmit={handleSubmit}
+            onCancel={() => setIsDialogOpen(false)}
+            isLoading={isSubmitting}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

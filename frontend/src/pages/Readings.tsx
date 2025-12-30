@@ -4,46 +4,33 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { useAlertDialog } from '@/hooks/use-alert-dialog';
+import { formatDate } from '@/lib/formatters';
 import { readingsService } from '@/services/readings-service';
 import { booksService } from '@/services/books-service';
 import type { Reading, ReadingFormData, Book } from '@/types';
-import { Loader2, Plus, Search, Edit, Trash2, BookMarked, BookOpen, Calendar } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, BookMarked, BookOpen, Calendar } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { PageHeader } from '@/components/common/PageHeader';
+import { LoadingState } from '@/components/common/LoadingState';
+import { ReadingForm } from '@/components/library/ReadingForm';
 
 export default function Readings() {
   const [readings, setReadings] = useState<Reading[]>([]);
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedReading, setSelectedReading] = useState<Reading | null>(null);
-  const [formData, setFormData] = useState<ReadingFormData>({
-    book: 0,
-    pages_read: 0,
-    reading_date: new Date().toISOString().split('T')[0],
-    reading_time: 0,
-    notes: '',
-    owner: 0,
-  });
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedReading, setSelectedReading] = useState<Reading | undefined>();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const { showConfirm } = useAlertDialog();
 
   useEffect(() => {
     loadData();
@@ -58,10 +45,10 @@ export default function Readings() {
       ]);
       setReadings(readingsData);
       setBooks(booksData);
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: 'Erro ao carregar dados',
-        description: 'Não foi possível carregar as leituras.',
+        description: error.message,
         variant: 'destructive',
       });
     } finally {
@@ -69,65 +56,26 @@ export default function Readings() {
     }
   };
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await readingsService.create(formData);
-      toast({
-        title: 'Leitura registrada',
-        description: 'A leitura foi registrada com sucesso.',
-      });
-      setIsCreateDialogOpen(false);
-      setFormData({
-        book: 0,
-        pages_read: 0,
-        reading_date: new Date().toISOString().split('T')[0],
-        reading_time: 0,
-        notes: '',
-        owner: 0,
-      });
-      loadData();
-    } catch (error) {
-      toast({
-        title: 'Erro ao registrar leitura',
-        description: 'Não foi possível registrar a leitura.',
-        variant: 'destructive',
-      });
-    }
+  const handleCreate = () => {
+    setSelectedReading(undefined);
+    setIsDialogOpen(true);
   };
 
-  const handleEdit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedReading) return;
-
-    try {
-      await readingsService.update(selectedReading.id, formData);
-      toast({
-        title: 'Leitura atualizada',
-        description: 'A leitura foi atualizada com sucesso.',
-      });
-      setIsEditDialogOpen(false);
-      setSelectedReading(null);
-      setFormData({
-        book: 0,
-        pages_read: 0,
-        reading_date: new Date().toISOString().split('T')[0],
-        reading_time: 0,
-        notes: '',
-        owner: 0,
-      });
-      loadData();
-    } catch (error) {
-      toast({
-        title: 'Erro ao atualizar leitura',
-        description: 'Não foi possível atualizar a leitura.',
-        variant: 'destructive',
-      });
-    }
+  const handleEdit = (reading: Reading) => {
+    setSelectedReading(reading);
+    setIsDialogOpen(true);
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Tem certeza que deseja excluir esta leitura?')) return;
+    const confirmed = await showConfirm({
+      title: 'Excluir leitura',
+      description: 'Tem certeza que deseja excluir esta leitura? Esta ação não pode ser desfeita.',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      variant: 'destructive',
+    });
+
+    if (!confirmed) return;
 
     try {
       await readingsService.delete(id);
@@ -136,26 +84,42 @@ export default function Readings() {
         description: 'A leitura foi excluída com sucesso.',
       });
       loadData();
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: 'Erro ao excluir leitura',
-        description: 'Não foi possível excluir a leitura.',
+        description: error.message,
         variant: 'destructive',
       });
     }
   };
 
-  const openEditDialog = (reading: Reading) => {
-    setSelectedReading(reading);
-    setFormData({
-      book: reading.book,
-      pages_read: reading.pages_read,
-      reading_date: reading.reading_date,
-      reading_time: reading.reading_time,
-      notes: reading.notes || '',
-      owner: reading.owner,
-    });
-    setIsEditDialogOpen(true);
+  const handleSubmit = async (data: ReadingFormData) => {
+    try {
+      setIsSubmitting(true);
+      if (selectedReading) {
+        await readingsService.update(selectedReading.id, data);
+        toast({
+          title: 'Leitura atualizada',
+          description: 'A leitura foi atualizada com sucesso.',
+        });
+      } else {
+        await readingsService.create(data);
+        toast({
+          title: 'Leitura registrada',
+          description: 'A leitura foi registrada com sucesso.',
+        });
+      }
+      setIsDialogOpen(false);
+      loadData();
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao salvar',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const filteredReadings = readings.filter(
@@ -164,105 +128,21 @@ export default function Readings() {
       (reading.notes && reading.notes.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  const getBookMaxPages = (bookId: number): number => {
-    const book = books.find((b) => b.id === bookId);
-    return book?.pages || 1;
-  };
-
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+    return <LoadingState />;
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Leituras</h1>
-          <p className="text-muted-foreground">Acompanhe seu progresso de leitura</p>
-        </div>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Nova Leitura
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <form onSubmit={handleCreate}>
-              <DialogHeader>
-                <DialogTitle>Registrar Nova Leitura</DialogTitle>
-                <DialogDescription>Registre o progresso de leitura de um livro.</DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="book">Livro *</Label>
-                  <Select
-                    value={formData.book.toString()}
-                    onValueChange={(value) => setFormData({ ...formData, book: parseInt(value) })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione um livro" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {books.map((book) => (
-                        <SelectItem key={book.id} value={book.id.toString()}>
-                          {book.title} ({book.pages} páginas)
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="pages_read">Páginas Lidas *</Label>
-                  <Input
-                    id="pages_read"
-                    type="number"
-                    min="1"
-                    max={formData.book ? getBookMaxPages(formData.book) : undefined}
-                    value={formData.pages_read}
-                    onChange={(e) =>
-                      setFormData({ ...formData, pages_read: parseInt(e.target.value) })
-                    }
-                    required
-                  />
-                  {formData.book > 0 && (
-                    <p className="text-xs text-muted-foreground">
-                      Máximo: {getBookMaxPages(formData.book)} páginas
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="reading_date">Data da Leitura *</Label>
-                  <Input
-                    id="reading_date"
-                    type="date"
-                    value={formData.reading_date}
-                    onChange={(e) => setFormData({ ...formData, reading_date: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="notes">Anotações</Label>
-                  <Textarea
-                    id="notes"
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    rows={4}
-                    placeholder="Anotações sobre esta sessão de leitura..."
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button type="submit">Registrar Leitura</Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
+      <PageHeader
+        title="Leituras"
+        description="Acompanhe seu progresso de leitura"
+        action={{
+          label: 'Nova Leitura',
+          icon: <Plus className="h-4 w-4" />,
+          onClick: handleCreate,
+        }}
+      />
 
       <div className="flex items-center gap-4">
         <div className="relative flex-1">
@@ -287,7 +167,7 @@ export default function Readings() {
                 : 'Comece registrando sua primeira leitura'}
             </p>
             {!searchTerm && (
-              <Button onClick={() => setIsCreateDialogOpen(true)}>
+              <Button onClick={handleCreate}>
                 <Plus className="w-4 h-4 mr-2" />
                 Registrar Leitura
               </Button>
@@ -308,7 +188,7 @@ export default function Readings() {
                     <div className="flex items-center gap-3 text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Calendar className="w-4 h-4" />
-                        {new Date(reading.reading_date).toLocaleDateString('pt-BR')}
+                        {formatDate(reading.reading_date, 'dd/MM/yyyy')}
                       </div>
                       <Badge variant="secondary">
                         {reading.pages_read} páginas lidas
@@ -319,7 +199,7 @@ export default function Readings() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => openEditDialog(reading)}
+                      onClick={() => handleEdit(reading)}
                     >
                       <Edit className="w-4 h-4" />
                     </Button>
@@ -345,76 +225,25 @@ export default function Readings() {
         </div>
       )}
 
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
-          <form onSubmit={handleEdit}>
-            <DialogHeader>
-              <DialogTitle>Editar Leitura</DialogTitle>
-              <DialogDescription>Atualize as informações da leitura.</DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-book">Livro *</Label>
-                <Select
-                  value={formData.book.toString()}
-                  onValueChange={(value) => setFormData({ ...formData, book: parseInt(value) })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {books.map((book) => (
-                      <SelectItem key={book.id} value={book.id.toString()}>
-                        {book.title} ({book.pages} páginas)
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-pages_read">Páginas Lidas *</Label>
-                <Input
-                  id="edit-pages_read"
-                  type="number"
-                  min="1"
-                  max={formData.book ? getBookMaxPages(formData.book) : undefined}
-                  value={formData.pages_read}
-                  onChange={(e) =>
-                    setFormData({ ...formData, pages_read: parseInt(e.target.value) })
-                  }
-                  required
-                />
-                {formData.book > 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    Máximo: {getBookMaxPages(formData.book)} páginas
-                  </p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-reading_date">Data da Leitura *</Label>
-                <Input
-                  id="edit-reading_date"
-                  type="date"
-                  value={formData.reading_date}
-                  onChange={(e) => setFormData({ ...formData, reading_date: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-notes">Anotações</Label>
-                <Textarea
-                  id="edit-notes"
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  rows={4}
-                  placeholder="Anotações sobre esta sessão de leitura..."
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="submit">Salvar Alterações</Button>
-            </DialogFooter>
-          </form>
+          <DialogHeader>
+            <DialogTitle>
+              {selectedReading ? 'Editar' : 'Registrar'} Leitura
+            </DialogTitle>
+            <DialogDescription>
+              {selectedReading
+                ? 'Atualize as informações da leitura'
+                : 'Registre o progresso de leitura de um livro'}
+            </DialogDescription>
+          </DialogHeader>
+          <ReadingForm
+            reading={selectedReading}
+            books={books}
+            onSubmit={handleSubmit}
+            onCancel={() => setIsDialogOpen(false)}
+            isLoading={isSubmitting}
+          />
         </DialogContent>
       </Dialog>
     </div>

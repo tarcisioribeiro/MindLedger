@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, Loader2, Filter, CreditCard as CreditCardIcon } from 'lucide-react';
+import { Plus, Pencil, Trash2, Filter, CreditCard as CreditCardIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -10,8 +10,10 @@ import { creditCardsService } from '@/services/credit-cards-service';
 import { useToast } from '@/hooks/use-toast';
 import { useAlertDialog } from '@/hooks/use-alert-dialog';
 import { translate, TRANSLATIONS } from '@/config/constants';
+import { formatCurrency, formatDate } from '@/lib/formatters';
+import { PageHeader } from '@/components/common/PageHeader';
+import { DataTable, type Column } from '@/components/common/DataTable';
 import type { CreditCardBill, CreditCardBillFormData, CreditCard } from '@/types';
-import { format } from 'date-fns';
 
 export default function CreditCardBills() {
   const [bills, setBills] = useState<CreditCardBill[]>([]);
@@ -116,13 +118,8 @@ export default function CreditCardBills() {
     }
   };
 
-  const formatCurrency = (value: string | number) => {
-    const num = typeof value === 'string' ? parseFloat(value) : value;
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(num);
-  };
-
   const getCardName = (cardId: number) => {
-    const card = creditCards.find(c => c.id === cardId);
+    const card = creditCards.find((c) => c.id === cardId);
     if (card) {
       const last4 = card.card_number_masked ? card.card_number_masked.slice(-4) : '****';
       return `${card.on_card_name} ****${last4}`;
@@ -130,20 +127,90 @@ export default function CreditCardBills() {
     return 'N/A';
   };
 
+  const handleEdit = (bill: CreditCardBill) => {
+    setSelectedBill(bill);
+    setIsDialogOpen(true);
+  };
+
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 5 }, (_, i) => (currentYear - 2 + i).toString());
 
+  // Definir colunas da tabela
+  const columns: Column<CreditCardBill>[] = [
+    {
+      key: 'credit_card',
+      label: 'Cartão',
+      render: (bill) => (
+        <div className="flex items-center gap-2">
+          <CreditCardIcon className="w-4 h-4 text-muted-foreground" />
+          <span className="font-medium">{getCardName(bill.credit_card)}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'period',
+      label: 'Período',
+      render: (bill) => `${translate('months', bill.month)}/${bill.year}`,
+    },
+    {
+      key: 'total_amount',
+      label: 'Valor Total',
+      align: 'right',
+      render: (bill) => (
+        <span className="font-semibold">{formatCurrency(bill.total_amount)}</span>
+      ),
+    },
+    {
+      key: 'paid_amount',
+      label: 'Pago',
+      align: 'right',
+      render: (bill) => (
+        <span className="font-semibold text-green-600 dark:text-green-400">
+          {formatCurrency(bill.paid_amount)}
+        </span>
+      ),
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (bill) => (
+        <Badge
+          variant={
+            bill.status === 'paid'
+              ? 'success'
+              : bill.status === 'overdue'
+              ? 'destructive'
+              : bill.status === 'closed'
+              ? 'secondary'
+              : 'default'
+          }
+        >
+          {translate('billStatus', bill.status)}
+        </Badge>
+      ),
+    },
+    {
+      key: 'due_date',
+      label: 'Vencimento',
+      render: (bill) => (
+        <span className="text-sm text-muted-foreground">
+          {bill.due_date ? formatDate(bill.due_date) : 'N/A'}
+        </span>
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Faturas de Cartão</h1>
-          <p className="text-muted-foreground mt-2">Gerencie suas faturas de cartão de crédito</p>
-        </div>
-        <Button onClick={handleCreate} className="gap-2">
-          <Plus className="w-4 h-4" />Nova Fatura
-        </Button>
-      </div>
+      <PageHeader
+        title="Faturas de Cartão"
+        description="Gerencie suas faturas de cartão de crédito"
+        action={{
+          label: 'Nova Fatura',
+          icon: <Plus className="w-4 h-4" />,
+          onClick: handleCreate,
+        }}
+      />
 
       <div className="bg-card border rounded-xl p-4 space-y-4">
         <div className="flex items-center gap-2">
@@ -152,102 +219,71 @@ export default function CreditCardBills() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Select value={cardFilter} onValueChange={setCardFilter}>
-            <SelectTrigger><SelectValue placeholder="Todos os Cartões" /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue placeholder="Todos os Cartões" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos os Cartões</SelectItem>
               {creditCards.map((c) => (
-                <SelectItem key={c.id} value={c.id.toString()}>{c.on_card_name || c.card_number_masked}</SelectItem>
+                <SelectItem key={c.id} value={c.id.toString()}>
+                  {c.on_card_name || c.card_number_masked}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger><SelectValue placeholder="Todos os Status" /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue placeholder="Todos os Status" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos os Status</SelectItem>
               {Object.entries(TRANSLATIONS.billStatus).map(([k, v]) => (
-                <SelectItem key={k} value={k}>{v}</SelectItem>
+                <SelectItem key={k} value={k}>
+                  {v}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
           <Select value={yearFilter} onValueChange={setYearFilter}>
-            <SelectTrigger><SelectValue placeholder="Todos os Anos" /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue placeholder="Todos os Anos" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos os Anos</SelectItem>
-              {years.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+              {years.map((y) => (
+                <SelectItem key={y} value={y}>
+                  {y}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
         <div className="flex justify-between items-center pt-2 border-t">
-          <span className="text-sm text-muted-foreground">{filteredBills.length} fatura(s) encontrada(s)</span>
+          <span className="text-sm text-muted-foreground">
+            {filteredBills.length} fatura(s) encontrada(s)
+          </span>
         </div>
       </div>
 
-      {isLoading ? (
-        <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
-      ) : filteredBills.length === 0 ? (
-        <div className="bg-card border rounded-xl p-12 text-center">
-          <p className="text-muted-foreground">Nenhuma fatura encontrada.</p>
-        </div>
-      ) : (
-        <div className="bg-card border rounded-xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-muted/50 border-b">
-                <tr>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Cartão</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Período</th>
-                  <th className="px-6 py-4 text-right text-sm font-semibold">Valor Total</th>
-                  <th className="px-6 py-4 text-right text-sm font-semibold">Pago</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Status</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Vencimento</th>
-                  <th className="px-6 py-4 text-right text-sm font-semibold">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {filteredBills.map((bill) => (
-                  <tr key={bill.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <CreditCardIcon className="w-4 h-4 text-muted-foreground" />
-                        <span className="font-medium">{getCardName(bill.credit_card)}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      {translate('months', bill.month)}/{bill.year}
-                    </td>
-                    <td className="px-6 py-4 text-right font-semibold">{formatCurrency(bill.total_amount)}</td>
-                    <td className="px-6 py-4 text-right font-semibold text-green-600 dark:text-green-400">
-                      {formatCurrency(bill.paid_amount)}
-                    </td>
-                    <td className="px-6 py-4">
-                      <Badge variant={
-                        bill.status === 'paid' ? 'success' :
-                        bill.status === 'overdue' ? 'destructive' :
-                        bill.status === 'closed' ? 'secondary' : 'default'
-                      }>
-                        {translate('billStatus', bill.status)}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-muted-foreground">
-                      {bill.due_date ? format(new Date(bill.due_date), 'dd/MM/yyyy') : 'N/A'}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => { setSelectedBill(bill); setIsDialogOpen(true); }}>
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(bill.id)}>
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <DataTable
+        data={filteredBills}
+        columns={columns}
+        keyExtractor={(bill) => bill.id}
+        isLoading={isLoading}
+        emptyState={{
+          message: 'Nenhuma fatura encontrada.',
+        }}
+        actions={(bill) => (
+          <div className="flex items-center justify-end gap-2">
+            <Button variant="ghost" size="icon" onClick={() => handleEdit(bill)}>
+              <Pencil className="w-4 h-4" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => handleDelete(bill.id)}>
+              <Trash2 className="w-4 h-4 text-destructive" />
+            </Button>
           </div>
-        </div>
-      )}
+        )}
+      />
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">

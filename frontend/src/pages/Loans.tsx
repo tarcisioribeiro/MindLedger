@@ -25,8 +25,10 @@ import { membersService } from '@/services/members-service';
 import { useToast } from '@/hooks/use-toast';
 import { useAlertDialog } from '@/hooks/use-alert-dialog';
 import { translate } from '@/config/constants';
+import { formatCurrency, formatDate } from '@/lib/formatters';
+import { PageHeader } from '@/components/common/PageHeader';
+import { LoadingState } from '@/components/common/LoadingState';
 import type { Loan, LoanFormData, Account, Member } from '@/types';
-import { format, parseISO } from 'date-fns';
 
 const EXPENSE_CATEGORIES = [
   'food and drink', 'bills and services', 'electronics', 'family and friends',
@@ -219,25 +221,20 @@ export default function Loans() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <LoadingState />;
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Empréstimos</h1>
-          <p className="text-muted-foreground">Gerencie seus empréstimos</p>
-        </div>
-        <Button onClick={handleCreate}>
-          <Plus className="w-4 h-4 mr-2" />
-          Novo Empréstimo
-        </Button>
-      </div>
+      <PageHeader
+        title="Empréstimos"
+        description="Gerencie seus empréstimos"
+        action={{
+          label: 'Novo Empréstimo',
+          icon: <Plus className="w-4 h-4" />,
+          onClick: handleCreate,
+        }}
+      />
 
       <div className="flex gap-4">
         <Input
@@ -273,16 +270,16 @@ export default function Loans() {
               <div className="space-y-1 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Valor Total:</span>
-                  <span className="font-medium">R$ {parseFloat(loan.value).toFixed(2)}</span>
+                  <span className="font-medium">{formatCurrency(loan.value)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Valor Pago:</span>
-                  <span className="font-medium">R$ {parseFloat(loan.payed_value).toFixed(2)}</span>
+                  <span className="font-medium">{formatCurrency(loan.payed_value)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Saldo:</span>
                   <span className="font-medium text-destructive">
-                    R$ {(parseFloat(loan.value) - parseFloat(loan.payed_value)).toFixed(2)}
+                    {formatCurrency(parseFloat(loan.value) - parseFloat(loan.payed_value))}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -301,7 +298,7 @@ export default function Loans() {
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Vencimento:</span>
                     <span className="font-medium">
-                      {format(parseISO(loan.due_date), 'dd/MM/yyyy')}
+                      {formatDate(loan.due_date, 'dd/MM/yyyy')}
                     </span>
                   </div>
                 )}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -9,8 +9,11 @@ import { accountsService } from '@/services/accounts-service';
 import { useToast } from '@/hooks/use-toast';
 import { useAlertDialog } from '@/hooks/use-alert-dialog';
 import { translate } from '@/config/constants';
+import { formatCurrency, formatDateTime } from '@/lib/formatters';
+import { sumByProperty } from '@/lib/helpers';
+import { PageHeader } from '@/components/common/PageHeader';
+import { DataTable, type Column } from '@/components/common/DataTable';
 import type { Revenue, RevenueFormData, Account } from '@/types';
-import { format } from 'date-fns';
 
 export default function Revenues() {
   const [revenues, setRevenues] = useState<Revenue[]>([]);
@@ -92,73 +95,91 @@ export default function Revenues() {
     }
   };
 
-  const formatCurrency = (value: string | number) => {
-    const num = typeof value === 'string' ? parseFloat(value) : value;
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(num);
+  const totalRevenues = sumByProperty(
+    revenues.map((r) => ({ value: parseFloat(r.value) })),
+    'value'
+  );
+
+  const handleEdit = (revenue: Revenue) => {
+    setSelectedRevenue(revenue);
+    setIsDialogOpen(true);
   };
 
-  const totalRevenues = revenues.reduce((sum, rev) => sum + parseFloat(rev.value), 0);
+  // Definir colunas da tabela
+  const columns: Column<Revenue>[] = [
+    {
+      key: 'description',
+      label: 'Descrição',
+      render: (revenue) => <div className="font-medium">{revenue.description}</div>,
+    },
+    {
+      key: 'value',
+      label: 'Valor',
+      align: 'right',
+      render: (revenue) => (
+        <span className="font-semibold text-green-600 dark:text-green-400">
+          {formatCurrency(revenue.value)}
+        </span>
+      ),
+    },
+    {
+      key: 'category',
+      label: 'Categoria',
+      render: (revenue) => (
+        <Badge variant="success">{translate('revenueCategories', revenue.category)}</Badge>
+      ),
+    },
+    {
+      key: 'date',
+      label: 'Data',
+      render: (revenue) => (
+        <span className="text-sm text-muted-foreground">
+          {formatDateTime(revenue.date, revenue.horary)}
+        </span>
+      ),
+    },
+  ];
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Receitas</h1>
-          <p className="text-muted-foreground mt-2">Acompanhe suas receitas</p>
-        </div>
-        <Button onClick={handleCreate} className="gap-2">
-          <Plus className="w-4 h-4" />Nova Receita
-        </Button>
-      </div>
+      <PageHeader
+        title="Receitas"
+        description="Acompanhe suas receitas"
+        action={{
+          label: 'Nova Receita',
+          icon: <Plus className="w-4 h-4" />,
+          onClick: handleCreate,
+        }}
+      />
 
       <div className="bg-card border rounded-xl p-4 flex justify-between items-center">
-        <span className="text-sm text-muted-foreground">{revenues.length} receita(s) cadastrada(s)</span>
-        <span className="text-lg font-bold text-green-600 dark:text-green-400">Total: {formatCurrency(totalRevenues)}</span>
+        <span className="text-sm text-muted-foreground">
+          {revenues.length} receita(s) cadastrada(s)
+        </span>
+        <span className="text-lg font-bold text-green-600 dark:text-green-400">
+          Total: {formatCurrency(totalRevenues)}
+        </span>
       </div>
 
-      {isLoading ? (
-        <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
-      ) : revenues.length === 0 ? (
-        <div className="bg-card border rounded-xl p-12 text-center">
-          <p className="text-muted-foreground">Nenhuma receita cadastrada.</p>
-        </div>
-      ) : (
-        <div className="bg-card border rounded-xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-muted/50 border-b">
-                <tr>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Descrição</th>
-                  <th className="px-6 py-4 text-right text-sm font-semibold">Valor</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Categoria</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Data</th>
-                  <th className="px-6 py-4 text-right text-sm font-semibold">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {revenues.map((revenue) => (
-                  <tr key={revenue.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-6 py-4"><div className="font-medium">{revenue.description}</div></td>
-                    <td className="px-6 py-4 text-right font-semibold text-green-600 dark:text-green-400">{formatCurrency(revenue.value)}</td>
-                    <td className="px-6 py-4"><Badge variant="success">{translate('revenueCategories', revenue.category)}</Badge></td>
-                    <td className="px-6 py-4 text-sm text-muted-foreground">{format(new Date(revenue.date + 'T' + revenue.horary), 'dd/MM/yyyy HH:mm')}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => { setSelectedRevenue(revenue); setIsDialogOpen(true); }}>
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(revenue.id)}>
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <DataTable
+        data={revenues}
+        columns={columns}
+        keyExtractor={(revenue) => revenue.id}
+        isLoading={isLoading}
+        emptyState={{
+          message: 'Nenhuma receita cadastrada.',
+        }}
+        actions={(revenue) => (
+          <div className="flex items-center justify-end gap-2">
+            <Button variant="ghost" size="icon" onClick={() => handleEdit(revenue)}>
+              <Pencil className="w-4 h-4" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => handleDelete(revenue.id)}>
+              <Trash2 className="w-4 h-4 text-destructive" />
+            </Button>
           </div>
-        </div>
-      )}
+        )}
+      />
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl">

@@ -438,6 +438,7 @@ export interface StoredCreditCard {
   uuid: string;
   name: string;
   card_number_masked: string;
+  last_four_digits?: string;
   cardholder_name: string;
   expiration_month: number;
   expiration_year: number;
@@ -483,6 +484,7 @@ export interface StoredBankAccount {
   institution_name: string;
   account_type: string;
   account_type_display: string;
+  account_number?: string;
   account_number_masked: string;
   agency?: string;
   notes?: string;
@@ -514,6 +516,7 @@ export interface StoredBankAccountReveal {
   account_number: string;
   agency?: string;
   password?: string;
+  password2?: string;
   digital_password?: string;
 }
 
@@ -526,6 +529,8 @@ export interface Archive {
   category_display: string;
   archive_type: string;
   archive_type_display: string;
+  text_content?: string;
+  file_name?: string;
   file_size?: number;
   notes?: string;
   tags?: string;
@@ -680,6 +685,7 @@ export interface Book {
   id: number;
   uuid: string;
   title: string;
+  authors?: number[];
   authors_names: string[];
   pages: number;
   publisher: number;

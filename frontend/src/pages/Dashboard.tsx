@@ -1,11 +1,14 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Wallet, TrendingDown, TrendingUp, CreditCard, Loader2 } from 'lucide-react';
+import { Wallet, TrendingDown, TrendingUp, CreditCard } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { dashboardService } from '@/services/dashboard-service';
 import { expensesService } from '@/services/expenses-service';
 import { revenuesService } from '@/services/revenues-service';
 import { useToast } from '@/hooks/use-toast';
 import { translate } from '@/config/constants';
+import { formatCurrency } from '@/lib/formatters';
+import { PageHeader } from '@/components/common/PageHeader';
+import { LoadingState } from '@/components/common/LoadingState';
 import type { DashboardStats, Expense, Revenue } from '@/types';
 import { Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { format, subMonths, startOfMonth, endOfMonth, eachMonthOfInterval } from 'date-fns';
@@ -39,8 +42,6 @@ export default function Dashboard() {
       setIsLoading(false);
     }
   };
-
-  const formatCurrency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
   // Memoize cálculos pesados para evitar re-renders desnecessários
   const expensesByCategory = useMemo(() => {
@@ -80,15 +81,15 @@ export default function Dashboard() {
   const COLORS = ['#bd93f9', '#ff79c6', '#8be9fd', '#50fa7b', '#ffb86c', '#ff5555'];
 
   if (isLoading) {
-    return <div className="flex items-center justify-center h-screen"><Loader2 className="w-12 h-12 animate-spin text-primary" /></div>;
+    return <LoadingState fullScreen />;
   }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground mt-2">Visão geral das suas finanças</p>
-      </div>
+      <PageHeader
+        title="Dashboard"
+        description="Visão geral das suas finanças"
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -9,8 +9,10 @@ import { accountsService } from '@/services/accounts-service';
 import { useToast } from '@/hooks/use-toast';
 import { useAlertDialog } from '@/hooks/use-alert-dialog';
 import { translate } from '@/config/constants';
+import { formatCurrency, formatDate } from '@/lib/formatters';
+import { PageHeader } from '@/components/common/PageHeader';
+import { DataTable, type Column } from '@/components/common/DataTable';
 import type { Transfer, TransferFormData, Account } from '@/types';
-import { format } from 'date-fns';
 
 export default function Transfers() {
   const [transfers, setTransfers] = useState<Transfer[]>([]);
@@ -92,68 +94,84 @@ export default function Transfers() {
     }
   };
 
-  const formatCurrency = (value: string | number) => {
-    const num = typeof value === 'string' ? parseFloat(value) : value;
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(num);
+  const handleEdit = (transfer: Transfer) => {
+    setSelectedTransfer(transfer);
+    setIsDialogOpen(true);
   };
+
+  // Definir colunas da tabela
+  const columns: Column<Transfer>[] = [
+    {
+      key: 'description',
+      label: 'Descrição',
+      render: (transfer) => <div className="font-medium">{transfer.description}</div>,
+    },
+    {
+      key: 'value',
+      label: 'Valor',
+      align: 'right',
+      render: (transfer) => (
+        <span className="font-semibold">{formatCurrency(transfer.value)}</span>
+      ),
+    },
+    {
+      key: 'category',
+      label: 'Tipo',
+      render: (transfer) => (
+        <Badge>{translate('transferTypes', transfer.category)}</Badge>
+      ),
+    },
+    {
+      key: 'accounts',
+      label: 'Origem → Destino',
+      render: (transfer) => (
+        <span className="text-sm">
+          {transfer.origin_account_name} → {transfer.destiny_account_name}
+        </span>
+      ),
+    },
+    {
+      key: 'date',
+      label: 'Data',
+      render: (transfer) => (
+        <span className="text-sm text-muted-foreground">
+          {formatDate(transfer.date)} às {transfer.horary}
+        </span>
+      ),
+    },
+  ];
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Transferências</h1>
-          <p className="text-muted-foreground mt-2">Histórico de transferências</p>
-        </div>
-        <Button onClick={handleCreate} className="gap-2">
-          <Plus className="w-4 h-4" />Nova Transferência
-        </Button>
-      </div>
+      <PageHeader
+        title="Transferências"
+        description="Histórico de transferências"
+        action={{
+          label: 'Nova Transferência',
+          icon: <Plus className="w-4 h-4" />,
+          onClick: handleCreate,
+        }}
+      />
 
-      {isLoading ? (
-        <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
-      ) : transfers.length === 0 ? (
-        <div className="bg-card border rounded-xl p-12 text-center">
-          <p className="text-muted-foreground">Nenhuma transferência cadastrada.</p>
-        </div>
-      ) : (
-        <div className="bg-card border rounded-xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-muted/50 border-b">
-                <tr>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Descrição</th>
-                  <th className="px-6 py-4 text-right text-sm font-semibold">Valor</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Tipo</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Origem → Destino</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Data</th>
-                  <th className="px-6 py-4 text-right text-sm font-semibold">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {transfers.map((transfer) => (
-                  <tr key={transfer.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-6 py-4"><div className="font-medium">{transfer.description}</div></td>
-                    <td className="px-6 py-4 text-right font-semibold">{formatCurrency(transfer.value)}</td>
-                    <td className="px-6 py-4"><Badge>{translate('transferTypes', transfer.category)}</Badge></td>
-                    <td className="px-6 py-4 text-sm">{transfer.origin_account_name} → {transfer.destiny_account_name}</td>
-                    <td className="px-6 py-4 text-sm text-muted-foreground">{format(new Date(transfer.date), 'dd/MM/yyyy')} às {transfer.horary}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => { setSelectedTransfer(transfer); setIsDialogOpen(true); }}>
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(transfer.id)}>
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <DataTable
+        data={transfers}
+        columns={columns}
+        keyExtractor={(transfer) => transfer.id}
+        isLoading={isLoading}
+        emptyState={{
+          message: 'Nenhuma transferência cadastrada.',
+        }}
+        actions={(transfer) => (
+          <div className="flex items-center justify-end gap-2">
+            <Button variant="ghost" size="icon" onClick={() => handleEdit(transfer)}>
+              <Pencil className="w-4 h-4" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => handleDelete(transfer.id)}>
+              <Trash2 className="w-4 h-4 text-destructive" />
+            </Button>
           </div>
-        </div>
-      )}
+        )}
+      />
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl">

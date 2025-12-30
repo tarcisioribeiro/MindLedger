@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -9,6 +9,10 @@ import { accountsService } from '@/services/accounts-service';
 import { useToast } from '@/hooks/use-toast';
 import { useAlertDialog } from '@/hooks/use-alert-dialog';
 import { translate } from '@/config/constants';
+import { formatCurrency } from '@/lib/formatters';
+import { sumByProperty } from '@/lib/helpers';
+import { PageHeader } from '@/components/common/PageHeader';
+import { DataTable, type Column } from '@/components/common/DataTable';
 import type { CreditCard, CreditCardFormData, Account } from '@/types';
 
 export default function CreditCards() {
@@ -93,75 +97,91 @@ export default function CreditCards() {
     }
   };
 
-  const formatCurrency = (value: string | number) => {
-    const num = typeof value === 'string' ? parseFloat(value) : value;
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(num);
+  const totalLimit = sumByProperty(
+    creditCards.map((c) => ({ value: parseFloat(c.credit_limit) })),
+    'value'
+  );
+
+  const handleEdit = (card: CreditCard) => {
+    setSelectedCard(card);
+    setIsDialogOpen(true);
   };
 
-  const totalLimit = creditCards.reduce((sum, card) => sum + parseFloat(card.credit_limit), 0);
+  // Definir colunas da tabela
+  const columns: Column<CreditCard>[] = [
+    {
+      key: 'name',
+      label: 'Cartão',
+      render: (card) => <div className="font-medium">{card.name}</div>,
+    },
+    {
+      key: 'flag',
+      label: 'Bandeira',
+      render: (card) => <Badge>{translate('cardBrands', card.flag)}</Badge>,
+    },
+    {
+      key: 'card_number_masked',
+      label: 'Número',
+      render: (card) => (
+        <span className="font-mono text-sm">
+          {card.card_number_masked ? `******* ${card.card_number_masked.slice(-4)}` : 'N/A'}
+        </span>
+      ),
+    },
+    {
+      key: 'credit_limit',
+      label: 'Limite',
+      align: 'right',
+      render: (card) => (
+        <span className="font-semibold">{formatCurrency(card.credit_limit)}</span>
+      ),
+    },
+    {
+      key: 'due_day',
+      label: 'Vencimento',
+      align: 'center',
+      render: (card) => <span className="text-sm">Dia {card.due_day}</span>,
+    },
+  ];
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Cartões de Crédito</h1>
-          <p className="text-muted-foreground mt-2">Gerencie seus cartões de crédito</p>
-        </div>
-        <Button onClick={handleCreate} className="gap-2">
-          <Plus className="w-4 h-4" />Novo Cartão
-        </Button>
-      </div>
+      <PageHeader
+        title="Cartões de Crédito"
+        description="Gerencie seus cartões de crédito"
+        action={{
+          label: 'Novo Cartão',
+          icon: <Plus className="w-4 h-4" />,
+          onClick: handleCreate,
+        }}
+      />
 
       <div className="bg-card border rounded-xl p-4 flex justify-between items-center">
-        <span className="text-sm text-muted-foreground">{creditCards.length} cartão(ões) cadastrado(s)</span>
+        <span className="text-sm text-muted-foreground">
+          {creditCards.length} cartão(ões) cadastrado(s)
+        </span>
         <span className="text-lg font-bold">Limite Total: {formatCurrency(totalLimit)}</span>
       </div>
 
-      {isLoading ? (
-        <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
-      ) : creditCards.length === 0 ? (
-        <div className="bg-card border rounded-xl p-12 text-center">
-          <p className="text-muted-foreground">Nenhum cartão cadastrado.</p>
-        </div>
-      ) : (
-        <div className="bg-card border rounded-xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-muted/50 border-b">
-                <tr>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Cartão</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Bandeira</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Número</th>
-                  <th className="px-6 py-4 text-right text-sm font-semibold">Limite</th>
-                  <th className="px-6 py-4 text-center text-sm font-semibold">Vencimento</th>
-                  <th className="px-6 py-4 text-right text-sm font-semibold">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {creditCards.map((card) => (
-                  <tr key={card.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-6 py-4"><div className="font-medium">{card.name}</div></td>
-                    <td className="px-6 py-4"><Badge>{translate('cardBrands', card.flag)}</Badge></td>
-                    <td className="px-6 py-4 font-mono text-sm">{card.card_number_masked ? `******* ${card.card_number_masked.slice(-4)}` : 'N/A'}</td>
-                    <td className="px-6 py-4 text-right font-semibold">{formatCurrency(card.credit_limit)}</td>
-                    <td className="px-6 py-4 text-center text-sm">Dia {card.due_day}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => { setSelectedCard(card); setIsDialogOpen(true); }}>
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(card.id)}>
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <DataTable
+        data={creditCards}
+        columns={columns}
+        keyExtractor={(card) => card.id}
+        isLoading={isLoading}
+        emptyState={{
+          message: 'Nenhum cartão cadastrado.',
+        }}
+        actions={(card) => (
+          <div className="flex items-center justify-end gap-2">
+            <Button variant="ghost" size="icon" onClick={() => handleEdit(card)}>
+              <Pencil className="w-4 h-4" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => handleDelete(card.id)}>
+              <Trash2 className="w-4 h-4 text-destructive" />
+            </Button>
           </div>
-        </div>
-      )}
+        )}
+      />
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl">

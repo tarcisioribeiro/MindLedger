@@ -27,6 +27,13 @@ class ArchivesService {
   async reveal(id: number): Promise<ArchiveReveal> {
     return apiClient.get<ArchiveReveal>(`${API_CONFIG.ENDPOINTS.ARCHIVES}${id}/reveal/`);
   }
+
+  async download(id: number): Promise<Blob> {
+    const response = await apiClient.get(`${API_CONFIG.ENDPOINTS.ARCHIVES}${id}/download/`, {
+      responseType: 'blob',
+    });
+    return response as unknown as Blob;
+  }
 }
 
 export const archivesService = new ArchivesService();

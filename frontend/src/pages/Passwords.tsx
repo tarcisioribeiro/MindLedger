@@ -30,10 +30,11 @@ import { passwordsService } from '@/services/passwords-service';
 import { membersService } from '@/services/members-service';
 import { useToast } from '@/hooks/use-toast';
 import { useAlertDialog } from '@/hooks/use-alert-dialog';
+import { formatDate } from '@/lib/formatters';
+import { PageHeader } from '@/components/common/PageHeader';
+import { LoadingState } from '@/components/common/LoadingState';
 import type { Password, PasswordFormData, Member } from '@/types';
 import { PASSWORD_CATEGORIES } from '@/types';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 
 export default function Passwords() {
   const [passwords, setPasswords] = useState<Password[]>([]);
@@ -232,27 +233,20 @@ export default function Passwords() {
   );
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <LoadingState />;
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Senhas</h1>
-          <p className="text-muted-foreground">
-            Gerencie suas senhas de forma segura e criptografada
-          </p>
-        </div>
-        <Button onClick={handleCreate}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nova Senha
-        </Button>
-      </div>
+      <PageHeader
+        title="Senhas"
+        description="Gerencie suas senhas de forma segura e criptografada"
+        action={{
+          label: 'Nova Senha',
+          icon: <Plus className="h-4 w-4" />,
+          onClick: handleCreate,
+        }}
+      />
 
       <div className="flex gap-4">
         <Input
@@ -345,10 +339,7 @@ export default function Passwords() {
                 </div>
 
                 <div className="text-xs text-muted-foreground">
-                  Atualizado em{' '}
-                  {format(new Date(password.updated_at), "dd/MM/yyyy 'às' HH:mm", {
-                    locale: ptBR,
-                  })}
+                  Atualizado em {formatDate(password.updated_at, 'dd/MM/yyyy HH:mm')}
                 </div>
               </div>
             </CardContent>
