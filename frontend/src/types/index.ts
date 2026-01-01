@@ -862,3 +862,241 @@ export interface ChatMessage {
   timestamp: Date;
   sources?: AISource[];
 }
+
+// ============================================================================
+// PERSONAL PLANNING MODULE TYPES
+// ============================================================================
+
+// Task Category Choices
+export const TASK_CATEGORIES = [
+  { value: 'health', label: 'Saude' },
+  { value: 'studies', label: 'Estudos' },
+  { value: 'spiritual', label: 'Espiritual' },
+  { value: 'exercise', label: 'Exercicio Fisico' },
+  { value: 'nutrition', label: 'Nutricao' },
+  { value: 'meditation', label: 'Meditacao' },
+  { value: 'reading', label: 'Leitura' },
+  { value: 'writing', label: 'Escrita' },
+  { value: 'work', label: 'Trabalho' },
+  { value: 'leisure', label: 'Lazer' },
+  { value: 'family', label: 'Familia' },
+  { value: 'social', label: 'Social' },
+  { value: 'finance', label: 'Financas' },
+  { value: 'household', label: 'Casa' },
+  { value: 'personal_care', label: 'Cuidado Pessoal' },
+  { value: 'other', label: 'Outros' }
+] as const;
+
+export const PERIODICITY_CHOICES = [
+  { value: 'daily', label: 'Diaria' },
+  { value: 'weekly', label: 'Semanal' },
+  { value: 'monthly', label: 'Mensal' }
+] as const;
+
+export const WEEKDAY_CHOICES = [
+  { value: 0, label: 'Segunda-feira' },
+  { value: 1, label: 'Terca-feira' },
+  { value: 2, label: 'Quarta-feira' },
+  { value: 3, label: 'Quinta-feira' },
+  { value: 4, label: 'Sexta-feira' },
+  { value: 5, label: 'Sabado' },
+  { value: 6, label: 'Domingo' }
+] as const;
+
+export const GOAL_TYPE_CHOICES = [
+  { value: 'consecutive_days', label: 'Dias Consecutivos' },
+  { value: 'total_days', label: 'Total de Dias' },
+  { value: 'avoid_habit', label: 'Evitar Habito' },
+  { value: 'custom', label: 'Personalizado' }
+] as const;
+
+export const GOAL_STATUS_CHOICES = [
+  { value: 'active', label: 'Ativo' },
+  { value: 'completed', label: 'Concluido' },
+  { value: 'failed', label: 'Falhou' },
+  { value: 'cancelled', label: 'Cancelado' }
+] as const;
+
+export const MOOD_CHOICES = [
+  { value: 'excellent', label: 'Excelente' },
+  { value: 'good', label: 'Bom' },
+  { value: 'neutral', label: 'Neutro' },
+  { value: 'bad', label: 'Ruim' },
+  { value: 'terrible', label: 'Pessimo' }
+] as const;
+
+// Routine Task Types
+export interface RoutineTask {
+  id: number;
+  uuid: string;
+  name: string;
+  description?: string;
+  category: string;
+  category_display: string;
+  periodicity: string;
+  periodicity_display: string;
+  weekday?: number;
+  weekday_display?: string;
+  day_of_month?: number;
+  is_active: boolean;
+  target_quantity: number;
+  unit: string;
+  completion_rate: number;
+  total_completions: number;
+  owner: number;
+  owner_name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RoutineTaskFormData {
+  name: string;
+  description?: string;
+  category: string;
+  periodicity: string;
+  weekday?: number;
+  day_of_month?: number;
+  is_active: boolean;
+  target_quantity: number;
+  unit: string;
+  owner: number;
+}
+
+// Daily Task Record Types
+export interface DailyTaskRecord {
+  id: number;
+  uuid: string;
+  task: number;
+  task_name: string;
+  task_category: string;
+  task_target: number;
+  task_unit: string;
+  date: string;
+  completed: boolean;
+  quantity_completed: number;
+  notes?: string;
+  completed_at?: string;
+  owner: number;
+  owner_name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DailyTaskRecordFormData {
+  task: number;
+  date: string;
+  completed: boolean;
+  quantity_completed: number;
+  notes?: string;
+  owner: number;
+}
+
+// Task for Today (special endpoint response)
+export interface TaskForToday {
+  task_id: number;
+  task_name: string;
+  category: string;
+  category_display: string;
+  target_quantity: number;
+  unit: string;
+  record_id?: number;
+  completed: boolean;
+  quantity_completed: number;
+  notes?: string;
+}
+
+export interface TasksForTodayResponse {
+  date: string;
+  tasks: TaskForToday[];
+  total_tasks: number;
+  completed_tasks: number;
+}
+
+// Goal Types
+export interface Goal {
+  id: number;
+  uuid: string;
+  title: string;
+  description?: string;
+  goal_type: string;
+  goal_type_display: string;
+  related_task?: number;
+  related_task_name?: string;
+  target_value: number;
+  current_value: number;
+  start_date: string;
+  end_date?: string;
+  status: string;
+  status_display: string;
+  progress_percentage: number;
+  days_active: number;
+  owner: number;
+  owner_name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GoalFormData {
+  title: string;
+  description?: string;
+  goal_type: string;
+  related_task?: number;
+  target_value: number;
+  current_value: number;
+  start_date: string;
+  end_date?: string;
+  status: string;
+  owner: number;
+}
+
+// Daily Reflection Types
+export interface DailyReflection {
+  id: number;
+  uuid: string;
+  date: string;
+  reflection: string;
+  mood?: string;
+  mood_display?: string;
+  owner: number;
+  owner_name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DailyReflectionFormData {
+  date: string;
+  reflection: string;
+  mood?: string;
+  owner: number;
+}
+
+// Dashboard Stats
+export interface PersonalPlanningDashboardStats {
+  total_tasks: number;
+  active_tasks: number;
+  total_goals: number;
+  active_goals: number;
+  completed_goals: number;
+  completion_rate_7d: number;
+  completion_rate_30d: number;
+  current_streak: number;
+  best_streak: number;
+  tasks_by_category: Array<{
+    category: string;
+    category_display: string;
+    count: number;
+  }>;
+  weekly_progress: Array<{
+    date: string;
+    total: number;
+    completed: number;
+    rate: number;
+  }>;
+  active_goals_progress: Array<{
+    title: string;
+    progress_percentage: number;
+    current_value: number;
+    target_value: number;
+    days_active: number;
+  }>;
+}

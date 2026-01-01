@@ -12,7 +12,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { archiveSchema, type ArchiveFormData } from '@/lib/validations';
 import type { Archive, Member } from '@/types';
 
@@ -26,13 +25,27 @@ const ARCHIVE_CATEGORIES = [
   { value: 'other', label: 'Outro' },
 ];
 
-const ARCHIVE_TYPES = [
-  { value: 'text', label: 'Texto' },
-  { value: 'pdf', label: 'PDF' },
-  { value: 'image', label: 'Imagem' },
-  { value: 'document', label: 'Documento' },
-  { value: 'other', label: 'Outro' },
-];
+const FILE_TYPES_ACCEPT = [
+  '.txt',
+  '.pdf',
+  '.doc',
+  '.docx',
+  '.xls',
+  '.xlsx',
+  '.ppt',
+  '.pptx',
+  '.json',
+  '.xml',
+  '.csv',
+  '.jpg',
+  '.jpeg',
+  '.png',
+  '.gif',
+  '.svg',
+  '.zip',
+  '.rar',
+  '.7z',
+].join(',');
 
 interface ArchiveFormProps {
   archive?: Archive;
@@ -61,7 +74,7 @@ export function ArchiveForm({
       ? {
           title: archive.title,
           category: archive.category as any,
-          archive_type: archive.archive_type as any,
+          archive_type: 'file' as any,
           text_content: archive.text_content || '',
           notes: archive.notes || '',
           tags: archive.tags || '',
@@ -70,7 +83,7 @@ export function ArchiveForm({
       : {
           title: '',
           category: 'personal' as const,
-          archive_type: 'text' as const,
+          archive_type: 'file' as const,
           text_content: '',
           notes: '',
           tags: '',
@@ -78,14 +91,13 @@ export function ArchiveForm({
         },
   });
 
-  const archiveType = watch('archive_type');
-
   const handleFormSubmit = handleSubmit((data: ArchiveFormData) => {
     const fileInput = document.getElementById('file') as HTMLInputElement;
     const file = fileInput?.files?.[0];
 
-    if (archiveType !== 'text' && !archive && !file) {
-      // Validação de arquivo para novos arquivos não-texto
+    if (!archive && !file) {
+      // Validação de arquivo para novos registros
+      alert('Por favor, selecione um arquivo.');
       return;
     }
 
@@ -152,67 +164,24 @@ export function ArchiveForm({
         </div>
 
         <div className="col-span-2">
-          <Label>Tipo de Arquivo *</Label>
-          <RadioGroup
-            value={watch('archive_type')}
-            onValueChange={(value: string) => setValue('archive_type', value as any)}
-            className="grid grid-cols-3 gap-4 mt-2"
-          >
-            {ARCHIVE_TYPES.map((type) => (
-              <div key={type.value} className="flex items-center space-x-2">
-                <RadioGroupItem value={type.value} id={type.value} />
-                <Label
-                  htmlFor={type.value}
-                  className="font-normal cursor-pointer"
-                >
-                  {type.label}
-                </Label>
-              </div>
-            ))}
-          </RadioGroup>
-          {errors.archive_type && (
-            <p className="text-sm text-destructive mt-1">
-              {errors.archive_type.message}
+          <Label htmlFor="file">
+            Arquivo {!archive && '*'}
+          </Label>
+          <Input
+            id="file"
+            type="file"
+            accept={FILE_TYPES_ACCEPT}
+          />
+          {archive ? (
+            <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+              Deixe vazio para manter o arquivo atual. Upload de novo arquivo substituirá o existente.
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground mt-1">
+              O arquivo será criptografado antes de ser armazenado. Tipos suportados: PDF, Word, Excel, PowerPoint, JSON, XML, CSV, imagens, compactados, etc.
             </p>
           )}
         </div>
-
-        {archiveType === 'text' ? (
-          <div className="col-span-2">
-            <Label htmlFor="text_content">Conteúdo de Texto</Label>
-            <Textarea
-              id="text_content"
-              {...register('text_content')}
-              placeholder="Digite o conteúdo que será criptografado..."
-              rows={10}
-              className="font-mono text-sm"
-            />
-            {errors.text_content && (
-              <p className="text-sm text-destructive mt-1">
-                {errors.text_content.message}
-              </p>
-            )}
-            <p className="text-xs text-muted-foreground mt-1">
-              O texto será criptografado antes de ser armazenado
-            </p>
-          </div>
-        ) : (
-          <div className="col-span-2">
-            <Label htmlFor="file">
-              Arquivo {!archive && '*'}
-            </Label>
-            <Input id="file" type="file" />
-            {archive ? (
-              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                Deixe vazio para manter o arquivo atual. Upload de novo arquivo substituirá o existente.
-              </p>
-            ) : (
-              <p className="text-xs text-muted-foreground mt-1">
-                O arquivo será criptografado antes de ser armazenado
-              </p>
-            )}
-          </div>
-        )}
 
         <div className="col-span-2">
           <Label htmlFor="tags">Tags</Label>

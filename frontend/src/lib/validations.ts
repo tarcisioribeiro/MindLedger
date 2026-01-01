@@ -618,6 +618,102 @@ export const readingSchema = z.object({
 });
 
 // ============================================================================
+// PERSONAL PLANNING SCHEMAS
+// ============================================================================
+
+export const routineTaskSchema = z.object({
+  name: z.string()
+    .min(3, minError('Nome da tarefa', 3))
+    .max(200, maxError('Nome da tarefa', 200)),
+  description: z.string()
+    .max(1000, maxError('Descricao', 1000))
+    .optional()
+    .or(z.literal('')),
+  category: z.string()
+    .min(1, requiredError('Categoria')),
+  periodicity: z.string()
+    .min(1, requiredError('Periodicidade')),
+  weekday: z.number()
+    .min(0)
+    .max(6)
+    .optional()
+    .nullable(),
+  day_of_month: z.number()
+    .min(1, 'Dia deve ser entre 1 e 31')
+    .max(31, 'Dia deve ser entre 1 e 31')
+    .optional()
+    .nullable(),
+  is_active: z.boolean(),
+  target_quantity: z.number()
+    .min(1, positiveError('Quantidade alvo'))
+    .positive(positiveError('Quantidade alvo')),
+  unit: z.string()
+    .min(1, requiredError('Unidade'))
+    .max(50, maxError('Unidade', 50)),
+  owner: z.number()
+    .positive(requiredError('Proprietario')),
+}).refine((data) => {
+  if (data.periodicity === 'weekly' && !data.weekday && data.weekday !== 0) {
+    return false;
+  }
+  return true;
+}, {
+  message: 'Dia da semana e obrigatorio para tarefas semanais',
+  path: ['weekday']
+}).refine((data) => {
+  if (data.periodicity === 'monthly' && !data.day_of_month) {
+    return false;
+  }
+  return true;
+}, {
+  message: 'Dia do mes e obrigatorio para tarefas mensais',
+  path: ['day_of_month']
+});
+
+export const goalSchema = z.object({
+  title: z.string()
+    .min(3, minError('Titulo', 3))
+    .max(200, maxError('Titulo', 200)),
+  description: z.string()
+    .max(1000, maxError('Descricao', 1000))
+    .optional()
+    .or(z.literal('')),
+  goal_type: z.string()
+    .min(1, requiredError('Tipo de objetivo')),
+  related_task: z.number()
+    .positive()
+    .optional()
+    .nullable(),
+  target_value: z.number()
+    .min(1, positiveError('Meta'))
+    .positive(positiveError('Meta')),
+  current_value: z.number()
+    .min(0, 'Valor atual nao pode ser negativo'),
+  start_date: z.string()
+    .min(1, requiredError('Data de inicio')),
+  end_date: z.string()
+    .optional()
+    .or(z.literal('')),
+  status: z.string()
+    .min(1, requiredError('Status')),
+  owner: z.number()
+    .positive(requiredError('Proprietario')),
+});
+
+export const dailyReflectionSchema = z.object({
+  date: z.string()
+    .min(1, requiredError('Data')),
+  reflection: z.string()
+    .min(10, minError('Reflexao', 10))
+    .max(2000, maxError('Reflexao', 2000)),
+  mood: z.string()
+    .optional()
+    .or(z.literal('')),
+  owner: z.number()
+    .positive(requiredError('Proprietario')),
+});
+
+// ============================================================================
 // TYPE INFERENCE (Types automáticos dos schemas)
 // ============================================================================
 

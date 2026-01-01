@@ -1,5 +1,6 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { authorSchema, type AuthorFormData } from '@/lib/validations';
+import { membersService } from '@/services/members-service';
 import { NATIONALITIES } from '@/types';
 import type { Author } from '@/types';
 
@@ -55,6 +57,22 @@ export function AuthorForm({
           owner: 0,
         },
   });
+
+  // Load current user member when creating new author
+  useEffect(() => {
+    const loadCurrentUserMember = async () => {
+      if (!author) {
+        try {
+          const member = await membersService.getCurrentUserMember();
+          setValue('owner', member.id);
+        } catch (error) {
+          console.error('Erro ao carregar membro do usuário:', error);
+        }
+      }
+    };
+
+    loadCurrentUserMember();
+  }, [author, setValue]);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

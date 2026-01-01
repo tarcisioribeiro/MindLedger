@@ -1,5 +1,6 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useEffect, useState } from 'react';
 import { Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { bookSchema, type BookFormData } from '@/lib/validations';
+import { membersService } from '@/services/members-service';
 import {
   BOOK_LANGUAGES,
   BOOK_GENRES,
@@ -22,7 +24,6 @@ import {
   READ_STATUS,
 } from '@/types';
 import type { Book, Author, Publisher } from '@/types';
-import { useState } from 'react';
 
 interface BookFormProps {
   book?: Book;
@@ -87,6 +88,22 @@ export function BookForm({
           owner: 0,
         },
   });
+
+  // Load current user member when creating new book
+  useEffect(() => {
+    const loadCurrentUserMember = async () => {
+      if (!book) {
+        try {
+          const member = await membersService.getCurrentUserMember();
+          setValue('owner', member.id);
+        } catch (error) {
+          console.error('Erro ao carregar membro do usuário:', error);
+        }
+      }
+    };
+
+    loadCurrentUserMember();
+  }, [book, setValue]);
 
   const handleAuthorToggle = (authorId: number) => {
     const newAuthors = selectedAuthors.includes(authorId)

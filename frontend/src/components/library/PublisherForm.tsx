@@ -1,5 +1,6 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { publisherSchema, type PublisherFormData } from '@/lib/validations';
+import { membersService } from '@/services/members-service';
 import { COUNTRIES } from '@/types';
 import type { Publisher } from '@/types';
 
@@ -54,6 +56,22 @@ export function PublisherForm({
           owner: 0,
         },
   });
+
+  // Load current user member when creating new publisher
+  useEffect(() => {
+    const loadCurrentUserMember = async () => {
+      if (!publisher) {
+        try {
+          const member = await membersService.getCurrentUserMember();
+          setValue('owner', member.id);
+        } catch (error) {
+          console.error('Erro ao carregar membro do usuário:', error);
+        }
+      }
+    };
+
+    loadCurrentUserMember();
+  }, [publisher, setValue]);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

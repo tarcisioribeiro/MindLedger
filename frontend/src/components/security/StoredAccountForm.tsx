@@ -245,16 +245,16 @@ export function StoredAccountForm({
           <div className="col-span-2">
             <Label htmlFor="finance_account">Conta Financeira Vinculada (Opcional)</Label>
             <Select
-              value={watch('finance_account')?.toString() || ''}
+              value={watch('finance_account')?.toString() || 'none'}
               onValueChange={(value) =>
-                setValue('finance_account', value ? parseInt(value) : undefined)
+                setValue('finance_account', value === 'none' ? undefined : parseInt(value))
               }
             >
               <SelectTrigger>
                 <SelectValue placeholder="Nenhuma" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nenhuma</SelectItem>
+                <SelectItem value="none">Nenhuma</SelectItem>
                 {financeAccounts.map((acc) => (
                   <SelectItem key={acc.id} value={acc.id.toString()}>
                     {acc.account_name} - {acc.institution}

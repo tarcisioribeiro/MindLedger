@@ -46,6 +46,8 @@ INSTALLED_APPS = [
     'library',
     # AI Assistant
     'ai_assistant',
+    # Personal Planning Module
+    'personal_planning',
 ]
 
 MIDDLEWARE = [

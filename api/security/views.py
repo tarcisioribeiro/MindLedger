@@ -8,9 +8,9 @@ from django.db.models import Count
 from app.permissions import GlobalDefaultPermission
 from security.models import (
     Password, StoredCreditCard, StoredBankAccount,
-    Archive
+    Archive, PASSWORD_CATEGORIES
 )
-from security.activity_logs.models import ActivityLog
+from security.activity_logs.models import ActivityLog, ACTION_TYPES
 from security.serializers import (
     PasswordSerializer, PasswordCreateUpdateSerializer, PasswordRevealSerializer,
     StoredCreditCardSerializer, StoredCreditCardCreateUpdateSerializer, StoredCreditCardRevealSerializer,
@@ -499,21 +499,36 @@ class SecurityDashboardStatsView(APIView):
         """Calcula estatísticas do módulo de segurança."""
         user = request.user
 
+        # Verificar se o usuário tem um member associado
+        from members.models import Member
+        try:
+            member = Member.objects.get(user=user, is_deleted=False)
+        except Member.DoesNotExist:
+            # Se não houver member, retornar estatísticas vazias
+            return Response({
+                'total_passwords': 0,
+                'total_stored_cards': 0,
+                'total_stored_accounts': 0,
+                'total_archives': 0,
+                'passwords_by_category': [],
+                'recent_activity': []
+            })
+
         # Querysets filtrados por owner e não deletados
         passwords_qs = Password.objects.filter(
-            owner__user=user,
+            owner=member,
             deleted_at__isnull=True
         )
         stored_cards_qs = StoredCreditCard.objects.filter(
-            owner__user=user,
+            owner=member,
             deleted_at__isnull=True
         )
         stored_accounts_qs = StoredBankAccount.objects.filter(
-            owner__user=user,
+            owner=member,
             deleted_at__isnull=True
         )
         archives_qs = Archive.objects.filter(
-            owner__user=user,
+            owner=member,
             deleted_at__isnull=True
         )
 
@@ -532,7 +547,6 @@ class SecurityDashboardStatsView(APIView):
         )
 
         # Adicionar display name das categorias
-        from security.passwords.models import PASSWORD_CATEGORIES
         category_dict = dict(PASSWORD_CATEGORIES)
         for item in passwords_by_category:
             item['category_display'] = category_dict.get(item['category'], item['category'])
@@ -545,7 +559,6 @@ class SecurityDashboardStatsView(APIView):
         ).order_by('-created_at')[:10]
 
         recent_activity_data = []
-        from security.activity_logs.models import ACTION_TYPES
         action_dict = dict(ACTION_TYPES)
         for log in recent_activity:
             recent_activity_data.append({
