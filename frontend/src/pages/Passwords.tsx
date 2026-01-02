@@ -464,7 +464,7 @@ export default function Passwords() {
                 <SelectContent>
                   {members.map((member) => (
                     <SelectItem key={member.id} value={member.id.toString()}>
-                      {member.member_name}
+                      {member.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

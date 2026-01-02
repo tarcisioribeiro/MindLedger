@@ -119,7 +119,7 @@ export const RevenueForm: React.FC<RevenueFormProps> = ({ revenue, accounts, loa
         <div className="space-y-2">
           <Label>Membro Responsável</Label>
           <Input
-            value={currentUserMember?.member_name || 'Carregando...'}
+            value={currentUserMember?.name || 'Carregando...'}
             disabled
             className="bg-muted"
           />

@@ -18,7 +18,7 @@ import type { Account } from '@/types';
 
 interface AccountFormProps {
   account?: Account;
-  members: Array<{ id: number; member_name: string }>;
+  members: Array<{ id: number; name: string }>;
   onSubmit: (data: AccountFormData) => void;
   onCancel: () => void;
   isLoading?: boolean;
@@ -175,7 +175,7 @@ export const AccountForm: React.FC<AccountFormProps> = ({
             // Ao criar nova conta: campo somente leitura com o membro do usuário
             <Input
               id="owner"
-              value={isLoadingMember ? 'Carregando...' : members.find(m => m.id === currentUserMemberId)?.member_name || 'Carregando...'}
+              value={isLoadingMember ? 'Carregando...' : members.find(m => m.id === currentUserMemberId)?.name || 'Carregando...'}
               disabled
               className="bg-muted"
             />
@@ -191,7 +191,7 @@ export const AccountForm: React.FC<AccountFormProps> = ({
               <SelectContent>
                 {members.map((member) => (
                   <SelectItem key={member.id} value={member.id.toString()}>
-                    {member.member_name}
+                    {member.name}
                   </SelectItem>
                 ))}
               </SelectContent>

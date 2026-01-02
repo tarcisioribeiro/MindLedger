@@ -9,7 +9,6 @@ import { MemberForm } from '@/components/members/MemberForm';
 import { membersService } from '@/services/members-service';
 import { useToast } from '@/hooks/use-toast';
 import { useAlertDialog } from '@/hooks/use-alert-dialog';
-import { translate } from '@/config/constants';
 import type { Member, MemberFormData } from '@/types';
 import { format } from 'date-fns';
 
@@ -105,7 +104,9 @@ export default function Members() {
               <thead className="bg-muted/50 border-b">
                 <tr>
                   <th className="px-6 py-4 text-left text-sm font-semibold">Nome</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Tipo</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold">Documento</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold">Telefone</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold">Papel</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold">Criado em</th>
                   <th className="px-6 py-4 text-right text-sm font-semibold">Ações</th>
                 </tr>
@@ -113,8 +114,15 @@ export default function Members() {
               <tbody className="divide-y">
                 {members.map((member) => (
                   <tr key={member.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-6 py-4"><div className="font-medium">{member.member_name}</div></td>
-                    <td className="px-6 py-4"><Badge variant="secondary">{translate('memberTypes', member.member_type)}</Badge></td>
+                    <td className="px-6 py-4"><div className="font-medium">{member.name}</div></td>
+                    <td className="px-6 py-4"><div className="text-sm">{member.document}</div></td>
+                    <td className="px-6 py-4"><div className="text-sm">{member.phone}</div></td>
+                    <td className="px-6 py-4">
+                      <div className="flex gap-1">
+                        {member.is_creditor && <Badge variant="secondary">Credor</Badge>}
+                        {member.is_benefited && <Badge variant="outline">Beneficiário</Badge>}
+                      </div>
+                    </td>
                     <td className="px-6 py-4 text-sm text-muted-foreground">{format(new Date(member.created_at), 'dd/MM/yyyy')}</td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2">

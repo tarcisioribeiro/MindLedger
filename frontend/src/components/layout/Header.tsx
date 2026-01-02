@@ -79,7 +79,7 @@ export const Header = () => {
 
         <div className="flex-1 lg:flex-none">
           <h2 className="text-lg font-semibold">
-            Bem-vindo, {currentMember ? currentMember.member_name.split(' ')[0] : user?.username || 'Usuário'}!
+            Bem-vindo, {currentMember ? currentMember.name.split(' ')[0] : user?.username || 'Usuário'}!
           </h2>
           <p className="text-sm text-muted-foreground hidden sm:block">
             Gerencie suas finanças de forma inteligente

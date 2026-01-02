@@ -280,7 +280,7 @@ export const CreditCardExpenseForm: React.FC<CreditCardExpenseFormProps> = ({
                 <SelectItem value="none">Nenhum</SelectItem>
                 {members.map((m) => (
                   <SelectItem key={m.id} value={m.id.toString()}>
-                    {m.member_name}
+                    {m.name}
                   </SelectItem>
                 ))}
               </SelectContent>

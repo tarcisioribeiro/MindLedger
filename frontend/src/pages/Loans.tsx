@@ -448,7 +448,7 @@ export default function Loans() {
                   <SelectContent>
                     {members.map((member) => (
                       <SelectItem key={member.id} value={member.id.toString()}>
-                        {member.member_name}
+                        {member.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -464,7 +464,7 @@ export default function Loans() {
                   <SelectContent>
                     {members.map((member) => (
                       <SelectItem key={member.id} value={member.id.toString()}>
-                        {member.member_name}
+                        {member.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -558,7 +558,7 @@ export default function Loans() {
                     <SelectItem value="none">Nenhum</SelectItem>
                     {members.map((member) => (
                       <SelectItem key={member.id} value={member.id.toString()}>
-                        {member.member_name}
+                        {member.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
