@@ -32,32 +32,47 @@ apps = [
     'dashboard',
     'security',
     'library',
-    'ai_assistant'
+    'ai_assistant',
+    'personal_planning'
 ]
 
 # Buscar e adicionar permissões
 permissions_added = 0
+permission_prefixes = ['view_', 'add_', 'change_', 'delete_']
+
 for app_label in apps:
     try:
         content_types = ContentType.objects.filter(app_label=app_label)
         for ct in content_types:
-            # Buscar permissões view_ e add_
-            perms = Permission.objects.filter(
-                content_type=ct,
-                codename__startswith='view_'
-            ).union(
-                Permission.objects.filter(
+            # Buscar todas as permissões (view, add, change, delete)
+            for prefix in permission_prefixes:
+                perms = Permission.objects.filter(
                     content_type=ct,
-                    codename__startswith='add_'
+                    codename__startswith=prefix
                 )
-            )
 
-            for perm in perms:
-                group.permissions.add(perm)
-                permissions_added += 1
-                print(f'✅ {app_label}.{perm.codename}')
+                for perm in perms:
+                    group.permissions.add(perm)
+                    permissions_added += 1
+                    print(f'✅ {app_label}.{perm.codename}')
     except Exception as e:
         print(f'❌ Erro em {app_label}: {e}')
 
 print(f'\n📊 Total: {permissions_added} permissões adicionadas')
 print(f'Grupo members tem {group.permissions.count()} permissões')
+
+# Adicionar todos os usuários ao grupo members
+from django.contrib.auth import get_user_model
+User = get_user_model()
+users_added = 0
+
+for user in User.objects.all():
+    if not user.groups.filter(id=group.id).exists():
+        user.groups.add(group)
+        users_added += 1
+        print(f'✅ Usuário "{user.username}" adicionado ao grupo members')
+
+if users_added == 0:
+    print('✅ Todos os usuários já estão no grupo members')
+else:
+    print(f'\n📊 {users_added} usuário(s) adicionado(s) ao grupo members')

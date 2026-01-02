@@ -1,0 +1,433 @@
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useEffect } from 'react';
+import { Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { routineTaskSchema } from '@/lib/validations';
+import { membersService } from '@/services/members-service';
+import {
+  TASK_CATEGORIES,
+  PERIODICITY_CHOICES,
+  WEEKDAY_CHOICES,
+  type RoutineTask,
+} from '@/types';
+import { z } from 'zod';
+
+type RoutineTaskFormData = z.infer<typeof routineTaskSchema>;
+
+interface RoutineTaskFormProps {
+  task?: RoutineTask;
+  onSubmit: (data: RoutineTaskFormData) => void;
+  onCancel: () => void;
+  isLoading?: boolean;
+}
+
+export function RoutineTaskForm({
+  task,
+  onSubmit,
+  onCancel,
+  isLoading = false,
+}: RoutineTaskFormProps) {
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<RoutineTaskFormData>({
+    resolver: zodResolver(routineTaskSchema),
+    defaultValues: task
+      ? {
+          name: task.name,
+          description: task.description || '',
+          category: task.category,
+          periodicity: task.periodicity,
+          weekday: task.weekday,
+          day_of_month: task.day_of_month,
+          is_active: task.is_active,
+          target_quantity: task.target_quantity,
+          unit: task.unit,
+          owner: task.owner,
+        }
+      : {
+          name: '',
+          description: '',
+          category: 'health',
+          periodicity: 'daily',
+          weekday: undefined,
+          day_of_month: undefined,
+          is_active: true,
+          target_quantity: 1,
+          unit: 'vez',
+          owner: 0,
+        },
+  });
+
+  const periodicity = watch('periodicity');
+  const isActive = watch('is_active');
+
+  // Load current user member when creating new task
+  useEffect(() => {
+    const loadCurrentUserMember = async () => {
+      if (!task) {
+        try {
+          const member = await membersService.getCurrentUserMember();
+          setValue('owner', member.id);
+        } catch (error) {
+          console.error('Erro ao carregar membro do usuário:', error);
+        }
+      }
+    };
+
+    loadCurrentUserMember();
+  }, [task, setValue]);
+
+  // Reset conditional fields when periodicity changes
+  useEffect(() => {
+    if (periodicity === 'daily') {
+      setValue('weekday', undefined);
+      setValue('day_of_month', undefined);
+    } else if (periodicity === 'weekly') {
+      setValue('day_of_month', undefined);
+      if (watch('weekday') === undefined) {
+        setValue('weekday', 0); // Default to Monday
+      }
+    } else if (periodicity === 'monthly') {
+      setValue('weekday', undefined);
+      if (watch('day_of_month') === undefined) {
+        setValue('day_of_month', 1); // Default to day 1
+      }
+    }
+  }, [periodicity, setValue, watch]);
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="col-span-2">
+          <Label htmlFor="name">Nome da Tarefa *</Label>
+          <Input
+            id="name"
+            {...register('name')}
+            placeholder="Ex: Meditar, Exercitar-se, Estudar..."
+          />
+          {errors.name && (
+            <p className="text-sm text-destructive mt-1">{errors.name.message}</p>
+          )}
+        </div>
+
+        <div className="col-span-2">
+          <Label htmlFor="description">Descrição</Label>
+          <Textarea
+            id="description"
+            {...register('description')}
+            placeholder="Descrição da tarefa (opcional)"
+            rows={3}
+          />
+          {errors.description && (
+            <p className="text-sm text-destructive mt-1">
+              {errors.description.message}
+            </p>
+          )}
+        </div>
+
+        <div>
+          <Label htmlFor="category">Categoria *</Label>
+          <Select
+            value={watch('category')}
+            onValueChange={(value) => setValue('category', value)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {TASK_CATEGORIES.map((cat) => (
+                <SelectItem key={cat.value} value={cat.value}>
+                  {cat.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {errors.category && (
+            <p className="text-sm text-destructive mt-1">
+              {errors.category.message}
+            </p>
+          )}
+        </div>
+
+        <div>
+          <Label htmlFor="periodicity">Periodicidade *</Label>
+          <Select
+            value={watch('periodicity')}
+            onValueChange={(value) => setValue('periodicity', value)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PERIODICITY_CHOICES.map((period) => (
+                <SelectItem key={period.value} value={period.value}>
+                  {period.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {errors.periodicity && (
+            <p className="text-sm text-destructive mt-1">
+              {errors.periodicity.message}
+            </p>
+          )}
+        </div>
+
+        {/* Conditional: Weekday (only for weekly tasks) */}
+        {periodicity === 'weekly' && (
+          <div className="col-span-2">
+            <Label htmlFor="weekday">Dia da Semana *</Label>
+            <Select
+              value={watch('weekday')?.toString()}
+              onValueChange={(value) => setValue('weekday', parseInt(value))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o dia da semana" />
+              </SelectTrigger>
+              <SelectContent>
+                {WEEKDAY_CHOICES.map((day) => (
+                  <SelectItem key={day.value} value={day.value.toString()}>
+                    {day.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.weekday && (
+              <p className="text-sm text-destructive mt-1">
+                {errors.weekday.message}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Conditional: Day of Month (only for monthly tasks) */}
+        {periodicity === 'monthly' && (
+          <div className="col-span-2">
+            <Label htmlFor="day_of_month">Dia do Mês *</Label>
+            <Input
+              id="day_of_month"
+              type="number"
+              min="1"
+              max="31"
+              {...register('day_of_month', {
+                setValueAs: (value) => (value === '' ? undefined : parseInt(value)),
+              })}
+              placeholder="1-31"
+            />
+            {errors.day_of_month && (
+              <p className="text-sm text-destructive mt-1">
+                {errors.day_of_month.message}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Conditional: Weekdays (only for weekdays tasks) */}
+        {periodicity === 'weekdays' && (
+          <div className="col-span-2">
+            <p className="text-sm text-muted-foreground">
+              Esta tarefa aparecerá de Segunda a Sexta-feira.
+            </p>
+          </div>
+        )}
+
+        {/* Conditional: Custom periodicity */}
+        {periodicity === 'custom' && (
+          <div className="col-span-2 space-y-4 border rounded-lg p-4 bg-muted/50">
+            <h4 className="font-medium text-sm">Configuração Personalizada</h4>
+
+            {/* Custom Weekdays */}
+            <div>
+              <Label className="text-sm">Dias da Semana (opcional)</Label>
+              <div className="grid grid-cols-7 gap-2 mt-2">
+                {WEEKDAY_CHOICES.map((day) => (
+                  <div key={day.value} className="flex flex-col items-center gap-1">
+                    <Checkbox
+                      id={`custom-weekday-${day.value}`}
+                      checked={watch('custom_weekdays')?.includes(day.value) || false}
+                      onCheckedChange={(checked) => {
+                        const current = watch('custom_weekdays') || [];
+                        setValue(
+                          'custom_weekdays',
+                          checked
+                            ? [...current, day.value]
+                            : current.filter((d) => d !== day.value)
+                        );
+                      }}
+                    />
+                    <Label htmlFor={`custom-weekday-${day.value}`} className="text-xs cursor-pointer">
+                      {day.label.substring(0, 3)}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Custom Month Days */}
+            <div>
+              <Label htmlFor="custom_month_days" className="text-sm">
+                Dias do Mês (opcional, separados por vírgula)
+              </Label>
+              <Input
+                id="custom_month_days"
+                type="text"
+                placeholder="Ex: 1,15,30"
+                value={watch('custom_month_days')?.join(',') || ''}
+                onChange={(e) => {
+                  const values = e.target.value
+                    .split(',')
+                    .map((v) => parseInt(v.trim()))
+                    .filter((v) => !isNaN(v) && v >= 1 && v <= 31);
+                  setValue('custom_month_days', values.length > 0 ? values : null);
+                }}
+              />
+            </div>
+
+            {/* Frequency Options */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="times_per_week" className="text-sm">
+                  Vezes por Semana
+                </Label>
+                <Input
+                  id="times_per_week"
+                  type="number"
+                  min="1"
+                  max="7"
+                  {...register('times_per_week', {
+                    setValueAs: (value) => (value === '' ? null : parseInt(value)),
+                  })}
+                  placeholder="1-7"
+                />
+              </div>
+              <div>
+                <Label htmlFor="times_per_month" className="text-sm">
+                  Vezes por Mês
+                </Label>
+                <Input
+                  id="times_per_month"
+                  type="number"
+                  min="1"
+                  max="31"
+                  {...register('times_per_month', {
+                    setValueAs: (value) => (value === '' ? null : parseInt(value)),
+                  })}
+                  placeholder="1-31"
+                />
+              </div>
+            </div>
+
+            {/* Interval Options */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="interval_days" className="text-sm">
+                  A cada X dias
+                </Label>
+                <Input
+                  id="interval_days"
+                  type="number"
+                  min="1"
+                  {...register('interval_days', {
+                    setValueAs: (value) => (value === '' ? null : parseInt(value)),
+                  })}
+                  placeholder="Ex: 3"
+                />
+              </div>
+              <div>
+                <Label htmlFor="interval_start_date" className="text-sm">
+                  Data de Início
+                </Label>
+                <Input
+                  id="interval_start_date"
+                  type="date"
+                  {...register('interval_start_date')}
+                />
+              </div>
+            </div>
+
+            {errors.interval_start_date && (
+              <p className="text-sm text-destructive">
+                {errors.interval_start_date.message}
+              </p>
+            )}
+          </div>
+        )}
+
+        <div>
+          <Label htmlFor="target_quantity">Quantidade Alvo *</Label>
+          <Input
+            id="target_quantity"
+            type="number"
+            min="1"
+            {...register('target_quantity', {
+              setValueAs: (value) => (value === '' ? 1 : parseInt(value)),
+            })}
+          />
+          {errors.target_quantity && (
+            <p className="text-sm text-destructive mt-1">
+              {errors.target_quantity.message}
+            </p>
+          )}
+        </div>
+
+        <div>
+          <Label htmlFor="unit">Unidade *</Label>
+          <Input
+            id="unit"
+            {...register('unit')}
+            placeholder="Ex: vez, minutos, páginas..."
+          />
+          {errors.unit && (
+            <p className="text-sm text-destructive mt-1">{errors.unit.message}</p>
+          )}
+        </div>
+
+        <div className="col-span-2 flex items-center space-x-2">
+          <Checkbox
+            id="is_active"
+            checked={isActive}
+            onCheckedChange={(checked) => setValue('is_active', checked as boolean)}
+          />
+          <Label
+            htmlFor="is_active"
+            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+          >
+            Tarefa Ativa
+          </Label>
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-2 pt-4 border-t">
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancelar
+        </Button>
+        <Button type="submit" disabled={isLoading}>
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Salvando...
+            </>
+          ) : (
+            'Salvar'
+          )}
+        </Button>
+      </div>
+    </form>
+  );
+}

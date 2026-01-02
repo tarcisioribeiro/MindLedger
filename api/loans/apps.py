@@ -5,3 +5,9 @@ class LoansConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'loans'
     verbose_name = 'Empréstimos'
+
+    def ready(self):
+        """
+        Importa os signals quando a aplicação é carregada.
+        """
+        import loans.signals

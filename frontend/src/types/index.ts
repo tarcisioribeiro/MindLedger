@@ -76,6 +76,11 @@ export interface Expense {
   notes?: string;
   recurring?: boolean;
   frequency?: string;
+  related_transfer?: number | null;
+  related_transfer_id?: number | null;
+  is_transfer_generated?: boolean;
+  related_loan?: number | null;
+  loan_description?: string;
   created_at: string;
   updated_at: string;
 }
@@ -95,6 +100,7 @@ export interface ExpenseFormData {
   notes?: string;
   recurring?: boolean;
   frequency?: string;
+  related_loan?: number | null;
 }
 
 // Revenue Types
@@ -118,6 +124,11 @@ export interface Revenue {
   recurring?: boolean;
   frequency?: string | null;
   notes?: string;
+  related_transfer?: number | null;
+  related_transfer_id?: number | null;
+  is_transfer_generated?: boolean;
+  related_loan?: number | null;
+  loan_description?: string;
 }
 
 export interface RevenueFormData {
@@ -135,6 +146,7 @@ export interface RevenueFormData {
   recurring?: boolean;
   frequency?: string | null;
   notes?: string;
+  related_loan?: number | null;
 }
 
 // Credit Card Types
@@ -321,6 +333,7 @@ export interface Loan {
   guarantor_name?: string;
   notes?: string;
   status: string;
+  remaining_balance?: string;
   created_at: string;
   updated_at: string;
   created_by?: number;
@@ -869,50 +882,52 @@ export interface ChatMessage {
 
 // Task Category Choices
 export const TASK_CATEGORIES = [
-  { value: 'health', label: 'Saude' },
+  { value: 'health', label: 'Saúde' },
   { value: 'studies', label: 'Estudos' },
   { value: 'spiritual', label: 'Espiritual' },
-  { value: 'exercise', label: 'Exercicio Fisico' },
-  { value: 'nutrition', label: 'Nutricao' },
-  { value: 'meditation', label: 'Meditacao' },
+  { value: 'exercise', label: 'Exercício Físico' },
+  { value: 'nutrition', label: 'Nutrição' },
+  { value: 'meditation', label: 'Meditação' },
   { value: 'reading', label: 'Leitura' },
   { value: 'writing', label: 'Escrita' },
   { value: 'work', label: 'Trabalho' },
   { value: 'leisure', label: 'Lazer' },
-  { value: 'family', label: 'Familia' },
+  { value: 'family', label: 'Família' },
   { value: 'social', label: 'Social' },
-  { value: 'finance', label: 'Financas' },
+  { value: 'finance', label: 'Finanças' },
   { value: 'household', label: 'Casa' },
   { value: 'personal_care', label: 'Cuidado Pessoal' },
   { value: 'other', label: 'Outros' }
 ] as const;
 
 export const PERIODICITY_CHOICES = [
-  { value: 'daily', label: 'Diaria' },
+  { value: 'daily', label: 'Diária' },
+  { value: 'weekdays', label: 'Dias Úteis' },
   { value: 'weekly', label: 'Semanal' },
-  { value: 'monthly', label: 'Mensal' }
+  { value: 'monthly', label: 'Mensal' },
+  { value: 'custom', label: 'Personalizado' }
 ] as const;
 
 export const WEEKDAY_CHOICES = [
   { value: 0, label: 'Segunda-feira' },
-  { value: 1, label: 'Terca-feira' },
+  { value: 1, label: 'Terça-feira' },
   { value: 2, label: 'Quarta-feira' },
   { value: 3, label: 'Quinta-feira' },
   { value: 4, label: 'Sexta-feira' },
-  { value: 5, label: 'Sabado' },
+  { value: 5, label: 'Sábado' },
   { value: 6, label: 'Domingo' }
 ] as const;
 
 export const GOAL_TYPE_CHOICES = [
   { value: 'consecutive_days', label: 'Dias Consecutivos' },
   { value: 'total_days', label: 'Total de Dias' },
-  { value: 'avoid_habit', label: 'Evitar Habito' },
+  { value: 'avoid_habit', label: 'Evitar Hábito' },
   { value: 'custom', label: 'Personalizado' }
 ] as const;
 
 export const GOAL_STATUS_CHOICES = [
   { value: 'active', label: 'Ativo' },
-  { value: 'completed', label: 'Concluido' },
+  { value: 'completed', label: 'Concluído' },
   { value: 'failed', label: 'Falhou' },
   { value: 'cancelled', label: 'Cancelado' }
 ] as const;
@@ -922,7 +937,7 @@ export const MOOD_CHOICES = [
   { value: 'good', label: 'Bom' },
   { value: 'neutral', label: 'Neutro' },
   { value: 'bad', label: 'Ruim' },
-  { value: 'terrible', label: 'Pessimo' }
+  { value: 'terrible', label: 'Péssimo' }
 ] as const;
 
 // Routine Task Types
@@ -938,6 +953,12 @@ export interface RoutineTask {
   weekday?: number;
   weekday_display?: string;
   day_of_month?: number;
+  custom_weekdays?: number[] | null;
+  custom_month_days?: number[] | null;
+  times_per_week?: number | null;
+  times_per_month?: number | null;
+  interval_days?: number | null;
+  interval_start_date?: string | null;
   is_active: boolean;
   target_quantity: number;
   unit: string;
@@ -956,6 +977,12 @@ export interface RoutineTaskFormData {
   periodicity: string;
   weekday?: number;
   day_of_month?: number;
+  custom_weekdays?: number[] | null;
+  custom_month_days?: number[] | null;
+  times_per_week?: number | null;
+  times_per_month?: number | null;
+  interval_days?: number | null;
+  interval_start_date?: string | null;
   is_active: boolean;
   target_quantity: number;
   unit: string;
@@ -1010,6 +1037,23 @@ export interface TasksForTodayResponse {
   tasks: TaskForToday[];
   total_tasks: number;
   completed_tasks: number;
+}
+
+// Kanban Types
+export type KanbanStatus = 'todo' | 'doing' | 'done';
+
+export interface TaskCard {
+  id: string; // unique ID for the card (task_id + index)
+  task_id: number; // original task ID
+  task_name: string;
+  category: string;
+  category_display: string;
+  unit: string;
+  index: number; // index for tasks with multiple instances (0-based)
+  total_instances: number; // target_quantity from original task
+  status: KanbanStatus;
+  notes?: string;
+  record_id?: number;
 }
 
 // Goal Types
@@ -1103,4 +1147,82 @@ export interface PersonalPlanningDashboardStats {
   completed_tasks_today: number;
   active_routine_tasks: RoutineTask[];
   recent_reflections: DailyReflection[];
+}
+
+// Fixed Expense Types
+export interface FixedExpense {
+  id: number;
+  uuid: string;
+  description: string;
+  default_value: string;
+  category: string;
+  account: number;
+  account_name?: string;
+  due_day: number;
+  merchant?: string;
+  payment_method?: string;
+  notes?: string;
+  member?: number | null;
+  member_name?: string;
+  is_active: boolean;
+  allow_value_edit: boolean;
+  last_generated_month?: string | null;
+  total_generated: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FixedExpenseFormData {
+  description: string;
+  default_value: number;
+  category: string;
+  account: number;
+  due_day: number;
+  merchant?: string;
+  payment_method?: string;
+  notes?: string;
+  member?: number | null;
+  is_active: boolean;
+  allow_value_edit: boolean;
+}
+
+export interface FixedExpenseValue {
+  fixed_expense_id: number;
+  value: number;
+}
+
+export interface BulkGenerateRequest {
+  month: string;
+  expense_values: FixedExpenseValue[];
+}
+
+export interface BulkGenerateResponse {
+  success: boolean;
+  created_count: number;
+  month: string;
+  expenses: Expense[];
+}
+
+export interface FixedExpenseStats {
+  active_templates: number;
+  current_month: {
+    month: string;
+    total_value: number;
+    paid_count: number;
+    pending_count: number;
+    total_count: number;
+  };
+  previous_month: {
+    month: string;
+    total_value: number;
+  };
+  comparison: {
+    difference: number;
+    percentage_change: number;
+  };
+  category_breakdown: Array<{
+    category: string;
+    total: number;
+    count: number;
+  }>;
 }

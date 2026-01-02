@@ -66,6 +66,7 @@ def create_expense_and_revenue_on_transfer(sender, instance, created, **kwargs):
             merchant=f"Transferência para {instance.destiny_account.account_name}",
             payment_method='transfer',
             member=instance.member,
+            related_transfer=instance,  # Vincular à transferência
             notes=f"Transferência ID: {instance.transaction_id or instance.uuid}\n"
                   f"Tipo: {instance.get_category_display()}\n"
                   f"Taxa: R$ {instance.fee}\n"
@@ -86,6 +87,7 @@ def create_expense_and_revenue_on_transfer(sender, instance, created, **kwargs):
             received=instance.transfered,
             source=f"Transferência de {instance.origin_account.account_name}",
             member=instance.member,
+            related_transfer=instance,  # Vincular à transferência
             notes=f"Transferência ID: {instance.transaction_id or instance.uuid}\n"
                   f"Tipo: {instance.get_category_display()}\n"
                   f"{instance.notes or ''}",
@@ -111,20 +113,7 @@ def delete_related_transactions_on_transfer_delete(sender, instance, **kwargs):
     from expenses.models import Expense
     from revenues.models import Revenue
 
-    # Deletar despesa relacionada
-    Expense.objects.filter(
-        description=f"Transferência: {instance.description}",
-        account=instance.origin_account,
-        date=instance.date,
-        horary=instance.horary,
-        value=instance.value + instance.fee
-    ).delete()
-
-    # Deletar receita relacionada
-    Revenue.objects.filter(
-        description=f"Transferência: {instance.description}",
-        account=instance.destiny_account,
-        date=instance.date,
-        horary=instance.horary,
-        value=instance.value
-    ).delete()
+    # Deletar transações vinculadas a esta transferência
+    # O CASCADE já faz isso automaticamente, mas mantemos explícito
+    Expense.objects.filter(related_transfer=instance).delete()
+    Revenue.objects.filter(related_transfer=instance).delete()

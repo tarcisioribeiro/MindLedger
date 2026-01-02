@@ -23,6 +23,12 @@ class ExpensesService {
   async delete(id: number): Promise<void> {
     return apiClient.delete(`${API_CONFIG.ENDPOINTS.EXPENSES}${id}/`);
   }
+
+  async bulkMarkPaid(expenseIds: number[]): Promise<void> {
+    return apiClient.post(`${API_CONFIG.ENDPOINTS.EXPENSES}bulk-mark-paid/`, {
+      expense_ids: expenseIds
+    });
+  }
 }
 
 export const expensesService = new ExpensesService();

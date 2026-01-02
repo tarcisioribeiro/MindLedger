@@ -43,6 +43,7 @@ services:
       db:
         condition: service_healthy
     volumes:
+      - ./api:/app
       - ./api/media:/app/media
       - ./api/logs:/app/logs
       - ./api/staticfiles:/app/staticfiles

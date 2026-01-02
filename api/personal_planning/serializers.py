@@ -29,6 +29,8 @@ class RoutineTaskSerializer(serializers.ModelSerializer):
             'id', 'uuid', 'name', 'description', 'category', 'category_display',
             'periodicity', 'periodicity_display', 'weekday', 'weekday_display',
             'day_of_month', 'is_active', 'target_quantity', 'unit',
+            'custom_weekdays', 'custom_month_days', 'times_per_week',
+            'times_per_month', 'interval_days', 'interval_start_date',
             'completion_rate', 'total_completions',
             'owner', 'owner_name', 'created_at', 'updated_at'
         ]
@@ -66,7 +68,9 @@ class RoutineTaskCreateUpdateSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'description', 'category', 'periodicity',
             'weekday', 'day_of_month', 'is_active',
-            'target_quantity', 'unit', 'owner'
+            'target_quantity', 'unit', 'owner',
+            'custom_weekdays', 'custom_month_days', 'times_per_week',
+            'times_per_month', 'interval_days', 'interval_start_date'
         ]
 
     def validate(self, data):

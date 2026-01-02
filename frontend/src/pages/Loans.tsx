@@ -548,14 +548,14 @@ export default function Loans() {
               <div>
                 <Label htmlFor="guarantor">Avalista</Label>
                 <Select
-                  value={formData.guarantor?.toString() || ''}
-                  onValueChange={(value) => setFormData({ ...formData, guarantor: value ? parseInt(value) : null })}
+                  value={formData.guarantor?.toString() || 'none'}
+                  onValueChange={(value) => setFormData({ ...formData, guarantor: value === 'none' ? null : parseInt(value) })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhum</SelectItem>
+                    <SelectItem value="none">Nenhum</SelectItem>
                     {members.map((member) => (
                       <SelectItem key={member.id} value={member.id.toString()}>
                         {member.member_name}

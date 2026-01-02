@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { RevenueForm } from '@/components/revenues/RevenueForm';
 import { revenuesService } from '@/services/revenues-service';
 import { accountsService } from '@/services/accounts-service';
+import { loansService } from '@/services/loans-service';
 import { useToast } from '@/hooks/use-toast';
 import { useAlertDialog } from '@/hooks/use-alert-dialog';
 import { translate } from '@/config/constants';
@@ -13,11 +14,12 @@ import { formatCurrency, formatDateTime } from '@/lib/formatters';
 import { sumByProperty } from '@/lib/helpers';
 import { PageHeader } from '@/components/common/PageHeader';
 import { DataTable, type Column } from '@/components/common/DataTable';
-import type { Revenue, RevenueFormData, Account } from '@/types';
+import type { Revenue, RevenueFormData, Account, Loan } from '@/types';
 
 export default function Revenues() {
   const [revenues, setRevenues] = useState<Revenue[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [loans, setLoans] = useState<Loan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedRevenue, setSelectedRevenue] = useState<Revenue | undefined>();
@@ -32,12 +34,14 @@ export default function Revenues() {
   const loadData = async () => {
     try {
       setIsLoading(true);
-      const [revenuesData, accountsData] = await Promise.all([
+      const [revenuesData, accountsData, loansData] = await Promise.all([
         revenuesService.getAll(),
         accountsService.getAll(),
+        loansService.getAll(),
       ]);
       setRevenues(revenuesData);
       setAccounts(accountsData);
+      setLoans(Array.isArray(loansData) ? loansData : []);
     } catch (error: any) {
       toast({ title: 'Erro ao carregar dados', description: error.message, variant: 'destructive' });
     } finally {
@@ -188,7 +192,7 @@ export default function Revenues() {
             <DialogTitle>{selectedRevenue ? 'Editar Receita' : 'Nova Receita'}</DialogTitle>
             <DialogDescription>{selectedRevenue ? 'Atualize as informações da receita' : 'Adicione uma nova receita ao sistema'}</DialogDescription>
           </DialogHeader>
-          <RevenueForm revenue={selectedRevenue} accounts={accounts} onSubmit={handleSubmit} onCancel={() => setIsDialogOpen(false)} isLoading={isSubmitting} />
+          <RevenueForm revenue={selectedRevenue} accounts={accounts} loans={loans} onSubmit={handleSubmit} onCancel={() => setIsDialogOpen(false)} isLoading={isSubmitting} />
         </DialogContent>
       </Dialog>
     </div>

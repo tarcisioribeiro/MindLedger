@@ -643,6 +643,29 @@ export const routineTaskSchema = z.object({
     .max(31, 'Dia deve ser entre 1 e 31')
     .optional()
     .nullable(),
+  custom_weekdays: z.array(z.number().min(0).max(6))
+    .optional()
+    .nullable(),
+  custom_month_days: z.array(z.number().min(1).max(31))
+    .optional()
+    .nullable(),
+  times_per_week: z.number()
+    .min(1)
+    .max(7)
+    .optional()
+    .nullable(),
+  times_per_month: z.number()
+    .min(1)
+    .max(31)
+    .optional()
+    .nullable(),
+  interval_days: z.number()
+    .min(1)
+    .optional()
+    .nullable(),
+  interval_start_date: z.string()
+    .optional()
+    .nullable(),
   is_active: z.boolean(),
   target_quantity: z.number()
     .min(1, positiveError('Quantidade alvo'))
@@ -668,6 +691,28 @@ export const routineTaskSchema = z.object({
 }, {
   message: 'Dia do mes e obrigatorio para tarefas mensais',
   path: ['day_of_month']
+}).refine((data) => {
+  if (data.periodicity === 'custom') {
+    const hasWeekdays = data.custom_weekdays && data.custom_weekdays.length > 0;
+    const hasMonthDays = data.custom_month_days && data.custom_month_days.length > 0;
+    const hasFrequency = data.times_per_week || data.times_per_month || data.interval_days;
+
+    if (!hasWeekdays && !hasMonthDays && !hasFrequency) {
+      return false;
+    }
+  }
+  return true;
+}, {
+  message: 'Periodicidade personalizada requer pelo menos uma opcao',
+  path: ['periodicity']
+}).refine((data) => {
+  if (data.interval_days && !data.interval_start_date) {
+    return false;
+  }
+  return true;
+}, {
+  message: 'Data de inicio e obrigatoria quando intervalo esta definido',
+  path: ['interval_start_date']
 });
 
 export const goalSchema = z.object({

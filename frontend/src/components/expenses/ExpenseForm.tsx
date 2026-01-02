@@ -7,19 +7,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAlertDialog } from '@/hooks/use-alert-dialog';
 import { TRANSLATIONS } from '@/config/constants';
 import { membersService } from '@/services/members-service';
-import type { Expense, ExpenseFormData, Account, Member } from '@/types';
+import type { Expense, ExpenseFormData, Account, Member, Loan } from '@/types';
 
 interface ExpenseFormProps {
   expense?: Expense;
   accounts: Account[];
   members?: Member[];
+  loans?: Loan[];
   onSubmit: (data: ExpenseFormData) => void;
   onCancel: () => void;
   isLoading?: boolean;
 }
 
-export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, accounts, onSubmit, onCancel, isLoading = false }) => {
+export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, accounts, loans, onSubmit, onCancel, isLoading = false }) => {
   const [currentUserMember, setCurrentUserMember] = useState<Member | null>(null);
+  const [eligibleLoans, setEligibleLoans] = useState<Loan[]>([]);
   const { showAlert } = useAlertDialog();
 
   const { register, handleSubmit, setValue, watch } = useForm<ExpenseFormData>({
@@ -53,6 +55,18 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, accounts, onS
   }, [expense, setValue]);
 
   useEffect(() => {
+    if (loans && currentUserMember) {
+      // Filtrar empréstimos onde o usuário atual é o benefited (pegou emprestado, está pagando)
+      const filtered = loans.filter(loan =>
+        loan.benefited === currentUserMember.id &&
+        loan.status !== 'paid' &&
+        loan.status !== 'cancelled'
+      );
+      setEligibleLoans(filtered);
+    }
+  }, [loans, currentUserMember]);
+
+  useEffect(() => {
     if (expense) {
       setValue('description', expense.description);
       setValue('value', parseFloat(expense.value));
@@ -62,6 +76,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, accounts, onS
       setValue('payed', expense.payed);
       setValue('account', expense.account);
       setValue('member', expense.member);
+      setValue('related_loan', expense.related_loan || null);
     } else if (accounts.length > 0) {
       setValue('account', accounts[0].id);
     }
@@ -147,6 +162,27 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, accounts, onS
             className="bg-muted"
           />
           <p className="text-xs text-muted-foreground">O membro é automaticamente associado ao usuário logado</p>
+        </div>
+        <div className="space-y-2">
+          <Label>Empréstimo Relacionado (Opcional)</Label>
+          <Select
+            value={watch('related_loan')?.toString() || 'none'}
+            onValueChange={(v) => setValue('related_loan', v === 'none' ? null : parseInt(v))}
+            disabled={isLoading}
+          >
+            <SelectTrigger><SelectValue placeholder="Selecione (opcional)" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Nenhum</SelectItem>
+              {eligibleLoans.map((loan) => (
+                <SelectItem key={loan.id} value={loan.id.toString()}>
+                  {loan.description} - Saldo: R$ {loan.remaining_balance || '0.00'}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            Vincule esta despesa a um empréstimo que você está pagando
+          </p>
         </div>
       </div>
       <div className="flex justify-end gap-2 pt-4">

@@ -106,6 +106,24 @@ class Revenue(BaseModel):
         null=True,
         blank=True
     )
+    related_transfer = models.ForeignKey(
+        'transfers.Transfer',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='generated_revenue',
+        verbose_name="Transferência Relacionada",
+        help_text="Transferência que gerou esta receita automaticamente"
+    )
+    related_loan = models.ForeignKey(
+        'loans.Loan',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='payment_revenues',
+        verbose_name="Empréstimo Relacionado",
+        help_text="Empréstimo que esta receita está recebendo (quando você emprestou e está recebendo de volta)"
+    )
 
     class Meta:
         ordering = ['-date']
@@ -117,6 +135,8 @@ class Revenue(BaseModel):
             models.Index(fields=['account', 'date']),
             models.Index(fields=['received', 'date']),
             models.Index(fields=['account', 'category']),
+            models.Index(fields=['related_transfer']),
+            models.Index(fields=['related_loan']),
         ]
 
     def save(self, *args, **kwargs):

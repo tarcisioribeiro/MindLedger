@@ -27,7 +27,7 @@ class Command(BaseCommand):
         # Define all the models that members should have full access to
         app_models = {
             'accounts': ['account'],
-            'expenses': ['expense'],
+            'expenses': ['expense', 'fixedexpense', 'fixedexpensegenerationlog'],
             'revenues': ['revenue'],
             'credit_cards': ['creditcard', 'creditcardbill', 'creditcardexpense'],
             'transfers': ['transfer'],
@@ -35,6 +35,7 @@ class Command(BaseCommand):
             'members': ['member'],
             'library': ['author', 'publisher', 'book', 'summary', 'reading'],
             'security': ['password', 'storedcreditcard', 'storedbankaccount', 'archive', 'activitylog'],
+            'personal_planning': ['routinetask', 'dailytaskrecord', 'goal', 'dailyreflection'],
         }
 
         # Define the permissions: view, add, change, delete (full CRUD)

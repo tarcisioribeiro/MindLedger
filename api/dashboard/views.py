@@ -51,9 +51,10 @@ class DashboardStatsView(APIView):
         """
 
         # Filtrar apenas registros não deletados (soft delete)
+        # E excluir transações relacionadas a transferências internas
         accounts_qs = Account.objects.filter(is_deleted=False)
-        expenses_qs = Expense.objects.filter(is_deleted=False)
-        revenues_qs = Revenue.objects.filter(is_deleted=False)
+        expenses_qs = Expense.objects.filter(is_deleted=False, related_transfer__isnull=True)
+        revenues_qs = Revenue.objects.filter(is_deleted=False, related_transfer__isnull=True)
         credit_cards_qs = CreditCard.objects.filter(is_deleted=False)
 
         # Aggregations no banco de dados (otimizado)

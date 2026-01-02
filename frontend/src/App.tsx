@@ -17,12 +17,14 @@ const Home = lazy(() => import('./pages/Home'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Accounts = lazy(() => import('./pages/Accounts'));
 const Expenses = lazy(() => import('./pages/Expenses'));
+const FixedExpenses = lazy(() => import('./pages/FixedExpenses'));
 const Revenues = lazy(() => import('./pages/Revenues'));
 const CreditCards = lazy(() => import('./pages/CreditCards'));
 const CreditCardBills = lazy(() => import('./pages/CreditCardBills'));
 const CreditCardExpenses = lazy(() => import('./pages/CreditCardExpenses'));
 const Transfers = lazy(() => import('./pages/Transfers'));
 const Loans = lazy(() => import('./pages/Loans'));
+const Members = lazy(() => import('./pages/Members'));
 
 // Security Module
 const SecurityDashboard = lazy(() => import('./pages/SecurityDashboard'));
@@ -47,8 +49,7 @@ const AIAssistant = lazy(() => import('./pages/AIAssistant'));
 const PersonalPlanningDashboard = lazy(() => import('./pages/PersonalPlanningDashboard'));
 const RoutineTasks = lazy(() => import('./pages/RoutineTasks'));
 const Goals = lazy(() => import('./pages/Goals'));
-const DailyReflections = lazy(() => import('./pages/DailyReflections'));
-const TodayTasks = lazy(() => import('./pages/TodayTasks'));
+const DailyChecklist = lazy(() => import('./pages/DailyChecklist'));
 
 // Loading component
 const LoadingFallback = () => (
@@ -100,12 +101,14 @@ function App() {
           <Route path="/dashboard" element={<Suspense fallback={<LoadingFallback />}><Dashboard /></Suspense>} />
           <Route path="/accounts" element={<Suspense fallback={<LoadingFallback />}><Accounts /></Suspense>} />
           <Route path="/expenses" element={<Suspense fallback={<LoadingFallback />}><Expenses /></Suspense>} />
+          <Route path="/fixed-expenses" element={<Suspense fallback={<LoadingFallback />}><FixedExpenses /></Suspense>} />
           <Route path="/revenues" element={<Suspense fallback={<LoadingFallback />}><Revenues /></Suspense>} />
           <Route path="/credit-cards" element={<Suspense fallback={<LoadingFallback />}><CreditCards /></Suspense>} />
           <Route path="/credit-card-bills" element={<Suspense fallback={<LoadingFallback />}><CreditCardBills /></Suspense>} />
           <Route path="/credit-card-expenses" element={<Suspense fallback={<LoadingFallback />}><CreditCardExpenses /></Suspense>} />
           <Route path="/transfers" element={<Suspense fallback={<LoadingFallback />}><Transfers /></Suspense>} />
           <Route path="/loans" element={<Suspense fallback={<LoadingFallback />}><Loans /></Suspense>} />
+          <Route path="/members" element={<Suspense fallback={<LoadingFallback />}><Members /></Suspense>} />
 
           {/* Security Module routes */}
           <Route path="/security/dashboard" element={<Suspense fallback={<LoadingFallback />}><SecurityDashboard /></Suspense>} />
@@ -130,8 +133,7 @@ function App() {
           <Route path="/planning/dashboard" element={<Suspense fallback={<LoadingFallback />}><PersonalPlanningDashboard /></Suspense>} />
           <Route path="/planning/routine-tasks" element={<Suspense fallback={<LoadingFallback />}><RoutineTasks /></Suspense>} />
           <Route path="/planning/goals" element={<Suspense fallback={<LoadingFallback />}><Goals /></Suspense>} />
-          <Route path="/planning/reflections" element={<Suspense fallback={<LoadingFallback />}><DailyReflections /></Suspense>} />
-          <Route path="/planning/today" element={<Suspense fallback={<LoadingFallback />}><TodayTasks /></Suspense>} />
+          <Route path="/planning/daily" element={<Suspense fallback={<LoadingFallback />}><DailyChecklist /></Suspense>} />
         </Route>
 
         {/* Fallback */}

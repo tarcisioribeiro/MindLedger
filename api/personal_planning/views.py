@@ -466,6 +466,26 @@ class PersonalPlanningDashboardStatsView(APIView):
         # Melhor streak
         best_streak = self._calculate_best_streak(user)
 
+        # Tarefas de hoje
+        active_tasks_today = tasks_qs.filter(is_active=True)
+        tasks_for_today = [t for t in active_tasks_today if t.should_appear_on_date(today)]
+        records_today = records_qs.filter(date=today)
+        total_tasks_today = len(tasks_for_today)
+        completed_tasks_today = records_today.filter(completed=True).count()
+
+        # Tarefas rotineiras ativas (usar o serializer)
+        from personal_planning.serializers import RoutineTaskSerializer
+        active_routine_tasks_qs = tasks_qs.filter(is_active=True).prefetch_related('daily_records')
+        active_routine_tasks_data = RoutineTaskSerializer(active_routine_tasks_qs, many=True).data
+
+        # Reflexões recentes (últimas 5) - usar o serializer
+        from personal_planning.serializers import DailyReflectionSerializer
+        recent_reflections_qs = DailyReflection.objects.filter(
+            owner__user=user,
+            deleted_at__isnull=True
+        ).select_related('owner').order_by('-date')[:5]
+        recent_reflections_data = DailyReflectionSerializer(recent_reflections_qs, many=True).data
+
         stats = {
             'total_tasks': total_tasks,
             'active_tasks': active_tasks,
@@ -478,24 +498,34 @@ class PersonalPlanningDashboardStatsView(APIView):
             'best_streak': best_streak,
             'tasks_by_category': tasks_by_category,
             'weekly_progress': weekly_progress,
-            'active_goals_progress': active_goals_data
+            'active_goals_progress': active_goals_data,
+            'total_tasks_today': total_tasks_today,
+            'completed_tasks_today': completed_tasks_today,
+            'active_routine_tasks': active_routine_tasks_data,
+            'recent_reflections': recent_reflections_data
         }
 
         return Response(stats)
 
     def _calculate_current_streak(self, user, today):
         """Calcula sequencia atual de dias com 100% de cumprimento."""
+        # Buscar todas as tarefas ativas uma única vez
+        active_tasks = RoutineTask.objects.filter(
+            owner__user=user,
+            is_active=True,
+            deleted_at__isnull=True
+        )
+
+        # Se não há tarefas ativas, streak é 0
+        if not active_tasks.exists():
+            return 0
+
         streak = 0
         check_date = today
+        max_lookback_days = 365  # Limitar a busca a 1 ano no passado
+        days_without_tasks = 0
 
-        while True:
-            # Buscar tarefas do dia
-            active_tasks = RoutineTask.objects.filter(
-                owner__user=user,
-                is_active=True,
-                deleted_at__isnull=True
-            )
-
+        for _ in range(max_lookback_days):
             tasks_for_day = [
                 t for t in active_tasks
                 if t.should_appear_on_date(check_date)
@@ -503,8 +533,15 @@ class PersonalPlanningDashboardStatsView(APIView):
 
             if not tasks_for_day:
                 # Se nao ha tarefas para o dia, nao quebra o streak
+                days_without_tasks += 1
+                # Se já passaram 30 dias sem tarefas, pare
+                if days_without_tasks >= 30:
+                    break
                 check_date -= timedelta(days=1)
                 continue
+
+            # Reset contador de dias sem tarefas
+            days_without_tasks = 0
 
             # Verificar se todas foram cumpridas
             records = DailyTaskRecord.objects.filter(
@@ -519,6 +556,7 @@ class PersonalPlanningDashboardStatsView(APIView):
                 streak += 1
                 check_date -= timedelta(days=1)
             else:
+                # Streak quebrado
                 break
 
         return streak

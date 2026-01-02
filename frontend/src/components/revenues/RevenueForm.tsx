@@ -6,19 +6,21 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TRANSLATIONS } from '@/config/constants';
 import { membersService } from '@/services/members-service';
-import type { Revenue, RevenueFormData, Account, Member } from '@/types';
+import type { Revenue, RevenueFormData, Account, Member, Loan } from '@/types';
 
 interface RevenueFormProps {
   revenue?: Revenue;
   accounts: Account[];
   members?: Member[];
+  loans?: Loan[];
   onSubmit: (data: RevenueFormData) => void;
   onCancel: () => void;
   isLoading?: boolean;
 }
 
-export const RevenueForm: React.FC<RevenueFormProps> = ({ revenue, accounts, onSubmit, onCancel, isLoading = false }) => {
+export const RevenueForm: React.FC<RevenueFormProps> = ({ revenue, accounts, loans, onSubmit, onCancel, isLoading = false }) => {
   const [currentUserMember, setCurrentUserMember] = useState<Member | null>(null);
+  const [eligibleLoans, setEligibleLoans] = useState<Loan[]>([]);
 
   const { register, handleSubmit, setValue, watch } = useForm<RevenueFormData>({
     defaultValues: revenue ? {
@@ -35,6 +37,7 @@ export const RevenueForm: React.FC<RevenueFormProps> = ({ revenue, accounts, onS
       recurring: revenue.recurring,
       frequency: revenue.frequency || undefined,
       notes: revenue.notes,
+      related_loan: revenue.related_loan || null,
     } : {
       date: new Date().toISOString().split('T')[0],
       horary: new Date().toTimeString().slice(0, 5),
@@ -59,6 +62,18 @@ export const RevenueForm: React.FC<RevenueFormProps> = ({ revenue, accounts, onS
 
     loadCurrentUserMember();
   }, [revenue, setValue]);
+
+  useEffect(() => {
+    if (loans && currentUserMember) {
+      // Filtrar empréstimos onde o usuário atual é o creditor (emprestou dinheiro, está recebendo de volta)
+      const filtered = loans.filter(loan =>
+        loan.creditor === currentUserMember.id &&
+        loan.status !== 'paid' &&
+        loan.status !== 'cancelled'
+      );
+      setEligibleLoans(filtered);
+    }
+  }, [loans, currentUserMember]);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -109,6 +124,27 @@ export const RevenueForm: React.FC<RevenueFormProps> = ({ revenue, accounts, onS
             className="bg-muted"
           />
           <p className="text-xs text-muted-foreground">O membro é automaticamente associado ao usuário logado</p>
+        </div>
+        <div className="space-y-2">
+          <Label>Empréstimo Relacionado (Opcional)</Label>
+          <Select
+            value={watch('related_loan')?.toString() || 'none'}
+            onValueChange={(v) => setValue('related_loan', v === 'none' ? null : parseInt(v))}
+            disabled={isLoading}
+          >
+            <SelectTrigger><SelectValue placeholder="Selecione (opcional)" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Nenhum</SelectItem>
+              {eligibleLoans.map((loan) => (
+                <SelectItem key={loan.id} value={loan.id.toString()}>
+                  {loan.description} - Saldo: R$ {loan.remaining_balance || '0.00'}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            Vincule esta receita a um empréstimo que você está recebendo
+          </p>
         </div>
         <div className="space-y-2">
           <Label className="flex items-center gap-2">

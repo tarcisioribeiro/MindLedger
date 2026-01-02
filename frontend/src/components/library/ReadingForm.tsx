@@ -1,5 +1,6 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { readingSchema, type ReadingFormData } from '@/lib/validations';
+import { membersService } from '@/services/members-service';
 import type { Reading, Book } from '@/types';
 
 interface ReadingFormProps {
@@ -56,6 +58,22 @@ export function ReadingForm({
           owner: 0,
         },
   });
+
+  // Load current user member when creating new reading
+  useEffect(() => {
+    const loadCurrentUserMember = async () => {
+      if (!reading) {
+        try {
+          const member = await membersService.getCurrentUserMember();
+          setValue('owner', member.id);
+        } catch (error) {
+          console.error('Erro ao carregar membro do usuário:', error);
+        }
+      }
+    };
+
+    loadCurrentUserMember();
+  }, [reading, setValue]);
 
   const selectedBook = watch('book');
   const getBookMaxPages = (bookId: number): number => {
@@ -121,6 +139,23 @@ export function ReadingForm({
           {errors.reading_date && (
             <p className="text-sm text-destructive mt-1">
               {errors.reading_date.message}
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="reading_time">Tempo de Leitura (minutos) *</Label>
+          <Input
+            id="reading_time"
+            type="number"
+            min="0"
+            {...register('reading_time', {
+              setValueAs: (value) => (value === '' ? 0 : parseInt(value)),
+            })}
+          />
+          {errors.reading_time && (
+            <p className="text-sm text-destructive mt-1">
+              {errors.reading_time.message}
             </p>
           )}
         </div>

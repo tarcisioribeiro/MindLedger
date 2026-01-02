@@ -32,7 +32,7 @@ import {
   Calendar,
   Target,
   CheckCircle2,
-  Notebook,
+  Users,
 } from 'lucide-react';
 
 interface NavSubItem {
@@ -77,12 +77,14 @@ const navModules: NavModule[] = [
       { title: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
       { title: 'Contas', href: '/accounts', icon: <Wallet className="w-4 h-4" /> },
       { title: 'Despesas', href: '/expenses', icon: <TrendingDown className="w-4 h-4" /> },
+      { title: 'Gastos Fixos', href: '/fixed-expenses', icon: <Calendar className="w-4 h-4" /> },
       { title: 'Receitas', href: '/revenues', icon: <TrendingUp className="w-4 h-4" /> },
       { title: 'Cartões de Crédito', href: '/credit-cards', icon: <CreditCard className="w-4 h-4" /> },
       { title: 'Faturas', href: '/credit-card-bills', icon: <Receipt className="w-4 h-4" /> },
       { title: 'Gastos do Cartão', href: '/credit-card-expenses', icon: <ShoppingCart className="w-4 h-4" /> },
       { title: 'Transferências', href: '/transfers', icon: <ArrowLeftRight className="w-4 h-4" /> },
       { title: 'Empréstimos', href: '/loans', icon: <HandCoins className="w-4 h-4" /> },
+      { title: 'Beneficiários/Credores', href: '/members', icon: <Users className="w-4 h-4" /> },
     ],
   },
   {
@@ -90,10 +92,9 @@ const navModules: NavModule[] = [
     icon: <Calendar className="w-5 h-5" />,
     items: [
       { title: 'Dashboard', href: '/planning/dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
-      { title: 'Tarefas de Hoje', href: '/planning/today', icon: <CheckCircle2 className="w-4 h-4" /> },
+      { title: 'Checklist Diário', href: '/planning/daily', icon: <CheckCircle2 className="w-4 h-4" /> },
       { title: 'Tarefas Rotineiras', href: '/planning/routine-tasks', icon: <Calendar className="w-4 h-4" /> },
       { title: 'Objetivos', href: '/planning/goals', icon: <Target className="w-4 h-4" /> },
-      { title: 'Reflexões Diárias', href: '/planning/reflections', icon: <Notebook className="w-4 h-4" /> },
     ],
   },
   {

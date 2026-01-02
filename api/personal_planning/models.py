@@ -9,51 +9,53 @@ from app.models import BaseModel
 # ============================================================================
 
 TASK_CATEGORY_CHOICES = (
-    ('health', 'Saude'),
+    ('health', 'Saúde'),
     ('studies', 'Estudos'),
     ('spiritual', 'Espiritual'),
-    ('exercise', 'Exercicio Fisico'),
-    ('nutrition', 'Nutricao'),
-    ('meditation', 'Meditacao'),
+    ('exercise', 'Exercício Físico'),
+    ('nutrition', 'Nutrição'),
+    ('meditation', 'Meditação'),
     ('reading', 'Leitura'),
     ('writing', 'Escrita'),
     ('work', 'Trabalho'),
     ('leisure', 'Lazer'),
-    ('family', 'Familia'),
+    ('family', 'Família'),
     ('social', 'Social'),
-    ('finance', 'Financas'),
+    ('finance', 'Finanças'),
     ('household', 'Casa'),
     ('personal_care', 'Cuidado Pessoal'),
     ('other', 'Outros')
 )
 
 PERIODICITY_CHOICES = (
-    ('daily', 'Diaria'),
+    ('daily', 'Diária'),
+    ('weekdays', 'Dias Úteis'),
     ('weekly', 'Semanal'),
-    ('monthly', 'Mensal')
+    ('monthly', 'Mensal'),
+    ('custom', 'Personalizado')
 )
 
 # Dias da semana para tarefas semanais
 WEEKDAY_CHOICES = (
     (0, 'Segunda-feira'),
-    (1, 'Terca-feira'),
+    (1, 'Terça-feira'),
     (2, 'Quarta-feira'),
     (3, 'Quinta-feira'),
     (4, 'Sexta-feira'),
-    (5, 'Sabado'),
+    (5, 'Sábado'),
     (6, 'Domingo')
 )
 
 GOAL_TYPE_CHOICES = (
     ('consecutive_days', 'Dias Consecutivos'),
     ('total_days', 'Total de Dias'),
-    ('avoid_habit', 'Evitar Habito'),
+    ('avoid_habit', 'Evitar Hábito'),
     ('custom', 'Personalizado')
 )
 
 GOAL_STATUS_CHOICES = (
     ('active', 'Ativo'),
-    ('completed', 'Concluido'),
+    ('completed', 'Concluído'),
     ('failed', 'Falhou'),
     ('cancelled', 'Cancelado')
 )
@@ -63,7 +65,7 @@ MOOD_CHOICES = (
     ('good', 'Bom'),
     ('neutral', 'Neutro'),
     ('bad', 'Ruim'),
-    ('terrible', 'Pessimo')
+    ('terrible', 'Péssimo')
 )
 
 
@@ -116,6 +118,45 @@ class RoutineTask(BaseModel):
         verbose_name='Dia do Mes',
         help_text='Apenas para tarefas mensais (1-31)'
     )
+    # Para periodicidade personalizada
+    custom_weekdays = models.JSONField(
+        null=True,
+        blank=True,
+        default=None,
+        verbose_name='Dias da Semana Personalizados',
+        help_text='Array de dias da semana [0-6] para periodicidade personalizada'
+    )
+    custom_month_days = models.JSONField(
+        null=True,
+        blank=True,
+        default=None,
+        verbose_name='Dias do Mês Personalizados',
+        help_text='Array de dias do mês [1-31] para periodicidade personalizada'
+    )
+    times_per_week = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        verbose_name='Vezes por Semana',
+        help_text='Quantas vezes por semana (para periodicidade personalizada)'
+    )
+    times_per_month = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        verbose_name='Vezes por Mês',
+        help_text='Quantas vezes por mês (para periodicidade personalizada)'
+    )
+    interval_days = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        verbose_name='Intervalo em Dias',
+        help_text='A cada X dias (para periodicidade personalizada)'
+    )
+    interval_start_date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name='Data de Início do Intervalo',
+        help_text='Data de referência para calcular intervalos'
+    )
     is_active = models.BooleanField(
         default=True,
         verbose_name='Tarefa Ativa'
@@ -166,6 +207,37 @@ class RoutineTask(BaseModel):
                     'day_of_month': 'Dia do mes deve estar entre 1 e 31'
                 })
 
+        # Validação para periodicidade personalizada
+        if self.periodicity == 'custom':
+            has_weekdays = self.custom_weekdays and len(self.custom_weekdays) > 0
+            has_month_days = self.custom_month_days and len(self.custom_month_days) > 0
+            has_frequency = any([self.times_per_week, self.times_per_month, self.interval_days])
+
+            if not (has_weekdays or has_month_days or has_frequency):
+                raise ValidationError({
+                    'periodicity': 'Periodicidade personalizada requer: dias da semana OU dias do mes OU frequencia'
+                })
+
+            # Validar valores dos dias da semana
+            if self.custom_weekdays:
+                if not all(isinstance(d, int) and 0 <= d <= 6 for d in self.custom_weekdays):
+                    raise ValidationError({
+                        'custom_weekdays': 'Dias da semana devem estar entre 0 (Segunda) e 6 (Domingo)'
+                    })
+
+            # Validar valores dos dias do mês
+            if self.custom_month_days:
+                if not all(isinstance(d, int) and 1 <= d <= 31 for d in self.custom_month_days):
+                    raise ValidationError({
+                        'custom_month_days': 'Dias do mes devem estar entre 1 e 31'
+                    })
+
+            # Validar intervalo de dias
+            if self.interval_days and not self.interval_start_date:
+                raise ValidationError({
+                    'interval_start_date': 'Data de inicio e obrigatoria quando intervalo de dias esta definido'
+                })
+
     def __str__(self):
         return f"{self.name} ({self.get_periodicity_display()})"
 
@@ -189,11 +261,40 @@ class RoutineTask(BaseModel):
         if self.periodicity == 'daily':
             return True
 
+        # Dias úteis (Segunda a Sexta)
+        if self.periodicity == 'weekdays':
+            return date.weekday() in [0, 1, 2, 3, 4]
+
         if self.periodicity == 'weekly':
             return date.weekday() == self.weekday
 
         if self.periodicity == 'monthly':
             return date.day == self.day_of_month
+
+        # Periodicidade personalizada
+        if self.periodicity == 'custom':
+            # Verificar dias da semana específicos
+            if self.custom_weekdays:
+                if date.weekday() not in self.custom_weekdays:
+                    return False
+
+            # Verificar dias do mês específicos
+            if self.custom_month_days:
+                if date.day not in self.custom_month_days:
+                    return False
+
+            # Verificar intervalo (a cada X dias)
+            if self.interval_days and self.interval_start_date:
+                delta = (date - self.interval_start_date).days
+                if delta < 0 or delta % self.interval_days != 0:
+                    return False
+
+            # NOTA: times_per_week e times_per_month requerem lógica adicional
+            # (verificar quantas vezes já foi marcada na semana/mês atual)
+            # Por simplicidade, se apenas frequency estiver definida, sempre retorna True
+            # A validação de frequência será feita no frontend/backend ao criar registros
+
+            return True
 
         return False
 
