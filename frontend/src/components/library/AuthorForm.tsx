@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/select';
 import { authorSchema, type AuthorFormData } from '@/lib/validations';
 import { membersService } from '@/services/members-service';
+import { formatLocalDate } from '@/lib/utils';
 import { NATIONALITIES } from '@/types';
 import type { Author } from '@/types';
 
@@ -94,7 +95,7 @@ export function AuthorForm({
           <Label htmlFor="birthday">Data de Nascimento</Label>
           <DatePicker
             value={watch('birthday') && watch('birthday') !== '' ? new Date(watch('birthday')!) : undefined}
-            onChange={(date) => setValue('birthday', date ? date.toISOString().split('T')[0] : '')}
+            onChange={(date) => setValue('birthday', date ? formatLocalDate(date) : '')}
             placeholder="Selecione a data de nascimento"
           />
           {errors.birthday && (
@@ -108,7 +109,7 @@ export function AuthorForm({
           <Label htmlFor="death_date">Data de Falecimento</Label>
           <DatePicker
             value={watch('death_date') && watch('death_date') !== '' ? new Date(watch('death_date')!) : undefined}
-            onChange={(date) => setValue('death_date', date ? date.toISOString().split('T')[0] : '')}
+            onChange={(date) => setValue('death_date', date ? formatLocalDate(date) : '')}
             placeholder="Selecione a data de falecimento"
           />
           {errors.death_date && (

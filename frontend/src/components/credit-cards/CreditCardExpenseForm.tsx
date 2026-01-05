@@ -11,6 +11,7 @@ import { useAlertDialog } from '@/hooks/use-alert-dialog';
 import { TRANSLATIONS } from '@/config/constants';
 import type { CreditCardExpense, CreditCardExpenseFormData, CreditCard, CreditCardBill, Member } from '@/types';
 
+import { formatLocalDate } from '@/lib/utils';
 interface CreditCardExpenseFormProps {
   expense?: CreditCardExpense;
   creditCards: CreditCard[];
@@ -154,7 +155,7 @@ export const CreditCardExpenseForm: React.FC<CreditCardExpenseFormProps> = ({
           <Label htmlFor="date">Data *</Label>
           <DatePicker
             value={watch('date') ? new Date(watch('date')) : undefined}
-            onChange={(date) => setValue('date', date ? date.toISOString().split('T')[0] : '')}
+            onChange={(date) => setValue('date', date ? formatLocalDate(date) : '')}
             placeholder="Selecione a data"
             disabled={isLoading}
           />

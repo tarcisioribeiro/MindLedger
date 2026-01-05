@@ -25,6 +25,7 @@ import {
 } from '@/types';
 import { z } from 'zod';
 
+import { formatLocalDate } from '@/lib/utils';
 type RoutineTaskFormData = z.infer<typeof routineTaskSchema>;
 
 interface RoutineTaskFormProps {
@@ -356,7 +357,7 @@ export function RoutineTaskForm({
                 </Label>
                 <DatePicker
                   value={watch('interval_start_date') && watch('interval_start_date') !== '' ? new Date(watch('interval_start_date')!) : undefined}
-                  onChange={(date) => setValue('interval_start_date', date ? date.toISOString().split('T')[0] : '')}
+                  onChange={(date) => setValue('interval_start_date', date ? formatLocalDate(date) : '')}
                   placeholder="Selecione a data de início"
                 />
               </div>

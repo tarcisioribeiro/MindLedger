@@ -10,6 +10,7 @@ import { TRANSLATIONS } from '@/config/constants';
 import { membersService } from '@/services/members-service';
 import type { Expense, ExpenseFormData, Account, Member, Loan } from '@/types';
 
+import { formatLocalDate } from '@/lib/utils';
 interface ExpenseFormProps {
   expense?: Expense;
   accounts: Account[];
@@ -123,7 +124,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, accounts, loa
           <Label htmlFor="date">Data *</Label>
           <DatePicker
             value={watch('date') ? new Date(watch('date')) : undefined}
-            onChange={(date) => setValue('date', date ? date.toISOString().split('T')[0] : '')}
+            onChange={(date) => setValue('date', date ? formatLocalDate(date) : '')}
             placeholder="Selecione a data"
             disabled={isLoading}
           />

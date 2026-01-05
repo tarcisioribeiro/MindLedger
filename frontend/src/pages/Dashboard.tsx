@@ -49,36 +49,46 @@ export default function Dashboard() {
   };
 
   // Memoize cálculos pesados para evitar re-renders desnecessários
+  // Filtra apenas despesas pagas e receitas recebidas para os gráficos
   const expensesByCategory = useMemo(() => {
-    return expenses.reduce((acc: any[], exp) => {
-      const existing = acc.find(item => item.name === exp.category);
-      if (existing) {
-        existing.value += parseFloat(exp.value);
-      } else {
-        acc.push({ name: translate('expenseCategories', exp.category), value: parseFloat(exp.value) });
-      }
-      return acc;
-    }, []).sort((a, b) => b.value - a.value).slice(0, 5);
+    return expenses
+      .filter(exp => exp.payed) // Apenas despesas pagas
+      .reduce((acc: any[], exp) => {
+        const existing = acc.find(item => item.name === exp.category);
+        if (existing) {
+          existing.value += parseFloat(exp.value);
+        } else {
+          acc.push({ name: translate('expenseCategories', exp.category), value: parseFloat(exp.value) });
+        }
+        return acc;
+      }, []).sort((a, b) => b.value - a.value).slice(0, 5);
   }, [expenses]);
 
   const revenuesByCategory = useMemo(() => {
-    return revenues.reduce((acc: any[], rev) => {
-      const existing = acc.find(item => item.name === rev.category);
-      if (existing) {
-        existing.value += parseFloat(rev.value);
-      } else {
-        acc.push({ name: translate('revenueCategories', rev.category), value: parseFloat(rev.value) });
-      }
-      return acc;
-    }, []).sort((a, b) => b.value - a.value).slice(0, 5);
+    return revenues
+      .filter(rev => rev.received) // Apenas receitas recebidas
+      .reduce((acc: any[], rev) => {
+        const existing = acc.find(item => item.name === rev.category);
+        if (existing) {
+          existing.value += parseFloat(rev.value);
+        } else {
+          acc.push({ name: translate('revenueCategories', rev.category), value: parseFloat(rev.value) });
+        }
+        return acc;
+      }, []).sort((a, b) => b.value - a.value).slice(0, 5);
   }, [revenues]);
 
   const monthlyData = useMemo(() => {
     return eachMonthOfInterval({ start: subMonths(new Date(), 5), end: new Date() }).map(month => {
       const monthStart = startOfMonth(month);
       const monthEnd = endOfMonth(month);
-      const monthExpenses = expenses.filter(e => new Date(e.date) >= monthStart && new Date(e.date) <= monthEnd).reduce((sum, e) => sum + parseFloat(e.value), 0);
-      const monthRevenues = revenues.filter(r => new Date(r.date) >= monthStart && new Date(r.date) <= monthEnd).reduce((sum, r) => sum + parseFloat(r.value), 0);
+      // Filtra apenas despesas pagas e receitas recebidas
+      const monthExpenses = expenses
+        .filter(e => e.payed && new Date(e.date) >= monthStart && new Date(e.date) <= monthEnd)
+        .reduce((sum, e) => sum + parseFloat(e.value), 0);
+      const monthRevenues = revenues
+        .filter(r => r.received && new Date(r.date) >= monthStart && new Date(r.date) <= monthEnd)
+        .reduce((sum, r) => sum + parseFloat(r.value), 0);
       return { month: format(month, 'MMM/yy', { locale: ptBR }), despesas: monthExpenses, receitas: monthRevenues, saldo: monthRevenues - monthExpenses };
     });
   }, [expenses, revenues]);
@@ -159,8 +169,16 @@ export default function Dashboard() {
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                     <XAxis type="number" />
                     <YAxis dataKey="name" type="category" width={150} />
-                    <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                    <Bar dataKey="value" radius={[0, 8, 8, 0]}>
+                    <Tooltip
+                      formatter={(value: number) => formatCurrency(value)}
+                      labelStyle={{ color: 'hsl(var(--foreground))' }}
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--background))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '6px'
+                      }}
+                    />
+                    <Bar dataKey="value" radius={[0, 8, 8, 0]} name="Valor">
                       {expensesByCategory.map((_, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
@@ -198,8 +216,16 @@ export default function Dashboard() {
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                     <XAxis type="number" />
                     <YAxis dataKey="name" type="category" width={150} />
-                    <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                    <Bar dataKey="value" radius={[0, 8, 8, 0]}>
+                    <Tooltip
+                      formatter={(value: number) => formatCurrency(value)}
+                      labelStyle={{ color: 'hsl(var(--foreground))' }}
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--background))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '6px'
+                      }}
+                    />
+                    <Bar dataKey="value" radius={[0, 8, 8, 0]} name="Valor">
                       {revenuesByCategory.map((_, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
@@ -234,7 +260,15 @@ export default function Dashboard() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
                 <YAxis />
-                <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                <Tooltip
+                  formatter={(value: number) => formatCurrency(value)}
+                  labelStyle={{ color: 'hsl(var(--foreground))' }}
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--background))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '6px'
+                  }}
+                />
                 <Legend />
                 <Line type="monotone" dataKey="despesas" stroke={COLORS[5]} strokeWidth={2} name="Despesas" />
                 <Line type="monotone" dataKey="receitas" stroke={COLORS[3]} strokeWidth={2} name="Receitas" />

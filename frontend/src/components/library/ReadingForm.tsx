@@ -18,6 +18,7 @@ import { readingSchema, type ReadingFormData } from '@/lib/validations';
 import { membersService } from '@/services/members-service';
 import type { Reading, Book } from '@/types';
 
+import { formatLocalDate } from '@/lib/utils';
 interface ReadingFormProps {
   reading?: Reading;
   books: Book[];
@@ -134,7 +135,7 @@ export function ReadingForm({
           <Label htmlFor="reading_date">Data da Leitura *</Label>
           <DatePicker
             value={watch('reading_date') ? new Date(watch('reading_date')) : undefined}
-            onChange={(date) => setValue('reading_date', date ? date.toISOString().split('T')[0] : '')}
+            onChange={(date) => setValue('reading_date', date ? formatLocalDate(date) : '')}
             placeholder="Selecione a data de leitura"
           />
           {errors.reading_date && (

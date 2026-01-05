@@ -26,6 +26,7 @@ import {
 } from '@/types';
 import type { Book, Author, Publisher } from '@/types';
 
+import { formatLocalDate } from '@/lib/utils';
 interface BookFormProps {
   book?: Book;
   authors: Author[];
@@ -322,7 +323,7 @@ export function BookForm({
           <Label htmlFor="publish_date">Data de Publicação</Label>
           <DatePicker
             value={watch('publish_date') && watch('publish_date') !== '' ? new Date(watch('publish_date')!) : undefined}
-            onChange={(date) => setValue('publish_date', date ? date.toISOString().split('T')[0] : '')}
+            onChange={(date) => setValue('publish_date', date ? formatLocalDate(date) : '')}
             placeholder="Selecione a data de publicação"
           />
           {errors.publish_date && (

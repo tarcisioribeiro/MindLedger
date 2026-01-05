@@ -61,15 +61,26 @@ export const StatCard: React.FC<StatCardProps> = ({
   };
 
   // Parse numeric value for counter animation
-  const numericValue = typeof value === 'number' ? value : parseFloat(String(value).replace(/[^\d.-]/g, ''));
+  // For currency strings (R$ 1.234,56), we need to extract the number correctly
+  const extractNumber = (val: string | number): number => {
+    if (typeof val === 'number') return val;
+    // Remove currency symbol and convert pt-BR format (1.234,56) to standard (1234.56)
+    const cleaned = String(val)
+      .replace(/[^\d.,-]/g, '') // Remove non-numeric chars except . , -
+      .replace(/\./g, '') // Remove thousands separator (dot in pt-BR)
+      .replace(',', '.'); // Convert decimal separator (comma to dot)
+    return parseFloat(cleaned);
+  };
+
+  const numericValue = extractNumber(value);
   const isNumeric = !isNaN(numericValue);
   const animatedCount = useCounterAnimation(isNumeric ? numericValue : 0);
 
   // Format the displayed value
-  const displayValue = isNumeric
-    ? typeof value === 'string'
-      ? value.replace(/[\d,.-]+/, animatedCount.toLocaleString())
-      : animatedCount.toLocaleString()
+  const displayValue = isNumeric && typeof value === 'string' && value.includes('R$')
+    ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(animatedCount)
+    : isNumeric
+    ? animatedCount.toLocaleString('pt-BR')
     : value;
 
   return (

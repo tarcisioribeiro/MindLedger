@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { TRANSLATIONS } from '@/config/constants';
 import type { Transfer, TransferFormData, Account } from '@/types';
 
+import { formatLocalDate } from '@/lib/utils';
 interface TransferFormProps {
   transfer?: Transfer;
   accounts: Account[];
@@ -60,7 +61,7 @@ export const TransferForm: React.FC<TransferFormProps> = ({ transfer, accounts, 
           <Label>Data *</Label>
           <DatePicker
             value={watch('date') ? new Date(watch('date')) : undefined}
-            onChange={(date) => setValue('date', date ? date.toISOString().split('T')[0] : '')}
+            onChange={(date) => setValue('date', date ? formatLocalDate(date) : '')}
             placeholder="Selecione a data"
             disabled={isLoading}
           />

@@ -9,6 +9,7 @@ import { TRANSLATIONS } from '@/config/constants';
 import { membersService } from '@/services/members-service';
 import type { Revenue, RevenueFormData, Account, Member, Loan } from '@/types';
 
+import { formatLocalDate } from '@/lib/utils';
 interface RevenueFormProps {
   revenue?: Revenue;
   accounts: Account[];
@@ -91,7 +92,7 @@ export const RevenueForm: React.FC<RevenueFormProps> = ({ revenue, accounts, loa
           <Label>Data *</Label>
           <DatePicker
             value={watch('date') ? new Date(watch('date')) : undefined}
-            onChange={(date) => setValue('date', date ? date.toISOString().split('T')[0] : '')}
+            onChange={(date) => setValue('date', date ? formatLocalDate(date) : '')}
             placeholder="Selecione a data"
             disabled={isLoading}
           />

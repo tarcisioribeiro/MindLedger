@@ -122,11 +122,22 @@ export default function CreditCards() {
     {
       key: 'card_number_masked',
       label: 'Número',
-      render: (card) => (
-        <span className="font-mono text-sm">
-          {card.card_number_masked ? `******* ${card.card_number_masked.slice(-4)}` : 'N/A'}
-        </span>
-      ),
+      render: (card) => {
+        if (!card.card_number_masked) return <span className="font-mono text-sm">N/A</span>;
+
+        // Se já está mascarado (tem asteriscos ou é longo), mostra como está
+        if (card.card_number_masked.includes('*') || card.card_number_masked.length > 4) {
+          return <span className="font-mono text-sm">{card.card_number_masked}</span>;
+        }
+
+        // Se tem apenas os últimos 4 dígitos, formata com asteriscos
+        if (card.card_number_masked.length === 4) {
+          return <span className="font-mono text-sm">**** **** **** {card.card_number_masked}</span>;
+        }
+
+        // Caso contrário, mostra os últimos 4 dígitos do que vier
+        return <span className="font-mono text-sm">**** **** **** {card.card_number_masked.slice(-4)}</span>;
+      },
     },
     {
       key: 'credit_limit',

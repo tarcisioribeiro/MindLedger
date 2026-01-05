@@ -114,7 +114,14 @@ export default function Revenues() {
     {
       key: 'description',
       label: 'Descrição',
-      render: (revenue) => <div className="font-medium">{revenue.description}</div>,
+      render: (revenue) => (
+        <div>
+          <div className="font-medium">{revenue.description}</div>
+          {revenue.source && (
+            <div className="text-xs text-muted-foreground">Origem: {revenue.source}</div>
+          )}
+        </div>
+      ),
     },
     {
       key: 'value',
@@ -127,6 +134,13 @@ export default function Revenues() {
       ),
     },
     {
+      key: 'account',
+      label: 'Conta',
+      render: (revenue) => (
+        <span className="text-sm">{revenue.account_name || 'N/A'}</span>
+      ),
+    },
+    {
       key: 'category',
       label: 'Categoria',
       render: (revenue) => (
@@ -134,12 +148,24 @@ export default function Revenues() {
       ),
     },
     {
+      key: 'received',
+      label: 'Status',
+      render: (revenue) => (
+        <Badge variant={revenue.received ? 'success' : 'secondary'}>
+          {revenue.received ? 'Recebido' : 'Pendente'}
+        </Badge>
+      ),
+    },
+    {
       key: 'date',
       label: 'Data',
       render: (revenue) => (
-        <span className="text-sm text-muted-foreground">
-          {formatDateTime(revenue.date, revenue.horary)}
-        </span>
+        <div>
+          <div className="text-sm">{formatDateTime(revenue.date, revenue.horary)}</div>
+          {revenue.member_name && (
+            <div className="text-xs text-muted-foreground">Membro: {revenue.member_name}</div>
+          )}
+        </div>
       ),
     },
   ];

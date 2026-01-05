@@ -24,6 +24,7 @@ import {
 } from '@/types';
 import { z } from 'zod';
 
+import { formatLocalDate } from '@/lib/utils';
 type GoalFormData = z.infer<typeof goalSchema>;
 
 interface GoalFormProps {
@@ -211,7 +212,7 @@ export function GoalForm({
           <Label htmlFor="start_date">Data de Início *</Label>
           <DatePicker
             value={watch('start_date') ? new Date(watch('start_date')) : undefined}
-            onChange={(date) => setValue('start_date', date ? date.toISOString().split('T')[0] : '')}
+            onChange={(date) => setValue('start_date', date ? formatLocalDate(date) : '')}
             placeholder="Selecione a data de início"
           />
           {errors.start_date && (
@@ -225,7 +226,7 @@ export function GoalForm({
           <Label htmlFor="end_date">Data de Término</Label>
           <DatePicker
             value={watch('end_date') && watch('end_date') !== '' ? new Date(watch('end_date')!) : undefined}
-            onChange={(date) => setValue('end_date', date ? date.toISOString().split('T')[0] : '')}
+            onChange={(date) => setValue('end_date', date ? formatLocalDate(date) : '')}
             placeholder="Selecione a data de término"
           />
           {errors.end_date && (

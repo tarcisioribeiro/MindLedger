@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { TRANSLATIONS } from '@/config/constants';
 import type { CreditCard, CreditCardFormData, Account } from '@/types';
 
+import { formatLocalDate } from '@/lib/utils';
 interface CreditCardFormProps {
   creditCard?: CreditCard;
   accounts: Account[];
@@ -75,7 +76,7 @@ export const CreditCardForm: React.FC<CreditCardFormProps> = ({ creditCard, acco
           <Label>Data de Validade *</Label>
           <DatePicker
             value={watch('validation_date') ? new Date(watch('validation_date')) : undefined}
-            onChange={(date) => setValue('validation_date', date ? date.toISOString().split('T')[0] : '')}
+            onChange={(date) => setValue('validation_date', date ? formatLocalDate(date) : '')}
             placeholder="Selecione a data de validade"
             disabled={isLoading}
           />

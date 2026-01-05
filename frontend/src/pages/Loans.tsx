@@ -32,6 +32,7 @@ import { LoadingState } from '@/components/common/LoadingState';
 import { SearchInput } from '@/components/common/SearchInput';
 import type { Loan, LoanFormData, Account, Member } from '@/types';
 
+import { formatLocalDate } from '@/lib/utils';
 const EXPENSE_CATEGORIES = [
   'food and drink', 'bills and services', 'electronics', 'family and friends',
   'pets', 'digital signs', 'house', 'purchases', 'donate', 'education',
@@ -390,7 +391,7 @@ export default function Loans() {
                 <Label htmlFor="date">Data *</Label>
                 <DatePicker
                   value={formData.date ? new Date(formData.date) : undefined}
-                  onChange={(date) => setFormData({ ...formData, date: date ? date.toISOString().split('T')[0] : '' })}
+                  onChange={(date) => setFormData({ ...formData, date: date ? formatLocalDate(date) : '' })}
                   placeholder="Selecione a data"
                 />
               </div>
@@ -495,7 +496,7 @@ export default function Loans() {
                 <Label htmlFor="due_date">Data de Vencimento</Label>
                 <DatePicker
                   value={formData.due_date ? new Date(formData.due_date) : undefined}
-                  onChange={(date) => setFormData({ ...formData, due_date: date ? date.toISOString().split('T')[0] : '' })}
+                  onChange={(date) => setFormData({ ...formData, due_date: date ? formatLocalDate(date) : '' })}
                   placeholder="Selecione a data de vencimento"
                 />
               </div>
