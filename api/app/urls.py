@@ -3,6 +3,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from app.health import health_check, ready_check, live_check
+from app.views import current_date
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -10,6 +11,8 @@ urlpatterns = [
     path('health/', health_check, name='health-check'),
     path('ready/', ready_check, name='ready-check'),
     path('live/', live_check, name='live-check'),
+    # App utilities
+    path('api/v1/app/current-date/', current_date, name='current-date'),
     # API endpoints
     path('api/v1/', include('authentication.urls')),
     path('api/v1/', include('accounts.urls')),

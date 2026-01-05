@@ -38,14 +38,13 @@ import { KanbanCard } from '@/components/personal-planning/KanbanCard';
 import { dailyTaskRecordsService } from '@/services/daily-task-records-service';
 import { dailyReflectionsService } from '@/services/daily-reflections-service';
 import { membersService } from '@/services/members-service';
+import { appService } from '@/services/app-service';
 import { useToast } from '@/hooks/use-toast';
 import { MOOD_CHOICES, type TaskForToday, type TaskCard, type KanbanStatus } from '@/types';
 
 import { formatLocalDate, parseLocalDate } from '@/lib/utils';
 export default function DailyChecklist() {
-  const [selectedDate, setSelectedDate] = useState<string>(
-    formatLocalDate(new Date())
-  );
+  const [selectedDate, setSelectedDate] = useState<string>('');
   const [tasksData, setTasksData] = useState<TaskForToday[]>([]);
   const [cards, setCards] = useState<TaskCard[]>([]);
   const [activeCard, setActiveCard] = useState<TaskCard | null>(null);
@@ -111,11 +110,22 @@ export default function DailyChecklist() {
   }, [cards]);
 
   useEffect(() => {
+    const initializeDate = async () => {
+      try {
+        const serverDate = await appService.getCurrentDate();
+        setSelectedDate(serverDate);
+      } catch (error) {
+        // Fallback to browser date if server request fails
+        setSelectedDate(formatLocalDate(new Date()));
+      }
+    };
+
     loadCurrentUserMember();
+    initializeDate();
   }, []);
 
   useEffect(() => {
-    if (ownerId > 0) {
+    if (ownerId > 0 && selectedDate) {
       loadData();
     }
   }, [selectedDate, ownerId]);
