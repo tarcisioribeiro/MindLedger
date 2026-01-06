@@ -265,7 +265,15 @@ export default function LibraryDashboard() {
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                     <XAxis type="number" />
                     <YAxis dataKey="genre_display" type="category" width={120} />
-                    <Tooltip />
+                    <Tooltip
+                      labelStyle={{ color: 'hsl(var(--foreground))' }}
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--background))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '6px'
+                      }}
+                      formatter={(value: any) => [`${value} ${value === 1 ? 'livro' : 'livros'}`, 'Quantidade']}
+                    />
                     <Bar dataKey="count" radius={[0, 8, 8, 0]}>
                       {stats.books_by_genre.map((_, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -366,6 +374,10 @@ export default function LibraryDashboard() {
                         border: '1px solid hsl(var(--border))',
                         borderRadius: '6px'
                       }}
+                      formatter={(value: any, name: string, props: any) => {
+                        const status = props.payload.status_display || name;
+                        return [`${value} ${value === 1 ? 'livro' : 'livros'}`, status];
+                      }}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -430,6 +442,11 @@ export default function LibraryDashboard() {
                       border: '1px solid hsl(var(--border))',
                       borderRadius: '6px'
                     }}
+                    formatter={(value: any, name: string) => {
+                      if (name === 'Páginas Lidas') return [value, 'Páginas'];
+                      if (name === 'Tempo (horas)') return [`${value}h`, 'Tempo'];
+                      return [value, name];
+                    }}
                   />
                   <Legend />
                   <Line
@@ -483,6 +500,7 @@ export default function LibraryDashboard() {
                         border: '1px solid hsl(var(--border))',
                         borderRadius: '6px'
                       }}
+                      formatter={(value: any) => [`${value} ${value === 1 ? 'livro' : 'livros'}`, 'Quantidade']}
                     />
                     <Bar dataKey="books_count" radius={[0, 8, 8, 0]} name="Livros">
                       {stats.top_authors.map((_, index) => (
@@ -542,6 +560,7 @@ export default function LibraryDashboard() {
                         border: '1px solid hsl(var(--border))',
                         borderRadius: '6px'
                       }}
+                      formatter={(value: any) => [`${value} ${value === 1 ? 'livro' : 'livros'}`, 'Quantidade']}
                     />
                     <Bar dataKey="count" radius={[8, 8, 0, 0]} name="Livros">
                       {stats.rating_distribution.map((_, index) => (

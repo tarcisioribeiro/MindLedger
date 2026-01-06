@@ -5,7 +5,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.shortcuts import get_object_or_404
-from django.db.models import Count
+from django.db.models import Count, Q
+from django.db.models.functions import TruncMonth
+from datetime import datetime, timedelta
+import re
 from app.permissions import GlobalDefaultPermission
 from security.models import (
     Password, StoredCreditCard, StoredBankAccount,
@@ -566,7 +569,11 @@ class SecurityDashboardStatsView(APIView):
                 'total_stored_accounts': 0,
                 'total_archives': 0,
                 'passwords_by_category': [],
-                'recent_activity': []
+                'recent_activity': [],
+                'items_distribution': [],
+                'password_strength_distribution': [],
+                'activities_by_action': [],
+                'activities_timeline': []
             })
 
         # Querysets filtrados por owner e não deletados
@@ -606,15 +613,76 @@ class SecurityDashboardStatsView(APIView):
         for item in passwords_by_category:
             item['category_display'] = category_dict.get(item['category'], item['category'])
 
-        # Atividades recentes (últimas 10) - filtrar por modelos de security
+        # Distribuição de tipos de itens (para gráfico de pizza)
+        items_distribution = []
+        if total_passwords > 0:
+            items_distribution.append({
+                'type': 'passwords',
+                'type_display': 'Senhas',
+                'count': total_passwords
+            })
+        if total_stored_cards > 0:
+            items_distribution.append({
+                'type': 'cards',
+                'type_display': 'Cartões',
+                'count': total_stored_cards
+            })
+        if total_stored_accounts > 0:
+            items_distribution.append({
+                'type': 'accounts',
+                'type_display': 'Contas',
+                'count': total_stored_accounts
+            })
+        if total_archives > 0:
+            items_distribution.append({
+                'type': 'archives',
+                'type_display': 'Arquivos',
+                'count': total_archives
+            })
+
+        # Análise de força de senhas
+        password_strength_distribution = self._calculate_password_strength(passwords_qs)
+
+        # Atividades por tipo de ação
         security_models = ['Password', 'StoredCreditCard', 'StoredBankAccount', 'Archive']
+        activities_by_action = list(
+            ActivityLog.objects.filter(
+                user=user,
+                model_name__in=security_models
+            )
+            .values('action')
+            .annotate(count=Count('id'))
+            .order_by('-count')
+        )
+
+        action_dict = dict(ACTION_TYPES)
+        for item in activities_by_action:
+            item['action_display'] = action_dict.get(item['action'], item['action'])
+
+        # Timeline de atividades (últimos 6 meses)
+        six_months_ago = datetime.now() - timedelta(days=180)
+        activities_timeline = list(
+            ActivityLog.objects.filter(
+                user=user,
+                model_name__in=security_models,
+                created_at__gte=six_months_ago
+            )
+            .annotate(month=TruncMonth('created_at'))
+            .values('month')
+            .annotate(count=Count('id'))
+            .order_by('month')
+        )
+
+        for item in activities_timeline:
+            item['month'] = item['month'].strftime('%Y-%m')
+
+        # Atividades recentes (últimas 10)
         recent_activity = ActivityLog.objects.filter(
             user=user,
             model_name__in=security_models
         ).order_by('-created_at')[:10]
 
         recent_activity_data = []
-        action_dict = dict(ACTION_TYPES)
         for log in recent_activity:
             recent_activity_data.append({
                 'action': log.action,
@@ -630,7 +698,64 @@ class SecurityDashboardStatsView(APIView):
             'total_stored_accounts': total_stored_accounts,
             'total_archives': total_archives,
             'passwords_by_category': passwords_by_category,
-            'recent_activity': recent_activity_data
+            'recent_activity': recent_activity_data,
+            'items_distribution': items_distribution,
+            'password_strength_distribution': password_strength_distribution,
+            'activities_by_action': activities_by_action,
+            'activities_timeline': activities_timeline
         }
 
         return Response(stats)
+
+    def _calculate_password_strength(self, passwords_qs):
+        """Calcula a distribuição de força das senhas."""
+        strength_counts = {'weak': 0, 'medium': 0, 'strong': 0}
+
+        for password in passwords_qs:
+            decrypted_password = password.password
+            if not decrypted_password:
+                continue
+
+            strength = self._get_password_strength(decrypted_password)
+            strength_counts[strength] += 1
+
+        distribution = []
+        if strength_counts['weak'] > 0:
+            distribution.append({
+                'strength': 'weak',
+                'strength_display': 'Fraca',
+                'count': strength_counts['weak']
+            })
+        if strength_counts['medium'] > 0:
+            distribution.append({
+                'strength': 'medium',
+                'strength_display': 'Média',
+                'count': strength_counts['medium']
+            })
+        if strength_counts['strong'] > 0:
+            distribution.append({
+                'strength': 'strong',
+                'strength_display': 'Forte',
+                'count': strength_counts['strong']
+            })
+
+        return distribution
+
+    def _get_password_strength(self, password):
+        """Determina a força de uma senha."""
+        if len(password) < 8:
+            return 'weak'
+
+        has_upper = bool(re.search(r'[A-Z]', password))
+        has_lower = bool(re.search(r'[a-z]', password))
+        has_digit = bool(re.search(r'\d', password))
+        has_special = bool(re.search(r'[!@#$%^&*(),.?":{}|<>]', password))
+
+        criteria_met = sum([has_upper, has_lower, has_digit, has_special])
+
+        if len(password) >= 12 and criteria_met >= 3:
+            return 'strong'
+        elif len(password) >= 8 and criteria_met >= 2:
+            return 'medium'
+        else:
+            return 'weak'

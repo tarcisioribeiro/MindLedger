@@ -123,20 +123,16 @@ export default function CreditCards() {
       key: 'card_number_masked',
       label: 'Número',
       render: (card) => {
-        if (!card.card_number_masked) return <span className="font-mono text-sm">N/A</span>;
+        const masked = card.card_number_masked || '****';
 
-        // Se já está mascarado (tem asteriscos ou é longo), mostra como está
-        if (card.card_number_masked.includes('*') || card.card_number_masked.length > 4) {
-          return <span className="font-mono text-sm">{card.card_number_masked}</span>;
+        // Se é apenas asteriscos, mostra "Não cadastrado"
+        if (masked === '****' || masked.replace(/\*/g, '') === '') {
+          return <span className="font-mono text-sm text-muted-foreground">Não cadastrado</span>;
         }
 
-        // Se tem apenas os últimos 4 dígitos, formata com asteriscos
-        if (card.card_number_masked.length === 4) {
-          return <span className="font-mono text-sm">**** **** **** {card.card_number_masked}</span>;
-        }
-
-        // Caso contrário, mostra os últimos 4 dígitos do que vier
-        return <span className="font-mono text-sm">**** **** **** {card.card_number_masked.slice(-4)}</span>;
+        // Pega os últimos 4 caracteres (que são os dígitos)
+        const last4 = masked.slice(-4);
+        return <span className="font-mono text-sm">**** {last4}</span>;
       },
     },
     {

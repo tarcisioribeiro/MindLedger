@@ -198,6 +198,10 @@ export interface CreditCardBill {
   uuid: string;
   credit_card: number;
   credit_card_name?: string;
+  credit_card_on_card_name?: string;
+  credit_card_number_masked?: string;
+  credit_card_flag?: string;
+  credit_card_associated_account_name?: string;
   year: string;
   month: string;
   invoice_beginning_date: string;

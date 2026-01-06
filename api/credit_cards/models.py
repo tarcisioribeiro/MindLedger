@@ -211,18 +211,18 @@ class CreditCard(BaseModel):
 
         Returns
         -------
-        str or None
-            Número do cartão mascarado (****1234) ou None se não existir.
+        str
+            Número do cartão mascarado (****1234) ou "****" se não existir.
         """
         if self._card_number:
             try:
                 full_number = FieldEncryption.decrypt_data(self._card_number)
                 if full_number and len(full_number) >= 4:
                     return '*' * (len(full_number) - 4) + full_number[-4:]
-                return full_number
+                return full_number if full_number else "****"
             except Exception:
-                return None
-        return None
+                return "****"
+        return "****"
 
     @card_number.setter
     def card_number(self, value):

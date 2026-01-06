@@ -17,6 +17,25 @@ export interface SecurityDashboardStats {
     description: string;
     created_at: string;
   }>;
+  items_distribution: Array<{
+    type: string;
+    type_display: string;
+    count: number;
+  }>;
+  password_strength_distribution: Array<{
+    strength: string;
+    strength_display: string;
+    count: number;
+  }>;
+  activities_by_action: Array<{
+    action: string;
+    action_display: string;
+    count: number;
+  }>;
+  activities_timeline: Array<{
+    month: string;
+    count: number;
+  }>;
 }
 
 class SecurityDashboardService {

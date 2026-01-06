@@ -104,9 +104,40 @@ class CreditCardSerializer(serializers.ModelSerializer):
 
 
 class CreditCardBillsSerializer(serializers.ModelSerializer):
+    credit_card_on_card_name = serializers.CharField(
+        source='credit_card.on_card_name',
+        read_only=True,
+        help_text="Nome impresso no cartão"
+    )
+    credit_card_number_masked = serializers.SerializerMethodField(
+        read_only=True,
+        help_text="Últimos 4 dígitos do cartão"
+    )
+    credit_card_flag = serializers.CharField(
+        source='credit_card.flag',
+        read_only=True,
+        help_text="Bandeira do cartão"
+    )
+    credit_card_associated_account_name = serializers.CharField(
+        source='credit_card.associated_account.account_name',
+        read_only=True,
+        help_text="Nome da conta associada ao cartão"
+    )
+
     class Meta:
         model = CreditCardBill
         fields = '__all__'
+
+    def get_credit_card_number_masked(self, obj):
+        """
+        Retorna os últimos 4 dígitos do cartão mascarado.
+        """
+        if obj.credit_card and obj.credit_card.card_number_masked:
+            masked = obj.credit_card.card_number_masked
+            # Se já está mascarado, pega os últimos 4
+            if len(masked) >= 4:
+                return masked[-4:]
+        return "****"
 
 
 class CreditCardExpensesSerializer(serializers.ModelSerializer):

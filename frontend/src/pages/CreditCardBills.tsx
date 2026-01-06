@@ -118,13 +118,15 @@ export default function CreditCardBills() {
     }
   };
 
-  const getCardName = (cardId: number) => {
-    const card = creditCards.find((c) => c.id === cardId);
-    if (card) {
-      const last4 = card.card_number_masked ? card.card_number_masked.slice(-4) : '****';
-      return `${card.on_card_name} ****${last4}`;
-    }
-    return 'N/A';
+  const getCardName = (bill: CreditCardBill) => {
+    // Usa os dados que vêm diretamente da fatura (do backend expandido)
+    const cardholderName = bill.credit_card_on_card_name || 'N/A';
+    const last4 = bill.credit_card_number_masked || '****';
+    const cardNumber = `**** ${last4}`;
+    const flag = bill.credit_card_flag ? translate('cardBrands', bill.credit_card_flag) : 'N/A';
+    const account = bill.credit_card_associated_account_name || 'N/A';
+
+    return `${cardholderName} ${cardNumber} - ${flag} - ${account}`;
   };
 
   const handleEdit = (bill: CreditCardBill) => {
@@ -143,7 +145,7 @@ export default function CreditCardBills() {
       render: (bill) => (
         <div className="flex items-center gap-2">
           <CreditCardIcon className="w-4 h-4 text-muted-foreground" />
-          <span className="font-medium">{getCardName(bill.credit_card)}</span>
+          <span className="font-medium">{getCardName(bill)}</span>
         </div>
       ),
     },
