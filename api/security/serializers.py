@@ -252,11 +252,11 @@ class ArchiveSerializer(serializers.ModelSerializer):
         model = Archive
         fields = [
             'id', 'uuid', 'title', 'category', 'category_display',
-            'archive_type', 'archive_type_display', 'file_size', 'notes',
+            'archive_type', 'archive_type_display', 'file_name', 'file_size', 'notes',
             'tags', 'has_text', 'has_file', 'encrypted_file',
             'owner', 'owner_name', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['uuid', 'file_size', 'created_at', 'updated_at']
+        read_only_fields = ['uuid', 'file_name', 'file_size', 'created_at', 'updated_at']
 
     def get_has_text(self, obj):
         return obj.has_text_content()
@@ -279,22 +279,35 @@ class ArchiveCreateUpdateSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         text_content = validated_data.pop('text_content', None)
+        encrypted_file = validated_data.get('encrypted_file', None)
+
         instance = Archive(**validated_data)
 
         if text_content:
             instance.text_content = text_content  # Property setter criptografa
+
+        # Salvar o nome original do arquivo
+        if encrypted_file:
+            instance.file_name = encrypted_file.name
+            instance.file_size = encrypted_file.size
 
         instance.save()
         return instance
 
     def update(self, instance, validated_data):
         text_content = validated_data.pop('text_content', None)
+        encrypted_file = validated_data.get('encrypted_file', None)
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
 
         if text_content:
             instance.text_content = text_content
+
+        # Atualizar o nome do arquivo se um novo arquivo foi enviado
+        if encrypted_file:
+            instance.file_name = encrypted_file.name
+            instance.file_size = encrypted_file.size
 
         instance.save()
         return instance

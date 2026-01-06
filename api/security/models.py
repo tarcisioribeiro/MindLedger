@@ -275,6 +275,7 @@ class Archive(BaseModel):
     archive_type = models.CharField(max_length=50, choices=ARCHIVE_TYPES, default='other')
     _encrypted_text = models.TextField(blank=True, null=True, verbose_name="Texto Criptografado")
     encrypted_file = models.FileField(upload_to='security/archives/%Y/%m/', blank=True, null=True)
+    file_name = models.CharField(max_length=255, blank=True, null=True, verbose_name="Nome do Arquivo")
     file_size = models.BigIntegerField(blank=True, null=True)
     notes = models.TextField(blank=True, null=True)
     tags = models.CharField(max_length=500, blank=True, null=True)

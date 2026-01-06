@@ -57,6 +57,15 @@ class ApiClient {
     this.client.interceptors.request.use(
       (config: InternalAxiosRequestConfig) => {
         console.log('[ApiClient] Request to', config.url, '(tokens enviados via httpOnly cookies)');
+
+        // Se o data é FormData, remove o Content-Type para que o axios defina automaticamente
+        // o multipart/form-data com o boundary correto
+        if (config.data instanceof FormData) {
+          if (config.headers) {
+            delete config.headers['Content-Type'];
+          }
+        }
+
         return config;
       },
       (error) => Promise.reject(error)
