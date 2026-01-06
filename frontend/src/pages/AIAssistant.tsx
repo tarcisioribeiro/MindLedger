@@ -46,17 +46,32 @@ export default function AIAssistant() {
 
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (error: any) {
+      let errorTitle = 'Erro ao consultar AI';
+      let errorDescription = error.message || 'Não foi possível processar sua pergunta.';
+      let errorContent = 'Desculpe, ocorreu um erro ao processar sua pergunta. Tente novamente.';
+
+      // Check if it's a configuration error
+      if (error.response?.status === 503 || error.message?.includes('configurada')) {
+        errorTitle = 'Configuração Necessária';
+        errorDescription = error.response?.data?.message || error.message || 'As chaves de API não estão configuradas.';
+        errorContent = `⚠️ Configuração Necessária\n\nO AI Assistant requer configuração das chaves de API:\n\n1. OPENAI_API_KEY (para embeddings)\n   Obtenha em: https://platform.openai.com/api-keys\n\n2. GROQ_API_KEY (para geração de texto)\n   Obtenha em: https://console.groq.com/keys\n\nAdicione essas chaves no arquivo .env do projeto.`;
+      } else if (error.response?.data?.message) {
+        errorDescription = error.response.data.message;
+        errorContent = error.response.data.message;
+      }
+
       toast({
-        title: 'Erro ao consultar AI',
-        description: error.message || 'Não foi possível processar sua pergunta.',
+        title: errorTitle,
+        description: errorDescription,
         variant: 'destructive',
+        duration: 7000,
       });
 
       // Add error message
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: 'Desculpe, ocorreu um erro ao processar sua pergunta. Tente novamente.',
+        content: errorContent,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMessage]);

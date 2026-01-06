@@ -82,7 +82,12 @@ export const EnhancedPieChart = ({
         </Pie>
 
         <Tooltip content={<EnhancedTooltip formatter={formatter} />} />
-        <Legend />
+        <Legend
+          formatter={(value, entry: any) => {
+            // Se o entry tem o nameKey, use-o para exibir o nome traduzido
+            return entry.payload?.[nameKey] || value;
+          }}
+        />
       </PieChart>
     </ResponsiveContainer>
   );

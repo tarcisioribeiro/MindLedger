@@ -36,11 +36,25 @@ class UnifiedRAGService:
     def __init__(self):
         # Initialize OpenAI client for embeddings
         openai_api_key = os.getenv('OPENAI_API_KEY')
-        self.openai_client = OpenAI(api_key=openai_api_key) if openai_api_key and openai_api_key != 'your_openai_api_key_here' else None
+        if not openai_api_key or openai_api_key == 'your_openai_api_key_here':
+            self.openai_client = None
+        else:
+            try:
+                self.openai_client = OpenAI(api_key=openai_api_key)
+            except Exception as e:
+                print(f"[RAG] Erro ao inicializar OpenAI client: {e}")
+                self.openai_client = None
 
         # Initialize Groq client for text generation
         groq_api_key = os.getenv('GROQ_API_KEY')
-        self.groq_client = Groq(api_key=groq_api_key) if groq_api_key and groq_api_key != 'your_groq_api_key_here' else None
+        if not groq_api_key or groq_api_key == 'your_groq_api_key_here':
+            self.groq_client = None
+        else:
+            try:
+                self.groq_client = Groq(api_key=groq_api_key)
+            except Exception as e:
+                print(f"[RAG] Erro ao inicializar Groq client: {e}")
+                self.groq_client = None
 
     def _get_library_content(self, user_member) -> List[Dict[str, Any]]:
         """Get searchable content from Library module."""
@@ -259,7 +273,7 @@ class UnifiedRAGService:
             List of embedding vectors
         """
         if not self.openai_client:
-            raise ValueError("OpenAI API não configurada. Configure OPENAI_API_KEY no arquivo .env")
+            raise ValueError("OpenAI API não configurada. Por favor, configure OPENAI_API_KEY no arquivo .env com uma chave válida da OpenAI (https://platform.openai.com/api-keys)")
 
         try:
             response = self.openai_client.embeddings.create(
@@ -333,7 +347,7 @@ class UnifiedRAGService:
             Generated answer
         """
         if not self.groq_client:
-            return "API Groq não configurada. Configure GROQ_API_KEY no arquivo .env"
+            raise ValueError("API Groq não configurada. Por favor, configure GROQ_API_KEY no arquivo .env com uma chave válida da Groq (https://console.groq.com/keys)")
 
         # Build context from search results
         context = "\n\n".join([

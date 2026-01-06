@@ -95,7 +95,15 @@ export const EnhancedLineChart = ({
 
         <Tooltip content={<EnhancedTooltip formatter={formatter} />} />
 
-        {lineConfigs.length > 1 && <Legend />}
+        {lineConfigs.length > 1 && (
+          <Legend
+            formatter={(value) => {
+              // Se houver configuração de linha com nome customizado, use-o
+              const lineConfig = lineConfigs.find(l => l.dataKey === value);
+              return lineConfig?.name || value;
+            }}
+          />
+        )}
 
         {withArea
           ? lineConfigs.map((line, idx) => (

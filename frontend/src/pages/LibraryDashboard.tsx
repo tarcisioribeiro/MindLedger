@@ -246,7 +246,7 @@ export default function LibraryDashboard() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Livros por Gênero */}
         <Card>
           <CardHeader>
@@ -284,41 +284,6 @@ export default function LibraryDashboard() {
           </CardContent>
         </Card>
 
-        {/* Top 3 Avaliações */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Top 3 Avaliações</CardTitle>
-            <p className="text-sm text-muted-foreground">Livros mais bem avaliados</p>
-          </CardHeader>
-          <CardContent>
-            {!stats || stats.top_rated_books.length === 0 ? (
-              <div className="h-64 flex items-center justify-center text-muted-foreground">
-                Nenhum livro avaliado
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {stats.top_rated_books.map((book, index) => (
-                  <div
-                    key={index}
-                    className="flex items-start gap-4 p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                  >
-                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold">
-                      {index + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm truncate">{book.title}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {book.authors_names.join(', ')}
-                      </p>
-                      <div className="mt-2">{renderStars(book.rating)}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
         {/* Gráfico: Status de Leitura (Donut/Pie) */}
         <Card>
           <CardHeader>
@@ -349,6 +314,41 @@ export default function LibraryDashboard() {
                     <span className="font-semibold">
                       {item.count} {item.count === 1 ? 'livro' : 'livros'}
                     </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Top 3 Avaliações */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Top 3 Avaliações</CardTitle>
+            <p className="text-sm text-muted-foreground">Livros mais bem avaliados</p>
+          </CardHeader>
+          <CardContent>
+            {!stats || stats.top_rated_books.length === 0 ? (
+              <div className="h-64 flex items-center justify-center text-muted-foreground">
+                Nenhum livro avaliado
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {stats.top_rated_books.map((book, index) => (
+                  <div
+                    key={index}
+                    className="flex items-start gap-4 p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                  >
+                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold">
+                      {index + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm truncate">{book.title}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {book.authors_names.join(', ')}
+                      </p>
+                      <div className="mt-2">{renderStars(book.rating)}</div>
+                    </div>
                   </div>
                 ))}
               </div>

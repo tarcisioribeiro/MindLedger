@@ -56,8 +56,32 @@ class AIQueryView(APIView):
             response_serializer = QueryResponseSerializer(result)
             return Response(response_serializer.data, status=status.HTTP_200_OK)
 
+        except ValueError as e:
+            # Configuration errors (API keys not set)
+            error_msg = str(e)
+            ActivityLog.log_action(
+                user=request.user,
+                action='query_error',
+                app_name='ai_assistant',
+                description=f"Erro de configuração AI: {error_msg}",
+                ip_address=request.META.get('REMOTE_ADDR')
+            )
+
+            return Response(
+                {
+                    'error': 'Configuração necessária',
+                    'message': error_msg,
+                    'detail': 'Por favor, configure as chaves de API (OPENAI_API_KEY e GROQ_API_KEY) no arquivo .env'
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
+
         except Exception as e:
-            # Log error
+            # Other errors
+            import traceback
+            error_detail = traceback.format_exc()
+            print(f"[AI Assistant] Erro inesperado: {error_detail}")
+
             ActivityLog.log_action(
                 user=request.user,
                 action='query_error',
@@ -67,6 +91,10 @@ class AIQueryView(APIView):
             )
 
             return Response(
-                {'error': 'Erro ao processar consulta', 'detail': str(e)},
+                {
+                    'error': 'Erro ao processar consulta',
+                    'message': str(e),
+                    'detail': 'Ocorreu um erro inesperado. Verifique os logs do servidor.'
+                },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
