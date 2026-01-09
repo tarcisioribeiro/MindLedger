@@ -12,16 +12,10 @@ import { ChartContainer } from '@/components/charts';
 
 type PasswordStrength = 'weak' | 'medium' | 'strong';
 
-interface PasswordStrengthEntry {
-  strength: PasswordStrength;
-  count: number;
-  strength_display: string;
-}
-
 const strengthColors: Record<PasswordStrength, string> = {
-    weak: '#ef4444',
-    medium: '#f59e0b',
-    strong: '#22c55e'
+    weak: '#ff5555',    // Dracula red
+    medium: '#f1fa8c',  // Dracula yellow
+    strong: '#50fa7b'   // Dracula green
 };
 
 export default function SecurityDashboard() {
@@ -209,7 +203,7 @@ export default function SecurityDashboard() {
               nameKey="strength_display"
               formatter={(value) => `${value} ${value === 1 ? 'senha' : 'senhas'}`}
               colors={COLORS}
-              customColors={(entry: PasswordStrengthEntry) => strengthColors[entry.strength] || COLORS[0]}
+              customColors={(entry) => strengthColors[entry.strength as PasswordStrength] || COLORS[0]}
               emptyMessage="Nenhuma senha cadastrada"
               layout="horizontal"
             />
@@ -222,9 +216,9 @@ export default function SecurityDashboard() {
                         className="w-3 h-3 rounded-full"
                         style={{
                           backgroundColor:
-                            strength.strength === 'weak' ? '#ef4444' :
-                            strength.strength === 'medium' ? '#f59e0b' :
-                            '#22c55e'
+                            strength.strength === 'weak' ? '#ff5555' :      // Dracula red
+                            strength.strength === 'medium' ? '#f1fa8c' :    // Dracula yellow
+                            '#50fa7b'                                        // Dracula green
                         }}
                       ></div>
                       <span>{strength.strength_display}</span>

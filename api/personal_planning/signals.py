@@ -6,19 +6,23 @@ from django.dispatch import receiver
 from django.utils import timezone
 
 
-@receiver(post_save, sender='personal_planning.DailyTaskRecord')
-def update_goal_progress_on_record_save(sender, instance, created, **kwargs):
+@receiver(post_save, sender='personal_planning.TaskInstance')
+def update_goal_progress_on_instance_complete(sender, instance, created, **kwargs):
     """
-    Atualiza progresso de objetivo quando uma tarefa relacionada e cumprida.
+    Atualiza progresso de objetivo quando uma instância de tarefa é completada.
     """
     from personal_planning.models import Goal
 
-    if not instance.completed:
+    if instance.status != 'completed':
         return
 
-    # Buscar objetivos ativos relacionados a esta tarefa
+    # Verificar se a instância tem um template
+    if not instance.template:
+        return
+
+    # Buscar objetivos ativos relacionados a esta tarefa (template)
     goals = Goal.objects.filter(
-        related_task=instance.task,
+        related_task=instance.template,
         status='active',
         deleted_at__isnull=True
     )

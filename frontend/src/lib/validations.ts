@@ -666,6 +666,22 @@ export const routineTaskSchema = z.object({
   interval_start_date: z.string()
     .optional()
     .nullable(),
+  // Campos de agendamento de horário
+  default_time: z.string()
+    .regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Formato invalido. Use HH:MM')
+    .optional()
+    .nullable(),
+  daily_occurrences: z.number()
+    .min(1, 'Minimo 1 ocorrencia')
+    .max(24, 'Maximo 24 ocorrencias'),
+  interval_hours: z.number()
+    .min(1, 'Intervalo minimo de 1 hora')
+    .max(12, 'Intervalo maximo de 12 horas')
+    .optional()
+    .nullable(),
+  scheduled_times: z.array(z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/))
+    .optional()
+    .nullable(),
   is_active: z.boolean(),
   target_quantity: z.number()
     .min(1, positiveError('Quantidade alvo'))
@@ -713,6 +729,14 @@ export const routineTaskSchema = z.object({
 }, {
   message: 'Data de inicio e obrigatoria quando intervalo esta definido',
   path: ['interval_start_date']
+}).refine((data) => {
+  if (data.interval_hours && !data.default_time) {
+    return false;
+  }
+  return true;
+}, {
+  message: 'Horario padrao e obrigatorio quando intervalo de horas esta definido',
+  path: ['default_time']
 });
 
 export const goalSchema = z.object({

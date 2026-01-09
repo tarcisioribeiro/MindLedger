@@ -175,7 +175,42 @@ CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
         'LOCATION': 'unique-snowflake',
+    },
+    'redis': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': os.getenv('REDIS_URL', 'redis://localhost:6379/0'),
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        },
+        'KEY_PREFIX': 'personalhub',
+        'TIMEOUT': 3600,  # 1 hour default
     }
+}
+
+# Ollama Configuration (local LLM and embeddings)
+OLLAMA_CONFIG = {
+    'URL': os.getenv('OLLAMA_URL', 'http://localhost:11434'),
+    'EMBED_MODEL': os.getenv('OLLAMA_EMBED_MODEL', 'nomic-embed-text'),
+    'LLM_MODEL': os.getenv('OLLAMA_LLM_MODEL', 'mistral:7b'),
+    'TIMEOUT': 120,  # seconds
+    'EMBED_DIMENSIONS': 768,
+}
+
+# AI Assistant Configuration
+AI_ASSISTANT_CONFIG = {
+    'MAX_CONTEXT_TOKENS': 4000,
+    'DEFAULT_TOP_K': 10,
+    'CACHE_SEMANTIC_THRESHOLD': 0.92,
+    'CACHE_TTL_EXACT': 3600,      # 1 hour for exact matches
+    'CACHE_TTL_SEMANTIC': 1800,   # 30 min for semantic matches
+    'EMBEDDING_BATCH_SIZE': 32,
+}
+
+# Groq Configuration (for complex queries, low sensitivity only)
+GROQ_CONFIG = {
+    'API_KEY': os.getenv('GROQ_API_KEY'),
+    'MODEL': 'llama-3.3-70b-versatile',
+    'TIMEOUT': 60,
 }
 
 # Structured Logging Configuration

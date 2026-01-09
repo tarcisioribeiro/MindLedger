@@ -1,11 +1,17 @@
 import { useState } from 'react';
+import type { ChartType } from '@/lib/chart-types';
 
-export type ChartType = 'pie' | 'bar' | 'line';
+// Re-exporta o tipo para compatibilidade
+export type { ChartType };
 
 const CHART_CYCLE: Record<ChartType, ChartType> = {
   pie: 'bar',
   bar: 'line',
   line: 'pie',
+};
+
+const isValidChartType = (value: string): value is ChartType => {
+  return value === 'pie' || value === 'bar' || value === 'line';
 };
 
 /**
@@ -20,8 +26,8 @@ export const useChartType = (chartId: string, defaultType: ChartType = 'pie') =>
   const [chartType, setChartTypeState] = useState<ChartType>(() => {
     try {
       const stored = localStorage.getItem(storageKey);
-      if (stored && (stored === 'pie' || stored === 'bar' || stored === 'line')) {
-        return stored as ChartType;
+      if (stored && isValidChartType(stored)) {
+        return stored;
       }
     } catch (error) {
       console.warn('Erro ao ler preferência de gráfico do localStorage:', error);

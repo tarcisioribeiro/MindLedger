@@ -1,6 +1,6 @@
 from django.contrib import admin
 from personal_planning.models import (
-    RoutineTask, DailyTaskRecord, Goal, DailyReflection
+    RoutineTask, Goal, DailyReflection, TaskInstance
 )
 
 
@@ -11,11 +11,12 @@ class RoutineTaskAdmin(admin.ModelAdmin):
     search_fields = ('name', 'description')
 
 
-@admin.register(DailyTaskRecord)
-class DailyTaskRecordAdmin(admin.ModelAdmin):
-    list_display = ('id', 'task', 'date', 'completed', 'owner')
-    list_filter = ('completed', 'date')
-    search_fields = ('task__name', 'notes')
+@admin.register(TaskInstance)
+class TaskInstanceAdmin(admin.ModelAdmin):
+    list_display = ('id', 'task_name', 'category', 'scheduled_date', 'status', 'owner')
+    list_filter = ('status', 'category', 'scheduled_date')
+    search_fields = ('task_name', 'notes')
+    date_hierarchy = 'scheduled_date'
 
 
 @admin.register(Goal)

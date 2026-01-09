@@ -1,16 +1,17 @@
 services:
-  # PostgreSQL Database
+  # PostgreSQL Database with pgvector extension
   db:
-    image: postgres:16.9-alpine
+    image: pgvector/pgvector:pg16
     container_name: personalhub-db
     environment:
       POSTGRES_DB: ${DB_NAME:-personalhub_db}
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=pt_BR.UTF-8"
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C.UTF-8"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backups:/backups
+      - ./api/init-pgvector.sql:/docker-entrypoint-initdb.d/init-pgvector.sql
     ports:
       - "${DB_PORT:-39102}:5432"
     restart: unless-stopped
@@ -20,6 +21,44 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
+    networks:
+      - personalhub-network
+
+  # Redis for semantic caching
+  redis:
+    image: redis:7-alpine
+    container_name: personalhub-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - personalhub-network
+
+  # Ollama for local LLM inference and embeddings
+  ollama:
+    image: ollama/ollama:latest
+    container_name: personalhub-ollama
+    ports:
+      - "${OLLAMA_PORT:-11435}:11435"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     networks:
       - personalhub-network
 
@@ -39,8 +78,16 @@ services:
       - LOG_FORMAT=${LOG_FORMAT:-json}
       - PYTHONUNBUFFERED=1
       - DJANGO_SETTINGS_MODULE=app.settings
+      - REDIS_URL=redis://redis:6379/0
+      - OLLAMA_URL=http://ollama:11434
+      - OLLAMA_EMBED_MODEL=nomic-embed-text
+      - OLLAMA_LLM_MODEL=mistral:7b
     depends_on:
       db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama:
         condition: service_healthy
     volumes:
       - ./api:/app
@@ -85,6 +132,10 @@ services:
 
 volumes:
   postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  ollama_data:
     driver: local
 
 networks:

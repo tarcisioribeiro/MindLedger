@@ -5,15 +5,15 @@ class QuerySerializer(serializers.Serializer):
     """Serializer for AI Assistant query requests."""
     question = serializers.CharField(
         required=True,
-        help_text="Pergunta ou consulta do usuário",
+        help_text="Pergunta ou consulta do usuario",
         max_length=1000
     )
     top_k = serializers.IntegerField(
         required=False,
-        default=5,
+        default=10,
         min_value=1,
-        max_value=10,
-        help_text="Número de resultados relevantes a considerar"
+        max_value=50,
+        help_text="Numero de resultados relevantes a considerar"
     )
 
 
@@ -22,10 +22,23 @@ class SourceSerializer(serializers.Serializer):
     module = serializers.CharField()
     type = serializers.CharField()
     score = serializers.FloatField()
-    metadata = serializers.DictField()
+    metadata = serializers.DictField(required=False, default=dict)
 
 
 class QueryResponseSerializer(serializers.Serializer):
     """Serializer for AI Assistant query responses."""
     answer = serializers.CharField(help_text="Resposta gerada pelo AI Assistant")
     sources = SourceSerializer(many=True, help_text="Fontes utilizadas para gerar a resposta")
+    routing_decision = serializers.CharField(
+        required=False,
+        help_text="Decisao de roteamento (local/cloud/none)"
+    )
+    provider = serializers.CharField(
+        required=False,
+        help_text="Provedor LLM utilizado (ollama/groq)"
+    )
+    cached = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text="Se a resposta veio do cache"
+    )

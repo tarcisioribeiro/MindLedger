@@ -61,6 +61,10 @@ export function RoutineTaskForm({
           target_quantity: task.target_quantity,
           unit: task.unit,
           owner: task.owner,
+          default_time: task.default_time || null,
+          daily_occurrences: task.daily_occurrences || 1,
+          interval_hours: task.interval_hours || null,
+          scheduled_times: task.scheduled_times || null,
         }
       : {
           name: '',
@@ -73,6 +77,10 @@ export function RoutineTaskForm({
           target_quantity: 1,
           unit: 'vez',
           owner: 0,
+          default_time: null,
+          daily_occurrences: 1,
+          interval_hours: null,
+          scheduled_times: null,
         },
   });
 
@@ -398,6 +406,81 @@ export function RoutineTaskForm({
           {errors.unit && (
             <p className="text-sm text-destructive mt-1">{errors.unit.message}</p>
           )}
+        </div>
+
+        {/* Seção de Agendamento de Horários */}
+        <div className="col-span-2 space-y-4 border rounded-lg p-4 bg-muted/50">
+          <h4 className="font-medium text-sm">Agendamento de Horários</h4>
+          <p className="text-xs text-muted-foreground">
+            Configure horários específicos para cada ocorrência da tarefa no dia.
+          </p>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="default_time">Horário Padrão</Label>
+              <Input
+                id="default_time"
+                type="time"
+                value={watch('default_time') || ''}
+                onChange={(e) => setValue('default_time', e.target.value || null)}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Horário base para todas as ocorrências
+              </p>
+            </div>
+
+            <div>
+              <Label htmlFor="daily_occurrences">Ocorrências por Dia</Label>
+              <Input
+                id="daily_occurrences"
+                type="number"
+                min="1"
+                max="24"
+                {...register('daily_occurrences', {
+                  setValueAs: (value) => (value === '' ? 1 : parseInt(value)),
+                })}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Quantas vezes no dia (1-24)
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="interval_hours">Intervalo entre Repetições (horas)</Label>
+            <Input
+              id="interval_hours"
+              type="number"
+              min="1"
+              max="12"
+              value={watch('interval_hours') || ''}
+              onChange={(e) => setValue('interval_hours', e.target.value ? parseInt(e.target.value) : null)}
+              placeholder="Ex: 4 (a cada 4 horas)"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Requer horário padrão. Ex: Horário padrão 8:00 + intervalo 4h = 8:00, 12:00, 16:00...
+            </p>
+          </div>
+
+          <div>
+            <Label htmlFor="scheduled_times">Horários Específicos</Label>
+            <Input
+              id="scheduled_times"
+              type="text"
+              placeholder="Ex: 08:00, 12:00, 18:00"
+              value={watch('scheduled_times')?.join(', ') || ''}
+              onChange={(e) => {
+                const times = e.target.value
+                  .split(',')
+                  .map((t) => t.trim())
+                  .filter((t) => /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(t));
+                setValue('scheduled_times', times.length > 0 ? times : null);
+              }}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Sobrescreve intervalo. Separe por vírgula (HH:MM)
+            </p>
+          </div>
         </div>
 
         <div className="col-span-2 flex items-center space-x-2">

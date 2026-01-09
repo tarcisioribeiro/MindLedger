@@ -987,6 +987,11 @@ export interface RoutineTask {
   times_per_month?: number | null;
   interval_days?: number | null;
   interval_start_date?: string | null;
+  // Campos de agendamento de horário
+  default_time?: string | null;
+  daily_occurrences: number;
+  interval_hours?: number | null;
+  scheduled_times?: string[] | null;
   is_active: boolean;
   target_quantity: number;
   unit: string;
@@ -1011,79 +1016,34 @@ export interface RoutineTaskFormData {
   times_per_month?: number | null;
   interval_days?: number | null;
   interval_start_date?: string | null;
+  // Campos de agendamento de horário
+  default_time?: string | null;
+  daily_occurrences?: number;
+  interval_hours?: number | null;
+  scheduled_times?: string[] | null;
   is_active: boolean;
   target_quantity: number;
   unit: string;
   owner: number;
 }
 
-// Daily Task Record Types
-export interface DailyTaskRecord {
-  id: number;
-  uuid: string;
-  task: number;
-  task_name: string;
-  task_category: string;
-  task_target: number;
-  task_unit: string;
-  date: string;
-  completed: boolean;
-  quantity_completed: number;
-  notes?: string;
-  completed_at?: string;
-  owner: number;
-  owner_name: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface DailyTaskRecordFormData {
-  task: number;
-  date: string;
-  completed: boolean;
-  quantity_completed: number;
-  notes?: string;
-  owner: number;
-}
-
-// Task for Today (special endpoint response)
-export interface TaskForToday {
-  task_id: number;
-  task_name: string;
-  description?: string;
-  category: string;
-  category_display: string;
-  target_quantity: number;
-  unit: string;
-  record_id?: number;
-  completed: boolean;
-  quantity_completed: number;
-  notes?: string;
-}
-
-export interface TasksForTodayResponse {
-  date: string;
-  tasks: TaskForToday[];
-  total_tasks: number;
-  completed_tasks: number;
-}
-
 // Kanban Types
 export type KanbanStatus = 'todo' | 'doing' | 'done';
 
 export interface TaskCard {
-  id: string; // unique ID for the card (task_id + index)
-  task_id: number; // original task ID
+  id: string; // unique ID for the card (instance_id or task_id + index)
+  task_id: number; // instance ID (or original task ID for legacy)
   task_name: string;
   description?: string;
   category: string;
   category_display: string;
   unit: string;
   index: number; // index for tasks with multiple instances (0-based)
-  total_instances: number; // target_quantity from original task
+  total_instances: number; // total instances from same template
   status: KanbanStatus;
   notes?: string;
   record_id?: number;
+  scheduled_time?: string; // Horário programado (HH:MM)
 }
 
 // Goal Types
@@ -1142,6 +1102,90 @@ export interface DailyReflectionFormData {
   reflection: string;
   mood?: string;
   owner: number;
+}
+
+// ============================================================================
+// TASK INSTANCE TYPES
+// ============================================================================
+
+export const INSTANCE_STATUS_CHOICES = [
+  { value: 'pending', label: 'Pendente' },
+  { value: 'in_progress', label: 'Em Andamento' },
+  { value: 'completed', label: 'Concluída' },
+  { value: 'skipped', label: 'Pulada' },
+  { value: 'cancelled', label: 'Cancelada' }
+] as const;
+
+export type InstanceStatus = typeof INSTANCE_STATUS_CHOICES[number]['value'];
+
+export interface TaskInstance {
+  id: number;
+  uuid: string;
+  template?: number | null;
+  template_name?: string | null;
+  task_name: string;
+  task_description?: string | null;
+  category: string;
+  category_display: string;
+  scheduled_date: string;
+  scheduled_time?: string | null;
+  time_display?: string | null;
+  occurrence_index: number;
+  status: InstanceStatus;
+  status_display: string;
+  target_quantity: number;
+  quantity_completed: number;
+  unit: string;
+  notes?: string | null;
+  started_at?: string | null;
+  completed_at?: string | null;
+  is_overdue: boolean;
+  owner: number;
+  owner_name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TaskInstanceFormData {
+  task_name: string;
+  task_description?: string;
+  category: string;
+  scheduled_date: string;
+  scheduled_time?: string;
+  target_quantity?: number;
+  unit?: string;
+  owner: number;
+}
+
+export interface TaskInstanceUpdateData {
+  status?: InstanceStatus;
+  quantity_completed?: number;
+  notes?: string;
+}
+
+export interface InstancesForDateResponse {
+  date: string;
+  instances: TaskInstance[];
+  summary: {
+    total: number;
+    completed: number;
+    in_progress: number;
+    pending: number;
+    skipped: number;
+    completion_rate: number;
+  };
+}
+
+export interface TaskInstanceBulkUpdate {
+  id: number;
+  status: InstanceStatus;
+  notes?: string;
+}
+
+export interface TaskInstanceBulkUpdateResponse {
+  updated_count: number;
+  updated: TaskInstance[];
+  errors: Array<{ id: number; error: string }>;
 }
 
 // Dashboard Stats

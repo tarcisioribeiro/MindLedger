@@ -61,42 +61,42 @@ export default function PersonalPlanningDashboard() {
     }));
   }, [stats?.tasks_by_category]);
 
-  // Cores por categoria
+  // Cores por categoria - Dracula palette
   const getCategoryColor = (category: string) => {
     const colors: Record<string, string> = {
-      health: '#10b981',
-      studies: '#3b82f6',
-      spiritual: '#8b5cf6',
-      exercise: '#f59e0b',
-      nutrition: '#14b8a6',
-      meditation: '#8b5cf6',
-      reading: '#eab308',
-      writing: '#06b6d4',
-      work: '#6366f1',
-      leisure: '#ec4899',
-      family: '#ef4444',
-      social: '#f97316',
-      finance: '#059669',
-      household: '#84cc16',
-      personal_care: '#06b6d4',
-      other: '#6b7280',
+      health: '#50fa7b',        // green
+      studies: '#8be9fd',       // cyan
+      spiritual: '#bd93f9',     // purple
+      exercise: '#ffb86c',      // orange
+      nutrition: '#50fa7b',     // green
+      meditation: '#bd93f9',    // purple
+      reading: '#f1fa8c',       // yellow
+      writing: '#8be9fd',       // cyan
+      work: '#6272a4',          // comment
+      leisure: '#ff79c6',       // pink
+      family: '#ff5555',        // red
+      social: '#ffb86c',        // orange
+      finance: '#50fa7b',       // green
+      household: '#f1fa8c',     // yellow
+      personal_care: '#8be9fd', // cyan
+      other: '#6272a4',         // comment
     };
     return colors[category] || colors.other;
   };
 
-  // Ícone de mood
+  // Ícone de mood - usando cores Dracula
   const getMoodIcon = (mood?: string) => {
     switch (mood) {
       case 'excellent':
-        return <SmilePlus className="h-4 w-4 text-green-500" />;
+        return <SmilePlus className="h-4 w-4 text-success" />;
       case 'good':
-        return <Smile className="h-4 w-4 text-blue-500" />;
+        return <Smile className="h-4 w-4 text-info" />;
       case 'neutral':
-        return <Meh className="h-4 w-4 text-gray-500" />;
+        return <Meh className="h-4 w-4 text-muted-foreground" />;
       case 'bad':
-        return <Frown className="h-4 w-4 text-orange-500" />;
+        return <Frown className="h-4 w-4 text-warning" />;
       case 'terrible':
-        return <Angry className="h-4 w-4 text-red-500" />;
+        return <Angry className="h-4 w-4 text-destructive" />;
       default:
         return null;
     }
@@ -242,7 +242,7 @@ export default function PersonalPlanningDashboard() {
                 nameKey="name"
                 formatter={(value) => `${value} ${value === 1 ? 'tarefa' : 'tarefas'}`}
                 colors={COLORS}
-                customColors={(entry) => getCategoryColor(entry.category)}
+                customColors={(entry) => getCategoryColor(String(entry.category || 'other'))}
                 emptyMessage="Nenhuma tarefa cadastrada"
                 defaultType="bar"
                 layout="horizontal"

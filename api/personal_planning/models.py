@@ -172,6 +172,31 @@ class RoutineTask(BaseModel):
         verbose_name='Unidade',
         help_text='Ex: copos, minutos, paginas, vezes'
     )
+    # Campos de agendamento de horário
+    default_time = models.TimeField(
+        null=True,
+        blank=True,
+        verbose_name='Horário Padrão',
+        help_text='Horário padrão para esta tarefa'
+    )
+    daily_occurrences = models.PositiveIntegerField(
+        default=1,
+        verbose_name='Ocorrências por Dia',
+        help_text='Quantas vezes a tarefa deve ser feita por dia'
+    )
+    interval_hours = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        verbose_name='Intervalo entre Repetições (horas)',
+        help_text='Intervalo em horas entre cada ocorrência intradiária'
+    )
+    scheduled_times = models.JSONField(
+        null=True,
+        blank=True,
+        default=None,
+        verbose_name='Horários Programados',
+        help_text='Lista de horários específicos ["08:00", "14:00", "20:00"]'
+    )
     owner = models.ForeignKey(
         'members.Member',
         on_delete=models.PROTECT,
@@ -238,6 +263,25 @@ class RoutineTask(BaseModel):
                     'interval_start_date': 'Data de inicio e obrigatoria quando intervalo de dias esta definido'
                 })
 
+        # Validação de campos de agendamento de horário
+        if self.interval_hours and not self.default_time:
+            raise ValidationError({
+                'default_time': 'Horário padrão é obrigatório quando intervalo de horas está definido'
+            })
+
+        if self.scheduled_times:
+            import re
+            time_pattern = re.compile(r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$')
+            if not isinstance(self.scheduled_times, list):
+                raise ValidationError({
+                    'scheduled_times': 'Horários programados devem ser uma lista'
+                })
+            for t in self.scheduled_times:
+                if not isinstance(t, str) or not time_pattern.match(t):
+                    raise ValidationError({
+                        'scheduled_times': f'Horário inválido: {t}. Use formato HH:MM'
+                    })
+
     def __str__(self):
         return f"{self.name} ({self.get_periodicity_display()})"
 
@@ -297,75 +341,6 @@ class RoutineTask(BaseModel):
             return True
 
         return False
-
-
-# ============================================================================
-# DAILY TASK RECORD MODEL
-# ============================================================================
-
-class DailyTaskRecord(BaseModel):
-    """
-    Registro de cumprimento (ou nao) de uma tarefa em um dia especifico.
-    """
-    task = models.ForeignKey(
-        RoutineTask,
-        on_delete=models.PROTECT,
-        related_name='daily_records',
-        verbose_name='Tarefa'
-    )
-    date = models.DateField(
-        null=False,
-        blank=False,
-        verbose_name='Data'
-    )
-    completed = models.BooleanField(
-        default=False,
-        verbose_name='Cumprida'
-    )
-    quantity_completed = models.PositiveIntegerField(
-        default=0,
-        verbose_name='Quantidade Realizada',
-        help_text='Quanto foi realizado (ex: 6 de 8 copos de agua)'
-    )
-    notes = models.TextField(
-        null=True,
-        blank=True,
-        verbose_name='Observacoes'
-    )
-    completed_at = models.DateTimeField(
-        null=True,
-        blank=True,
-        verbose_name='Hora de Conclusao'
-    )
-    owner = models.ForeignKey(
-        'members.Member',
-        on_delete=models.PROTECT,
-        related_name='daily_task_records',
-        verbose_name='Proprietario'
-    )
-
-    class Meta:
-        verbose_name = "Registro Diario de Tarefa"
-        verbose_name_plural = "Registros Diarios de Tarefas"
-        ordering = ['-date', 'task__category']
-        unique_together = [['task', 'date', 'owner']]
-        indexes = [
-            models.Index(fields=['owner', '-date']),
-            models.Index(fields=['task', '-date']),
-            models.Index(fields=['completed', '-date'])
-        ]
-
-    def save(self, *args, **kwargs):
-        """Atualiza completed_at quando tarefa e marcada como cumprida."""
-        if self.completed and not self.completed_at:
-            self.completed_at = timezone.now()
-        elif not self.completed:
-            self.completed_at = None
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        status = "Cumprida" if self.completed else "Nao cumprida"
-        return f"{self.task.name} - {self.date} ({status})"
 
 
 # ============================================================================
@@ -512,3 +487,163 @@ class DailyReflection(BaseModel):
 
     def __str__(self):
         return f"Reflexao de {self.date}"
+
+
+# ============================================================================
+# TASK INSTANCE MODEL
+# ============================================================================
+
+INSTANCE_STATUS_CHOICES = (
+    ('pending', 'Pendente'),
+    ('in_progress', 'Em Andamento'),
+    ('completed', 'Concluída'),
+    ('skipped', 'Pulada'),
+    ('cancelled', 'Cancelada'),
+)
+
+
+class TaskInstance(BaseModel):
+    """
+    Representa uma ocorrência específica de uma tarefa em um dia/horário.
+
+    Pode ser gerada a partir de um template (RoutineTask) ou criada
+    como tarefa avulsa (one-off task).
+
+    Cada instância é independente e mantém seu próprio estado,
+    preservando o histórico mesmo que o template seja alterado.
+    """
+    # Link ao template (nullable para tarefas avulsas)
+    template = models.ForeignKey(
+        RoutineTask,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='instances',
+        verbose_name='Tarefa Modelo'
+    )
+
+    # Snapshot dos dados do template no momento da geração
+    task_name = models.CharField(
+        max_length=200,
+        verbose_name='Nome da Tarefa'
+    )
+    task_description = models.TextField(
+        null=True,
+        blank=True,
+        verbose_name='Descrição'
+    )
+    category = models.CharField(
+        max_length=50,
+        choices=TASK_CATEGORY_CHOICES,
+        verbose_name='Categoria'
+    )
+
+    # Agendamento
+    scheduled_date = models.DateField(
+        verbose_name='Data Programada'
+    )
+    scheduled_time = models.TimeField(
+        null=True,
+        blank=True,
+        verbose_name='Horário Programado'
+    )
+    occurrence_index = models.PositiveIntegerField(
+        default=0,
+        verbose_name='Índice da Ocorrência',
+        help_text='Para tarefas com múltiplas ocorrências no dia (0-based)'
+    )
+
+    # Status (Kanban)
+    status = models.CharField(
+        max_length=20,
+        choices=INSTANCE_STATUS_CHOICES,
+        default='pending',
+        verbose_name='Status'
+    )
+
+    # Progresso
+    target_quantity = models.PositiveIntegerField(
+        default=1,
+        verbose_name='Quantidade Alvo'
+    )
+    quantity_completed = models.PositiveIntegerField(
+        default=0,
+        verbose_name='Quantidade Realizada'
+    )
+    unit = models.CharField(
+        max_length=50,
+        default='vez',
+        verbose_name='Unidade'
+    )
+
+    # Metadados de conclusão
+    notes = models.TextField(
+        null=True,
+        blank=True,
+        verbose_name='Observações'
+    )
+    started_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='Iniciada em'
+    )
+    completed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='Concluída em'
+    )
+
+    # Proprietário
+    owner = models.ForeignKey(
+        'members.Member',
+        on_delete=models.PROTECT,
+        related_name='task_instances',
+        verbose_name='Proprietário'
+    )
+
+    class Meta:
+        verbose_name = "Instância de Tarefa"
+        verbose_name_plural = "Instâncias de Tarefas"
+        ordering = ['scheduled_date', 'scheduled_time', 'occurrence_index']
+        # Permite múltiplas instâncias por template+data, diferenciadas pelo índice
+        unique_together = [['template', 'scheduled_date', 'occurrence_index', 'owner']]
+        indexes = [
+            models.Index(fields=['owner', 'scheduled_date']),
+            models.Index(fields=['template', 'scheduled_date']),
+            models.Index(fields=['status', 'scheduled_date']),
+            models.Index(fields=['scheduled_date', 'scheduled_time']),
+        ]
+
+    def save(self, *args, **kwargs):
+        """
+        Atualiza timestamps automaticamente baseado no status.
+        """
+        if self.status == 'in_progress' and not self.started_at:
+            self.started_at = timezone.now()
+        elif self.status == 'completed' and not self.completed_at:
+            self.completed_at = timezone.now()
+            self.quantity_completed = self.target_quantity
+        super().save(*args, **kwargs)
+
+    @property
+    def is_overdue(self):
+        """Verifica se a tarefa está atrasada."""
+        if self.status in ('completed', 'skipped', 'cancelled'):
+            return False
+        today = timezone.now().date()
+        if self.scheduled_date < today:
+            return True
+        if self.scheduled_date == today and self.scheduled_time:
+            return timezone.now().time() > self.scheduled_time
+        return False
+
+    @property
+    def time_display(self):
+        """Retorna o horário formatado ou None."""
+        if self.scheduled_time:
+            return self.scheduled_time.strftime('%H:%M')
+        return None
+
+    def __str__(self):
+        time_str = f" às {self.time_display}" if self.scheduled_time else ""
+        return f"{self.task_name} ({self.scheduled_date}{time_str}) - {self.get_status_display()}"

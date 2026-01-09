@@ -35,17 +35,48 @@ import { PageHeader } from '@/components/common/PageHeader';
 import { LoadingState } from '@/components/common/LoadingState';
 import { KanbanColumn } from '@/components/personal-planning/KanbanColumn';
 import { KanbanCard } from '@/components/personal-planning/KanbanCard';
-import { dailyTaskRecordsService } from '@/services/daily-task-records-service';
+import { taskInstancesService } from '@/services/task-instances-service';
 import { dailyReflectionsService } from '@/services/daily-reflections-service';
 import { membersService } from '@/services/members-service';
 import { appService } from '@/services/app-service';
 import { useToast } from '@/hooks/use-toast';
-import { MOOD_CHOICES, type TaskForToday, type TaskCard, type KanbanStatus } from '@/types';
+import {
+  MOOD_CHOICES,
+  type TaskInstance,
+  type TaskCard,
+  type KanbanStatus,
+  type InstanceStatus,
+} from '@/types';
 
 import { formatLocalDate, parseLocalDate } from '@/lib/utils';
+
+// Mapeia status de instância para status do Kanban
+const mapInstanceToKanban = (status: InstanceStatus): KanbanStatus => {
+  switch (status) {
+    case 'completed':
+      return 'done';
+    case 'in_progress':
+      return 'doing';
+    default:
+      return 'todo';
+  }
+};
+
+// Mapeia status do Kanban para status de instância
+const mapKanbanToInstance = (status: KanbanStatus): InstanceStatus => {
+  switch (status) {
+    case 'done':
+      return 'completed';
+    case 'doing':
+      return 'in_progress';
+    default:
+      return 'pending';
+  }
+};
+
 export default function DailyChecklist() {
   const [selectedDate, setSelectedDate] = useState<string>('');
-  const [tasksData, setTasksData] = useState<TaskForToday[]>([]);
+  const [instances, setInstances] = useState<TaskInstance[]>([]);
   const [cards, setCards] = useState<TaskCard[]>([]);
   const [activeCard, setActiveCard] = useState<TaskCard | null>(null);
   const [reflection, setReflection] = useState('');
@@ -54,6 +85,13 @@ export default function DailyChecklist() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [ownerId, setOwnerId] = useState(0);
+  const [summary, setSummary] = useState({
+    total: 0,
+    completed: 0,
+    in_progress: 0,
+    pending: 0,
+    completion_rate: 0,
+  });
   const { toast } = useToast();
 
   const sensors = useSensors(
@@ -63,44 +101,26 @@ export default function DailyChecklist() {
     })
   );
 
-  // Convert TaskForToday[] to TaskCard[]
-  const convertTasksToCards = (tasks: TaskForToday[]): TaskCard[] => {
-    const newCards: TaskCard[] = [];
-
-    tasks.forEach((task) => {
-      // Create individual cards for each instance of the task
-      for (let i = 0; i < task.target_quantity; i++) {
-        let status: KanbanStatus = 'todo';
-
-        // Determine status based on quantity_completed
-        if (i < task.quantity_completed) {
-          status = 'done';
-        } else if (task.quantity_completed > 0 && i === task.quantity_completed) {
-          // Next uncompleted task goes to "doing" if there's progress
-          status = 'doing';
-        }
-
-        newCards.push({
-          id: `${task.task_id}-${i}`,
-          task_id: task.task_id,
-          task_name: task.task_name,
-          description: task.description,
-          category: task.category,
-          category_display: task.category_display,
-          unit: task.unit,
-          index: i,
-          total_instances: task.target_quantity,
-          status,
-          notes: task.notes,
-          record_id: task.record_id,
-        });
-      }
-    });
-
-    return newCards;
+  // Converte TaskInstance[] para TaskCard[]
+  const convertInstancesToCards = (instances: TaskInstance[]): TaskCard[] => {
+    return instances.map((instance) => ({
+      id: `instance-${instance.id}`,
+      task_id: instance.id, // Agora é o ID da instância
+      task_name: instance.task_name,
+      description: instance.task_description || undefined,
+      category: instance.category,
+      category_display: instance.category_display,
+      unit: instance.unit,
+      index: instance.occurrence_index,
+      total_instances: instances.filter((i) => i.template === instance.template).length,
+      status: mapInstanceToKanban(instance.status),
+      notes: instance.notes || undefined,
+      record_id: instance.id,
+      scheduled_time: instance.time_display || undefined,
+    }));
   };
 
-  // Group cards by status
+  // Agrupa cards por status
   const cardsByStatus = useMemo(() => {
     return {
       todo: cards.filter((card) => card.status === 'todo'),
@@ -115,7 +135,6 @@ export default function DailyChecklist() {
         const serverDate = await appService.getCurrentDate();
         setSelectedDate(serverDate);
       } catch (error) {
-        // Fallback to browser date if server request fails
         setSelectedDate(formatLocalDate(new Date()));
       }
     };
@@ -131,13 +150,12 @@ export default function DailyChecklist() {
   }, [selectedDate, ownerId]);
 
   useEffect(() => {
-    // Convert tasks to cards whenever tasksData changes
-    if (tasksData.length > 0) {
-      setCards(convertTasksToCards(tasksData));
+    if (instances.length > 0) {
+      setCards(convertInstancesToCards(instances));
     } else {
       setCards([]);
     }
-  }, [tasksData]);
+  }, [instances]);
 
   const loadCurrentUserMember = async () => {
     try {
@@ -155,14 +173,15 @@ export default function DailyChecklist() {
   const loadData = async () => {
     try {
       setIsLoading(true);
-      const [tasksResponse, reflections] = await Promise.all([
-        dailyTaskRecordsService.getTasksForToday(selectedDate),
+      const [instancesResponse, reflections] = await Promise.all([
+        taskInstancesService.getForDate(selectedDate),
         dailyReflectionsService.getAll(),
       ]);
 
-      setTasksData(tasksResponse.tasks);
+      setInstances(instancesResponse.instances);
+      setSummary(instancesResponse.summary);
 
-      // Find reflection for selected date
+      // Encontra reflexão do dia selecionado
       const dayReflection = reflections.find((r) => r.date === selectedDate);
       if (dayReflection) {
         setReflection(dayReflection.reflection);
@@ -198,26 +217,21 @@ export default function DailyChecklist() {
     const activeId = active.id as string;
     const overId = over.id as string;
 
-    // Find active and over cards
     const activeCard = cards.find((c) => c.id === activeId);
     const overCard = cards.find((c) => c.id === overId);
 
     if (!activeCard) return;
 
-    // Determine target status
     let targetStatus: KanbanStatus | undefined;
 
     if (overCard) {
-      // Dropped on a card
       targetStatus = overCard.status;
     } else if (['todo', 'doing', 'done'].includes(overId)) {
-      // Dropped on a column
       targetStatus = overId as KanbanStatus;
     }
 
     if (!targetStatus || activeCard.status === targetStatus) return;
 
-    // Update card status
     setCards((cards) =>
       cards.map((card) =>
         card.id === activeId ? { ...card, status: targetStatus! } : card
@@ -239,7 +253,6 @@ export default function DailyChecklist() {
 
     if (!activeCard) return;
 
-    // Determine final status
     let finalStatus: KanbanStatus | undefined;
 
     if (overCard) {
@@ -250,83 +263,28 @@ export default function DailyChecklist() {
 
     if (!finalStatus) return;
 
-    // Reorder within the same column
     if (activeCard.status === finalStatus && overCard) {
       const activeIndex = cards.findIndex((c) => c.id === activeId);
       const overIndex = cards.findIndex((c) => c.id === overId);
-
       setCards((cards) => arrayMove(cards, activeIndex, overIndex));
-    } else {
-      // Moved to different column - status already updated in handleDragOver
     }
-
-    // Update tasksData based on new card statuses
-    updateTasksFromCards();
-  };
-
-  const updateTasksFromCards = () => {
-    setTasksData((prevTasks) =>
-      prevTasks.map((task) => {
-        const taskCards = cards.filter((card) => card.task_id === task.task_id);
-        const doneCards = taskCards.filter((card) => card.status === 'done');
-        const quantityCompleted = doneCards.length;
-        const completed = quantityCompleted === task.target_quantity;
-
-        return {
-          ...task,
-          completed,
-          quantity_completed: quantityCompleted,
-        };
-      })
-    );
   };
 
   const handleSave = async () => {
     try {
       setIsSaving(true);
 
-      // Calculate completion status from cards
-      const taskCompletionMap = new Map<number, { completed: boolean; quantity: number }>();
+      // Prepara atualizações de status das instâncias
+      const updates = cards.map((card) => ({
+        id: card.task_id, // task_id agora é o ID da instância
+        status: mapKanbanToInstance(card.status),
+        notes: card.notes,
+      }));
 
-      cards.forEach((card) => {
-        const current = taskCompletionMap.get(card.task_id) || { completed: false, quantity: 0 };
-        if (card.status === 'done') {
-          current.quantity += 1;
-        }
-        taskCompletionMap.set(card.task_id, current);
-      });
+      // Salva todas as atualizações de uma vez
+      const updatePromise = taskInstancesService.bulkUpdate(updates);
 
-      // Update completed status
-      taskCompletionMap.forEach((value, taskId) => {
-        const task = tasksData.find((t) => t.task_id === taskId);
-        if (task) {
-          value.completed = value.quantity === task.target_quantity;
-        }
-      });
-
-      // Save daily task records
-      const taskSavePromises = tasksData.map(async (task) => {
-        const completion = taskCompletionMap.get(task.task_id) || { completed: false, quantity: 0 };
-
-        const recordData = {
-          task: task.task_id,
-          date: selectedDate,
-          completed: completion.completed,
-          quantity_completed: completion.quantity,
-          notes: task.notes,
-          owner: ownerId,
-        };
-
-        if (task.record_id) {
-          // Update existing record
-          return dailyTaskRecordsService.update(task.record_id, recordData);
-        } else if (completion.completed || completion.quantity > 0) {
-          // Create new record only if there's some progress
-          return dailyTaskRecordsService.create(recordData);
-        }
-      });
-
-      // Save or update reflection if there's content
+      // Salva ou atualiza reflexão se houver conteúdo
       let reflectionPromise;
       if (reflection.trim().length >= 10) {
         const reflectionData = {
@@ -343,14 +301,14 @@ export default function DailyChecklist() {
         }
       }
 
-      await Promise.all([...taskSavePromises, reflectionPromise].filter(Boolean));
+      await Promise.all([updatePromise, reflectionPromise].filter(Boolean));
 
       toast({
         title: 'Dados salvos',
         description: 'Seu checklist e reflexão foram salvos com sucesso!',
       });
 
-      // Reload data to get updated IDs and counts
+      // Recarrega dados para obter IDs e contagens atualizados
       loadData();
     } catch (error: any) {
       toast({
@@ -389,6 +347,11 @@ export default function DailyChecklist() {
         </div>
         <div className="text-lg font-semibold">
           {completedTasks} de {cards.length} itens concluídos
+          {summary.completion_rate > 0 && (
+            <span className="text-sm text-muted-foreground ml-2">
+              ({summary.completion_rate.toFixed(0)}%)
+            </span>
+          )}
         </div>
       </div>
 

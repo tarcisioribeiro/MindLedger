@@ -1,6 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical } from 'lucide-react';
+import { GripVertical, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import type { TaskCard } from '@/types';
 
@@ -64,14 +64,22 @@ export function KanbanCard({ card }: KanbanCardProps) {
         <div className="flex-1 space-y-2.5">
           {/* Title and Category */}
           <div className="flex items-start justify-between gap-2">
-            <h4 className="font-semibold text-sm leading-tight">
-              {card.task_name}
-              {card.total_instances > 1 && (
-                <span className="ml-2 text-xs font-normal text-muted-foreground">
-                  ({card.index + 1}º {card.unit})
-                </span>
+            <div className="flex-1">
+              <h4 className="font-semibold text-sm leading-tight">
+                {card.task_name}
+                {card.total_instances > 1 && (
+                  <span className="ml-2 text-xs font-normal text-muted-foreground">
+                    ({card.index + 1}º {card.unit})
+                  </span>
+                )}
+              </h4>
+              {card.scheduled_time && (
+                <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                  <Clock className="h-3 w-3" />
+                  <span>{card.scheduled_time}</span>
+                </div>
               )}
-            </h4>
+            </div>
             <Badge className={`${getCategoryColor(card.category)} shrink-0 text-xs`}>
               {card.category_display}
             </Badge>

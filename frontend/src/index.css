@@ -5,131 +5,131 @@
 @tailwind utilities;
 
 @layer base {
-  /* Tema Claro - Baseado na paleta Dracula invertida */
+  /* Tema Claro - Alucard Classic (Dracula Light Theme Oficial) */
   :root {
-    /* Backgrounds - Tons claros */
-    --background: 0 0% 97%;
-    --foreground: 231 15% 15%;
+    /* Backgrounds - Background (#FFFBEB) */
+    --background: 48 100% 96%;
+    --foreground: 0 0% 12%; /* Foreground (#1F1F1F) */
 
-    /* Cards - Branco puro */
-    --card: 0 0% 100%;
-    --card-foreground: 231 15% 18%;
+    /* Cards - Ligeiramente mais escuro que o background */
+    --card: 48 100% 98%;
+    --card-foreground: 0 0% 12%;
 
     /* Popovers */
-    --popover: 0 0% 100%;
-    --popover-foreground: 231 15% 18%;
+    --popover: 48 100% 98%;
+    --popover-foreground: 0 0% 12%;
 
-    /* Primary - Purple (#bd93f9) adaptado para tema claro */
-    --primary: 265 89% 58%;
-    --primary-foreground: 0 0% 100%;
+    /* Primary - Purple Alucard (#644AC9) */
+    --primary: 252 54% 54%;
+    --primary-foreground: 48 100% 96%;
 
-    /* Secondary - Current Line (#44475a) clareado */
-    --secondary: 231 14% 92%;
-    --secondary-foreground: 231 15% 18%;
+    /* Secondary - Current Line (#6C664B) */
+    --secondary: 49 18% 36%;
+    --secondary-foreground: 48 100% 96%;
 
-    /* Muted - Comment (#6272a4) clareado */
-    --muted: 220 13% 95%;
-    --muted-foreground: 226 38% 40%;
+    /* Muted - Selection (#CFCFDE) */
+    --muted: 240 19% 84%;
+    --muted-foreground: 49 18% 36%;
 
-    /* Accent - Pink (#ff79c6) */
-    --accent: 330 100% 71%;
-    --accent-foreground: 0 0% 100%;
+    /* Accent - Pink Alucard (#A3144D) */
+    --accent: 336 78% 36%;
+    --accent-foreground: 48 100% 96%;
 
-    /* Destructive - Red (#ff5555) */
-    --destructive: 0 100% 66%;
-    --destructive-foreground: 0 0% 100%;
+    /* Destructive - Red Alucard (#CB3A2A) */
+    --destructive: 6 66% 48%;
+    --destructive-foreground: 48 100% 96%;
 
-    /* Success - Green (#50fa7b) */
-    --success: 135 94% 65%;
-    --success-foreground: 231 15% 18%;
+    /* Success - Green Alucard (#14710A) */
+    --success: 114 84% 24%;
+    --success-foreground: 48 100% 96%;
 
-    /* Warning - Orange (#ffb86c) */
-    --warning: 31 100% 71%;
-    --warning-foreground: 231 15% 18%;
+    /* Warning - Orange Alucard (#A34D14) */
+    --warning: 24 78% 36%;
+    --warning-foreground: 48 100% 96%;
 
-    /* Info - Cyan (#8be9fd) */
-    --info: 191 97% 77%;
-    --info-foreground: 231 15% 18%;
+    /* Info - Cyan Alucard (#036A96) */
+    --info: 198 96% 30%;
+    --info-foreground: 48 100% 96%;
 
-    /* Borders e Inputs */
-    --border: 220 13% 87%;
-    --input: 220 13% 87%;
-    --ring: 265 89% 58%;
+    /* Borders e Inputs - Selection suavizada */
+    --border: 240 19% 84%;
+    --input: 240 19% 84%;
+    --ring: 252 54% 54%;
 
     /* Border radius */
     --radius: 0.5rem;
 
-    /* Category colors */
-    --category-finance: 142 76% 36%;      /* verde escuro */
-    --category-health: 152 69% 31%;       /* verde-azulado */
-    --category-studies: 217 91% 60%;      /* azul */
-    --category-spiritual: 265 89% 58%;    /* roxo */
-    --category-exercise: 24 100% 50%;     /* laranja */
-    --category-nutrition: 142 76% 36%;    /* verde */
-    --category-work: 215 28% 39%;         /* cinza-azulado */
-    --category-leisure: 191 97% 77%;      /* ciano */
+    /* Category colors - Alucard palette */
+    --category-finance: 114 84% 24%;      /* verde Alucard */
+    --category-health: 198 96% 30%;       /* cyan Alucard */
+    --category-studies: 252 54% 54%;      /* purple Alucard */
+    --category-spiritual: 336 78% 36%;    /* pink Alucard */
+    --category-exercise: 24 78% 36%;      /* orange Alucard */
+    --category-nutrition: 48 73% 30%;     /* yellow Alucard */
+    --category-work: 49 18% 36%;          /* current line */
+    --category-leisure: 6 66% 48%;        /* red Alucard */
   }
 
-  /* Tema Escuro - Dracula Theme */
+  /* Tema Escuro - Dracula Classic (Dracula Dark Theme Oficial) */
   .dark {
-    /* Backgrounds - Background (#282a36) */
-    --background: 231 15% 18%;
-    --foreground: 60 30% 98%; /* Foreground (#f8f8f2) */
+    /* Backgrounds - Background (#282A36) */
+    --background: 235 15% 18%;
+    --foreground: 60 30% 96%; /* Foreground (#F8F8F2) */
 
-    /* Cards - Current Line (#44475a) */
+    /* Cards - Selection (#44475A) */
     --card: 232 14% 31%;
-    --card-foreground: 60 30% 98%;
+    --card-foreground: 60 30% 96%;
 
-    /* Popovers - Current Line (#44475a) */
+    /* Popovers - Selection (#44475A) */
     --popover: 232 14% 31%;
     --popover-foreground: 60 30% 96%;
 
-    /* Primary - Purple (#bd93f9) */
+    /* Primary - Purple (#BD93F9) */
     --primary: 265 89% 78%;
-    --primary-foreground: 231 15% 18%;
+    --primary-foreground: 235 15% 18%;
 
-    /* Secondary - Current Line (#44475a) */
+    /* Secondary - Selection (#44475A) */
     --secondary: 232 14% 31%;
     --secondary-foreground: 60 30% 96%;
 
-    /* Muted - Background com Comment para foreground */
-    --muted: 231 15% 22%;
-    --muted-foreground: 225 27% 51%; /* Comment (#6272a4) */
+    /* Muted - Background levemente mais claro */
+    --muted: 235 15% 23%;
+    --muted-foreground: 225 27% 51%; /* Comment (#6272A4) */
 
-    /* Accent - Pink (#ff79c6) */
+    /* Accent - Pink (#FF79C6) */
     --accent: 326 100% 74%;
-    --accent-foreground: 231 15% 18%;
+    --accent-foreground: 235 15% 18%;
 
-    /* Destructive - Red (#ff5555) */
+    /* Destructive - Red (#FF5555) */
     --destructive: 0 100% 67%;
     --destructive-foreground: 60 30% 96%;
 
-    /* Success - Green (#50fa7b) */
+    /* Success - Green (#50FA7B) */
     --success: 135 94% 65%;
-    --success-foreground: 231 15% 18%;
+    --success-foreground: 235 15% 18%;
 
-    /* Warning - Yellow (#f1fa8c) */
+    /* Warning - Yellow (#F1FA8C) */
     --warning: 65 92% 76%;
-    --warning-foreground: 231 15% 18%;
+    --warning-foreground: 235 15% 18%;
 
-    /* Info - Cyan (#8be9fd) */
+    /* Info - Cyan (#8BE9FD) */
     --info: 191 97% 77%;
-    --info-foreground: 231 15% 18%;
+    --info-foreground: 235 15% 18%;
 
-    /* Borders e Inputs - Current Line (#44475a) */
+    /* Borders e Inputs - Selection (#44475A) */
     --border: 232 14% 31%;
     --input: 232 14% 31%;
-    --ring: 265 89% 78%; /* Purple (#bd93f9) */
+    --ring: 265 89% 78%; /* Purple (#BD93F9) */
 
-    /* Category colors */
-    --category-finance: 135 94% 65%;      /* verde Dracula */
-    --category-health: 142 76% 50%;
-    --category-studies: 217 91% 70%;
-    --category-spiritual: 265 89% 78%;
-    --category-exercise: 31 100% 71%;
-    --category-nutrition: 135 94% 65%;
-    --category-work: 225 27% 51%;
-    --category-leisure: 191 97% 77%;
+    /* Category colors - Dracula palette */
+    --category-finance: 135 94% 65%;      /* green */
+    --category-health: 191 97% 77%;       /* cyan */
+    --category-studies: 265 89% 78%;      /* purple */
+    --category-spiritual: 326 100% 74%;   /* pink */
+    --category-exercise: 31 100% 71%;     /* orange */
+    --category-nutrition: 65 92% 76%;     /* yellow */
+    --category-work: 225 27% 51%;         /* comment */
+    --category-leisure: 0 100% 67%;       /* red */
   }
 }
 

@@ -1,4 +1,4 @@
-from rest_framework import generics
+from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -7,14 +7,16 @@ from django.utils import timezone
 from datetime import timedelta, date
 from app.permissions import GlobalDefaultPermission
 from personal_planning.models import (
-    RoutineTask, DailyTaskRecord, Goal, DailyReflection
+    RoutineTask, Goal, DailyReflection, TaskInstance
 )
 from personal_planning.serializers import (
     RoutineTaskSerializer, RoutineTaskCreateUpdateSerializer,
-    DailyTaskRecordSerializer, DailyTaskRecordCreateUpdateSerializer,
     GoalSerializer, GoalCreateUpdateSerializer,
-    DailyReflectionSerializer, DailyReflectionCreateUpdateSerializer
+    DailyReflectionSerializer, DailyReflectionCreateUpdateSerializer,
+    TaskInstanceSerializer, TaskInstanceCreateSerializer,
+    TaskInstanceUpdateSerializer, TaskInstanceStatusUpdateSerializer
 )
+from members.models import Member
 
 
 def log_activity(request, action, model_name, object_id, description):
@@ -57,7 +59,7 @@ class RoutineTaskListCreateView(generics.ListCreateAPIView):
         return RoutineTask.objects.filter(
             owner__user=self.request.user,
             deleted_at__isnull=True
-        ).select_related('owner').prefetch_related('daily_records', 'goals')
+        ).select_related('owner').prefetch_related('instances', 'goals')
 
     def get_serializer_class(self):
         if self.request.method == 'POST':
@@ -84,7 +86,7 @@ class RoutineTaskDetailView(generics.RetrieveUpdateDestroyAPIView):
         return RoutineTask.objects.filter(
             owner__user=self.request.user,
             deleted_at__isnull=True
-        ).select_related('owner').prefetch_related('daily_records', 'goals')
+        ).select_related('owner').prefetch_related('instances', 'goals')
 
     def get_serializer_class(self):
         if self.request.method in ['PUT', 'PATCH']:
@@ -105,135 +107,6 @@ class RoutineTaskDetailView(generics.RetrieveUpdateDestroyAPIView):
             self.request, 'delete', 'RoutineTask',
             instance.id, f'Deletou tarefa rotineira: {instance.name}'
         )
-
-
-# ============================================================================
-# DAILY TASK RECORD VIEWS
-# ============================================================================
-
-class DailyTaskRecordListCreateView(generics.ListCreateAPIView):
-    """Lista todos os registros diarios ou cria um novo."""
-    permission_classes = [IsAuthenticated, GlobalDefaultPermission]
-    queryset = DailyTaskRecord.objects.all()
-
-    def get_queryset(self):
-        return DailyTaskRecord.objects.filter(
-            owner__user=self.request.user,
-            deleted_at__isnull=True
-        ).select_related('owner', 'task')
-
-    def get_serializer_class(self):
-        if self.request.method == 'POST':
-            return DailyTaskRecordCreateUpdateSerializer
-        return DailyTaskRecordSerializer
-
-    def perform_create(self, serializer):
-        record = serializer.save(
-            created_by=self.request.user,
-            updated_by=self.request.user
-        )
-        log_activity(
-            self.request, 'create', 'DailyTaskRecord',
-            record.id, f'Registrou tarefa: {record.task.name} em {record.date}'
-        )
-
-
-class DailyTaskRecordDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """Recupera, atualiza ou deleta um registro diario."""
-    permission_classes = [IsAuthenticated, GlobalDefaultPermission]
-    queryset = DailyTaskRecord.objects.all()
-
-    def get_queryset(self):
-        return DailyTaskRecord.objects.filter(
-            owner__user=self.request.user,
-            deleted_at__isnull=True
-        ).select_related('owner', 'task')
-
-    def get_serializer_class(self):
-        if self.request.method in ['PUT', 'PATCH']:
-            return DailyTaskRecordCreateUpdateSerializer
-        return DailyTaskRecordSerializer
-
-    def perform_update(self, serializer):
-        record = serializer.save(updated_by=self.request.user)
-        log_activity(
-            self.request, 'update', 'DailyTaskRecord',
-            record.id, f'Atualizou registro de: {record.task.name}'
-        )
-
-    def perform_destroy(self, instance):
-        instance.deleted_at = timezone.now()
-        instance.save()
-        log_activity(
-            self.request, 'delete', 'DailyTaskRecord',
-            instance.id, f'Deletou registro de: {instance.task.name}'
-        )
-
-
-# ============================================================================
-# TASKS FOR TODAY VIEW (Endpoint Especial)
-# ============================================================================
-
-class TasksForTodayView(APIView):
-    """
-    GET /api/v1/personal-planning/tasks-today/
-
-    Retorna todas as tarefas que devem ser cumpridas hoje,
-    junto com o status de cumprimento (se ja existe registro).
-    """
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        user = request.user
-        today = timezone.now().date()
-
-        # Query parameter para data customizada (opcional)
-        date_param = request.query_params.get('date')
-        if date_param:
-            try:
-                today = date.fromisoformat(date_param)
-            except ValueError:
-                pass
-
-        # Buscar todas as tarefas ativas do usuario
-        active_tasks = RoutineTask.objects.filter(
-            owner__user=user,
-            is_active=True,
-            deleted_at__isnull=True
-        )
-
-        # Filtrar tarefas que devem aparecer hoje
-        tasks_for_today = []
-        for task in active_tasks:
-            if task.should_appear_on_date(today):
-                # Verificar se ja existe registro para hoje
-                record = DailyTaskRecord.objects.filter(
-                    task=task,
-                    date=today,
-                    owner=task.owner,
-                    deleted_at__isnull=True
-                ).first()
-
-                tasks_for_today.append({
-                    'task_id': task.id,
-                    'task_name': task.name,
-                    'description': task.description,
-                    'category': task.category,
-                    'category_display': task.get_category_display(),
-                    'target_quantity': task.target_quantity,
-                    'unit': task.unit,
-                    'record_id': record.id if record else None,
-                    'completed': record.completed if record else False,
-                    'quantity_completed': record.quantity_completed if record else 0,
-                    'notes': record.notes if record else None
-                })
-
-        return Response({
-            'date': today.isoformat(),
-            'tasks': tasks_for_today,
-            'total_tasks': len(tasks_for_today),
-            'completed_tasks': len([t for t in tasks_for_today if t['completed']])
-        })
 
 
 # ============================================================================
@@ -383,7 +256,7 @@ class PersonalPlanningDashboardStatsView(APIView):
             owner__user=user,
             deleted_at__isnull=True
         )
-        records_qs = DailyTaskRecord.objects.filter(
+        instances_qs = TaskInstance.objects.filter(
             owner__user=user,
             deleted_at__isnull=True
         )
@@ -401,9 +274,9 @@ class PersonalPlanningDashboardStatsView(APIView):
 
         # Taxa de cumprimento dos ultimos 7 dias
         seven_days_ago = today - timedelta(days=7)
-        recent_records = records_qs.filter(date__gte=seven_days_ago)
-        total_recent = recent_records.count()
-        completed_recent = recent_records.filter(completed=True).count()
+        recent_instances = instances_qs.filter(scheduled_date__gte=seven_days_ago)
+        total_recent = recent_instances.count()
+        completed_recent = recent_instances.filter(status='completed').count()
         completion_rate_7d = (
             round((completed_recent / total_recent) * 100, 1)
             if total_recent > 0 else 0.0
@@ -411,9 +284,9 @@ class PersonalPlanningDashboardStatsView(APIView):
 
         # Taxa de cumprimento dos ultimos 30 dias
         thirty_days_ago = today - timedelta(days=30)
-        month_records = records_qs.filter(date__gte=thirty_days_ago)
-        total_month = month_records.count()
-        completed_month = month_records.filter(completed=True).count()
+        month_instances = instances_qs.filter(scheduled_date__gte=thirty_days_ago)
+        total_month = month_instances.count()
+        completed_month = month_instances.filter(status='completed').count()
         completion_rate_30d = (
             round((completed_month / total_month) * 100, 1)
             if total_month > 0 else 0.0
@@ -439,9 +312,9 @@ class PersonalPlanningDashboardStatsView(APIView):
         weekly_progress = []
         for i in range(6, -1, -1):
             day = today - timedelta(days=i)
-            day_records = records_qs.filter(date=day)
-            total_day = day_records.count()
-            completed_day = day_records.filter(completed=True).count()
+            day_instances = instances_qs.filter(scheduled_date=day)
+            total_day = day_instances.count()
+            completed_day = day_instances.filter(status='completed').count()
 
             weekly_progress.append({
                 'date': day.isoformat(),
@@ -468,15 +341,13 @@ class PersonalPlanningDashboardStatsView(APIView):
         best_streak = self._calculate_best_streak(user)
 
         # Tarefas de hoje
-        active_tasks_today = tasks_qs.filter(is_active=True)
-        tasks_for_today = [t for t in active_tasks_today if t.should_appear_on_date(today)]
-        records_today = records_qs.filter(date=today)
-        total_tasks_today = len(tasks_for_today)
-        completed_tasks_today = records_today.filter(completed=True).count()
+        instances_today = instances_qs.filter(scheduled_date=today)
+        total_tasks_today = instances_today.count()
+        completed_tasks_today = instances_today.filter(status='completed').count()
 
         # Tarefas rotineiras ativas (usar o serializer)
         from personal_planning.serializers import RoutineTaskSerializer
-        active_routine_tasks_qs = tasks_qs.filter(is_active=True).prefetch_related('daily_records')
+        active_routine_tasks_qs = tasks_qs.filter(is_active=True).prefetch_related('instances')
         active_routine_tasks_data = RoutineTaskSerializer(active_routine_tasks_qs, many=True).data
 
         # Reflexões recentes (últimas 5) - usar o serializer
@@ -513,36 +384,28 @@ class PersonalPlanningDashboardStatsView(APIView):
         Calcula sequencia atual de dias com 100% de cumprimento.
 
         Um dia conta para o streak se:
-        1. Há tarefas programadas para aquele dia
-        2. TODAS as tarefas programadas foram completadas (têm registro completo)
+        1. Há instâncias de tarefas para aquele dia
+        2. TODAS as instâncias foram completadas
 
-        NOTA: Se uma tarefa não tem registro, conta como não completada.
+        NOTA: Se uma instância não está completada, conta como não concluída.
         """
-        # Buscar todas as tarefas ativas uma única vez
-        active_tasks = RoutineTask.objects.filter(
-            owner__user=user,
-            is_active=True,
-            deleted_at__isnull=True
-        )
-
-        # Se não há tarefas ativas, streak é 0
-        if not active_tasks.exists():
-            return 0
-
         streak = 0
         check_date = today
         max_lookback_days = 365  # Limitar a busca a 1 ano no passado
         days_without_tasks = 0
 
         for _ in range(max_lookback_days):
-            # Verificar quais tarefas deveriam aparecer nesta data
-            tasks_for_day = [
-                t for t in active_tasks
-                if t.should_appear_on_date(check_date)
-            ]
+            # Buscar instâncias do dia
+            day_instances = TaskInstance.objects.filter(
+                owner__user=user,
+                scheduled_date=check_date,
+                deleted_at__isnull=True
+            )
 
-            if not tasks_for_day:
-                # Se não há tarefas para o dia, não quebra o streak
+            total_instances = day_instances.count()
+
+            if total_instances == 0:
+                # Se não há instâncias para o dia, não quebra o streak
                 days_without_tasks += 1
                 # Se já passaram 30 dias sem tarefas, pare
                 if days_without_tasks >= 30:
@@ -553,57 +416,38 @@ class PersonalPlanningDashboardStatsView(APIView):
             # Reset contador de dias sem tarefas
             days_without_tasks = 0
 
-            # Buscar registros do dia
-            records = DailyTaskRecord.objects.filter(
-                owner__user=user,
-                date=check_date,
-                deleted_at__isnull=True
-            )
+            # Contar instâncias completadas
+            completed_count = day_instances.filter(status='completed').count()
 
-            # Contar apenas registros completados
-            completed_count = records.filter(completed=True).count()
-            expected_count = len(tasks_for_day)
-
-            # Para manter o streak, TODAS as tarefas devem estar completadas
-            if completed_count == expected_count and completed_count > 0:
+            # Para manter o streak, TODAS as instâncias devem estar completadas
+            if completed_count == total_instances and completed_count > 0:
                 streak += 1
                 check_date -= timedelta(days=1)
             else:
-                # Streak quebrado: falta registro ou alguma tarefa não foi completada
+                # Streak quebrado: alguma instância não foi completada
                 break
 
         return streak
 
     def _calculate_best_streak(self, user):
         """Calcula a melhor sequencia de todos os tempos."""
-        # Buscar todas as tarefas ativas
-        active_tasks = RoutineTask.objects.filter(
-            owner__user=user,
-            is_active=True,
-            deleted_at__isnull=True
-        )
-
-        # Se não há tarefas ativas, streak é 0
-        if not active_tasks.exists():
-            return 0
-
-        # Buscar todos os registros agrupados por data
-        records = DailyTaskRecord.objects.filter(
+        # Buscar todas as instâncias agrupadas por data
+        instances = TaskInstance.objects.filter(
             owner__user=user,
             deleted_at__isnull=True
-        ).order_by('date')
+        ).order_by('scheduled_date')
 
-        if not records.exists():
+        if not instances.exists():
             return 0
 
-        # Agrupar registros por data
+        # Agrupar instâncias por data
         from collections import defaultdict
-        records_by_date = defaultdict(list)
-        for record in records:
-            records_by_date[record.date].append(record)
+        instances_by_date = defaultdict(list)
+        for instance in instances:
+            instances_by_date[instance.scheduled_date].append(instance)
 
         # Obter todas as datas únicas ordenadas
-        all_dates = sorted(records_by_date.keys())
+        all_dates = sorted(instances_by_date.keys())
 
         best_streak = 0
         current_streak = 0
@@ -615,23 +459,18 @@ class PersonalPlanningDashboardStatsView(APIView):
             check_date = start_date
 
             while check_date <= end_date:
-                # Verificar quais tarefas deveriam aparecer nesta data
-                tasks_for_day = [
-                    t for t in active_tasks
-                    if t.should_appear_on_date(check_date)
-                ]
+                day_instances = instances_by_date.get(check_date, [])
 
-                # Se não há tarefas para o dia, não afeta o streak
-                if not tasks_for_day:
+                # Se não há instâncias para o dia, não afeta o streak
+                if not day_instances:
                     check_date += timedelta(days=1)
                     continue
 
-                # Verificar quantas tarefas foram completadas
-                day_records = records_by_date.get(check_date, [])
-                completed_count = sum(1 for r in day_records if r.completed)
-                expected_count = len(tasks_for_day)
+                # Verificar quantas instâncias foram completadas
+                completed_count = sum(1 for i in day_instances if i.status == 'completed')
+                expected_count = len(day_instances)
 
-                # Se todas as tarefas foram completadas, incrementar streak
+                # Se todas as instâncias foram completadas, incrementar streak
                 if completed_count == expected_count and completed_count > 0:
                     current_streak += 1
                     best_streak = max(best_streak, current_streak)
@@ -642,3 +481,243 @@ class PersonalPlanningDashboardStatsView(APIView):
                 check_date += timedelta(days=1)
 
         return best_streak
+
+
+# ============================================================================
+# TASK INSTANCE VIEWS
+# ============================================================================
+
+class TaskInstanceListCreateView(generics.ListCreateAPIView):
+    """Lista todas as instancias de tarefas ou cria uma nova (tarefa avulsa)."""
+    permission_classes = [IsAuthenticated, GlobalDefaultPermission]
+
+    def get_queryset(self):
+        qs = TaskInstance.objects.filter(
+            owner__user=self.request.user,
+            deleted_at__isnull=True
+        ).select_related('owner', 'template')
+
+        # Filtro por data
+        date_param = self.request.query_params.get('date')
+        if date_param:
+            try:
+                filter_date = date.fromisoformat(date_param)
+                qs = qs.filter(scheduled_date=filter_date)
+            except ValueError:
+                pass
+
+        # Filtro por status
+        status_param = self.request.query_params.get('status')
+        if status_param:
+            qs = qs.filter(status=status_param)
+
+        # Filtro por template
+        template_id = self.request.query_params.get('template')
+        if template_id:
+            qs = qs.filter(template_id=template_id)
+
+        return qs.order_by('scheduled_date', 'scheduled_time', 'occurrence_index')
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return TaskInstanceCreateSerializer
+        return TaskInstanceSerializer
+
+    def perform_create(self, serializer):
+        instance = serializer.save(
+            created_by=self.request.user,
+            updated_by=self.request.user
+        )
+        log_activity(
+            self.request, 'create', 'TaskInstance',
+            instance.id, f'Criou tarefa avulsa: {instance.task_name}'
+        )
+
+
+class TaskInstanceDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """Recupera, atualiza ou deleta uma instancia de tarefa."""
+    permission_classes = [IsAuthenticated, GlobalDefaultPermission]
+
+    def get_queryset(self):
+        return TaskInstance.objects.filter(
+            owner__user=self.request.user,
+            deleted_at__isnull=True
+        ).select_related('owner', 'template')
+
+    def get_serializer_class(self):
+        if self.request.method in ['PUT', 'PATCH']:
+            return TaskInstanceUpdateSerializer
+        return TaskInstanceSerializer
+
+    def perform_update(self, serializer):
+        instance = serializer.save(updated_by=self.request.user)
+        log_activity(
+            self.request, 'update', 'TaskInstance',
+            instance.id, f'Atualizou instancia: {instance.task_name} - {instance.status}'
+        )
+
+    def perform_destroy(self, instance):
+        instance.deleted_at = timezone.now()
+        instance.save()
+        log_activity(
+            self.request, 'delete', 'TaskInstance',
+            instance.id, f'Deletou instancia: {instance.task_name}'
+        )
+
+
+class InstancesForDateView(APIView):
+    """
+    GET /api/v1/personal-planning/instances/for-date/?date=YYYY-MM-DD
+
+    Retorna todas as instancias para uma data, gerando-as se necessario.
+    Este endpoint implementa a geracao lazy de instancias.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        date_param = request.query_params.get('date')
+        if not date_param:
+            return Response(
+                {'error': 'Parametro date e obrigatorio'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            target_date = date.fromisoformat(date_param)
+        except ValueError:
+            return Response(
+                {'error': 'Formato de data invalido. Use YYYY-MM-DD'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Obter member do usuario
+        member = Member.objects.filter(user=request.user).first()
+        if not member:
+            return Response(
+                {'error': 'Membro nao encontrado'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Gerar instancias (lazy generation)
+        from personal_planning.services.instance_generator import InstanceGenerator
+        instances = InstanceGenerator.generate_for_date(member, target_date)
+
+        serializer = TaskInstanceSerializer(instances, many=True)
+
+        # Calcular resumo
+        total = len(instances)
+        completed = sum(1 for i in instances if i.status == 'completed')
+        in_progress = sum(1 for i in instances if i.status == 'in_progress')
+        skipped = sum(1 for i in instances if i.status == 'skipped')
+
+        return Response({
+            'date': date_param,
+            'instances': serializer.data,
+            'summary': {
+                'total': total,
+                'completed': completed,
+                'in_progress': in_progress,
+                'pending': total - completed - in_progress - skipped,
+                'skipped': skipped,
+                'completion_rate': round((completed / total * 100), 1) if total > 0 else 0
+            }
+        })
+
+
+class TaskInstanceStatusUpdateView(APIView):
+    """
+    PATCH /api/v1/personal-planning/instances/<id>/status/
+
+    Endpoint rapido para atualizar apenas o status de uma instancia.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, pk):
+        try:
+            instance = TaskInstance.objects.get(
+                pk=pk,
+                owner__user=request.user,
+                deleted_at__isnull=True
+            )
+        except TaskInstance.DoesNotExist:
+            return Response(
+                {'error': 'Instancia nao encontrada'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = TaskInstanceStatusUpdateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        new_status = serializer.validated_data['status']
+        notes = serializer.validated_data.get('notes')
+
+        # Atualizar instancia
+        instance.status = new_status
+        if notes:
+            instance.notes = notes
+        instance.updated_by = request.user
+        instance.save()
+
+        log_activity(
+            request, 'update', 'TaskInstance',
+            instance.id, f'Atualizou status: {instance.task_name} -> {new_status}'
+        )
+
+        return Response(TaskInstanceSerializer(instance).data)
+
+
+class TaskInstanceBulkUpdateView(APIView):
+    """
+    POST /api/v1/personal-planning/instances/bulk-update/
+
+    Atualiza multiplas instancias de uma vez (util para salvar o kanban).
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        updates = request.data.get('updates', [])
+        if not updates:
+            return Response(
+                {'error': 'Lista de atualizacoes vazia'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        updated_instances = []
+        errors = []
+
+        for update in updates:
+            instance_id = update.get('id')
+            new_status = update.get('status')
+            notes = update.get('notes')
+
+            if not instance_id or not new_status:
+                errors.append({
+                    'id': instance_id,
+                    'error': 'id e status sao obrigatorios'
+                })
+                continue
+
+            try:
+                instance = TaskInstance.objects.get(
+                    pk=instance_id,
+                    owner__user=request.user,
+                    deleted_at__isnull=True
+                )
+                instance.status = new_status
+                if notes is not None:
+                    instance.notes = notes
+                instance.updated_by = request.user
+                instance.save()
+                updated_instances.append(instance)
+            except TaskInstance.DoesNotExist:
+                errors.append({
+                    'id': instance_id,
+                    'error': 'Instancia nao encontrada'
+                })
+
+        return Response({
+            'updated_count': len(updated_instances),
+            'updated': TaskInstanceSerializer(updated_instances, many=True).data,
+            'errors': errors
+        })

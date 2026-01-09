@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from personal_planning.models import (
-    RoutineTask, DailyTaskRecord, Goal, DailyReflection
+    RoutineTask, Goal, DailyReflection, TaskInstance
 )
 
 
@@ -31,6 +31,7 @@ class RoutineTaskSerializer(serializers.ModelSerializer):
             'day_of_month', 'is_active', 'target_quantity', 'unit',
             'custom_weekdays', 'custom_month_days', 'times_per_week',
             'times_per_month', 'interval_days', 'interval_start_date',
+            'default_time', 'daily_occurrences', 'interval_hours', 'scheduled_times',
             'completion_rate', 'total_completions',
             'owner', 'owner_name', 'created_at', 'updated_at'
         ]
@@ -42,21 +43,21 @@ class RoutineTaskSerializer(serializers.ModelSerializer):
         from datetime import timedelta
 
         thirty_days_ago = timezone.now().date() - timedelta(days=30)
-        records = obj.daily_records.filter(
-            date__gte=thirty_days_ago,
+        instances = obj.instances.filter(
+            scheduled_date__gte=thirty_days_ago,
             deleted_at__isnull=True
         )
 
-        if records.count() == 0:
+        if instances.count() == 0:
             return 0.0
 
-        completed = records.filter(completed=True).count()
-        return round((completed / records.count()) * 100, 1)
+        completed = instances.filter(status='completed').count()
+        return round((completed / instances.count()) * 100, 1)
 
     def get_total_completions(self, obj):
         """Conta total de vezes que a tarefa foi cumprida."""
-        return obj.daily_records.filter(
-            completed=True,
+        return obj.instances.filter(
+            status='completed',
             deleted_at__isnull=True
         ).count()
 
@@ -70,7 +71,8 @@ class RoutineTaskCreateUpdateSerializer(serializers.ModelSerializer):
             'weekday', 'day_of_month', 'is_active',
             'target_quantity', 'unit', 'owner',
             'custom_weekdays', 'custom_month_days', 'times_per_week',
-            'times_per_month', 'interval_days', 'interval_start_date'
+            'times_per_month', 'interval_days', 'interval_start_date',
+            'default_time', 'daily_occurrences', 'interval_hours', 'scheduled_times'
         ]
 
     def validate(self, data):
@@ -78,39 +80,6 @@ class RoutineTaskCreateUpdateSerializer(serializers.ModelSerializer):
         instance = RoutineTask(**data)
         instance.clean()
         return data
-
-
-# ============================================================================
-# DAILY TASK RECORD SERIALIZERS
-# ============================================================================
-
-class DailyTaskRecordSerializer(serializers.ModelSerializer):
-    """Serializer para visualizacao de registros diarios."""
-    owner_name = serializers.CharField(source='owner.name', read_only=True)
-    task_name = serializers.CharField(source='task.name', read_only=True)
-    task_category = serializers.CharField(source='task.category', read_only=True)
-    task_target = serializers.IntegerField(source='task.target_quantity', read_only=True)
-    task_unit = serializers.CharField(source='task.unit', read_only=True)
-
-    class Meta:
-        model = DailyTaskRecord
-        fields = [
-            'id', 'uuid', 'task', 'task_name', 'task_category',
-            'task_target', 'task_unit', 'date', 'completed',
-            'quantity_completed', 'notes', 'completed_at',
-            'owner', 'owner_name', 'created_at', 'updated_at'
-        ]
-        read_only_fields = ['uuid', 'completed_at', 'created_at', 'updated_at']
-
-
-class DailyTaskRecordCreateUpdateSerializer(serializers.ModelSerializer):
-    """Serializer para criacao/atualizacao de registros diarios."""
-    class Meta:
-        model = DailyTaskRecord
-        fields = [
-            'id', 'task', 'date', 'completed',
-            'quantity_completed', 'notes', 'owner'
-        ]
 
 
 # ============================================================================
@@ -178,3 +147,76 @@ class DailyReflectionCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = DailyReflection
         fields = ['id', 'date', 'reflection', 'mood', 'owner']
+
+
+# ============================================================================
+# TASK INSTANCE SERIALIZERS
+# ============================================================================
+
+class TaskInstanceSerializer(serializers.ModelSerializer):
+    """Serializer para visualizacao de instancias de tarefas."""
+    owner_name = serializers.CharField(source='owner.name', read_only=True)
+    template_name = serializers.CharField(source='template.name', read_only=True)
+    category_display = serializers.CharField(
+        source='get_category_display', read_only=True
+    )
+    status_display = serializers.CharField(
+        source='get_status_display', read_only=True
+    )
+    time_display = serializers.ReadOnlyField()
+    is_overdue = serializers.ReadOnlyField()
+
+    class Meta:
+        model = TaskInstance
+        fields = [
+            'id', 'uuid', 'template', 'template_name',
+            'task_name', 'task_description', 'category', 'category_display',
+            'scheduled_date', 'scheduled_time', 'time_display', 'occurrence_index',
+            'status', 'status_display',
+            'target_quantity', 'quantity_completed', 'unit',
+            'notes', 'started_at', 'completed_at', 'is_overdue',
+            'owner', 'owner_name', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['uuid', 'created_at', 'updated_at']
+
+
+class TaskInstanceCreateSerializer(serializers.ModelSerializer):
+    """Serializer para criacao de instancias avulsas (one-off tasks)."""
+    class Meta:
+        model = TaskInstance
+        fields = [
+            'task_name', 'task_description', 'category',
+            'scheduled_date', 'scheduled_time',
+            'target_quantity', 'unit', 'owner'
+        ]
+
+    def create(self, validated_data):
+        """Cria instancia avulsa com valores padrao."""
+        validated_data.setdefault('status', 'pending')
+        validated_data.setdefault('occurrence_index', 0)
+        validated_data.setdefault('quantity_completed', 0)
+        return super().create(validated_data)
+
+
+class TaskInstanceUpdateSerializer(serializers.ModelSerializer):
+    """Serializer para atualizacao de instancias."""
+    class Meta:
+        model = TaskInstance
+        fields = [
+            'status', 'quantity_completed', 'notes'
+        ]
+
+
+class TaskInstanceStatusUpdateSerializer(serializers.Serializer):
+    """Serializer para atualizacao rapida de status."""
+    status = serializers.ChoiceField(
+        choices=['pending', 'in_progress', 'completed', 'skipped', 'cancelled']
+    )
+    notes = serializers.CharField(required=False, allow_blank=True)
+
+
+class InstancesForDateResponseSerializer(serializers.Serializer):
+    """Serializer para resposta do endpoint instances-for-date."""
+    date = serializers.DateField()
+    instances = TaskInstanceSerializer(many=True)
+    summary = serializers.DictField()

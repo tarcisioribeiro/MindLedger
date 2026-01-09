@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react';
 import { CheckCircle2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/common/PageHeader';
 import { LoadingState } from '@/components/common/LoadingState';
+import { taskInstancesService } from '@/services/task-instances-service';
+import { appService } from '@/services/app-service';
 import { useToast } from '@/hooks/use-toast';
-import type { DailyTaskRecord } from '@/types';
+import type { TaskInstance } from '@/types';
+import { formatLocalDate } from '@/lib/utils';
 
 export default function TodayTasks() {
-  const [tasks, setTasks] = useState<DailyTaskRecord[]>([]);
+  const [tasks, setTasks] = useState<TaskInstance[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
@@ -17,8 +21,16 @@ export default function TodayTasks() {
   const loadData = async () => {
     try {
       setIsLoading(true);
-      // TODO: Implementar chamada ao service
-      setTasks([]);
+      // Get current date from server
+      let today: string;
+      try {
+        today = await appService.getCurrentDate();
+      } catch {
+        today = formatLocalDate(new Date());
+      }
+      // Get instances for today
+      const response = await taskInstancesService.getForDate(today);
+      setTasks(response.instances);
     } catch (error: any) {
       toast({
         title: 'Erro ao carregar tarefas',
@@ -30,6 +42,19 @@ export default function TodayTasks() {
     }
   };
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return 'bg-success';
+      case 'in_progress':
+        return 'bg-warning';
+      case 'skipped':
+        return 'bg-muted';
+      default:
+        return 'bg-secondary';
+    }
+  };
+
   if (isLoading) {
     return <LoadingState />;
   }
@@ -38,7 +63,8 @@ export default function TodayTasks() {
     <div className="container mx-auto px-4 py-8">
       <PageHeader
         title="Tarefas de Hoje"
-        description="Marque as tarefas que você completou hoje"
+        description="Suas tarefas programadas para hoje"
+        icon={<CheckCircle2 />}
       />
 
       {tasks.length === 0 ? (
@@ -53,11 +79,21 @@ export default function TodayTasks() {
             <div key={task.id} className="border rounded-lg p-4 flex items-center gap-4">
               <CheckCircle2
                 className={`h-6 w-6 ${
-                  task.completed ? 'text-success' : 'text-muted'
+                  task.status === 'completed' ? 'text-success' : 'text-muted'
                 }`}
               />
               <div className="flex-1">
-                <h3 className="font-semibold">{task.task}</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold">{task.task_name}</h3>
+                  <Badge className={getStatusColor(task.status)}>
+                    {task.status_display}
+                  </Badge>
+                </div>
+                {task.time_display && (
+                  <p className="text-sm text-muted-foreground">
+                    Horário: {task.time_display}
+                  </p>
+                )}
                 {task.notes && (
                   <p className="text-sm text-muted-foreground">{task.notes}</p>
                 )}

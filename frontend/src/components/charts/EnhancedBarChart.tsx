@@ -1,26 +1,43 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, ResponsiveContainer } from 'recharts';
+import { useMemo } from 'react';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Cell,
+  ResponsiveContainer,
+} from 'recharts';
 import { EnhancedTooltip } from './EnhancedTooltip';
+import { useChartGradientId } from '@/lib/chart-colors';
+import { axisFormatNumber, truncateLabel } from '@/lib/chart-formatters';
+import type { ChartDataPoint, BarLayout } from '@/lib/chart-types';
 
 interface EnhancedBarChartProps {
-  data: any[];
+  data: ChartDataPoint[];
   dataKey: string;
   nameKey: string;
-  formatter?: (value: any) => string;
+  formatter?: (value: number | string) => string;
   colors: string[];
-  customColors?: (entry: any) => string;
-  layout?: 'horizontal' | 'vertical';
+  customColors?: (entry: ChartDataPoint) => string;
+  layout?: BarLayout;
   height?: number;
 }
 
 /**
- * Gráfico de barras aprimorado com:
- * - Gradientes verticais multi-stop
- * - CartesianGrid sutil
- * - Bordas arredondadas
+ * Gráfico de barras aprimorado
+ *
+ * Recursos:
+ * - Gradientes verticais para profundidade visual
+ * - Layout horizontal ou vertical
+ * - Bordas arredondadas elegantes
+ * - Grid sutil
  * - Animações suaves
  * - Tooltip customizado
- * - Suporte a layout horizontal/vertical
- * - Suporte a cores customizadas
+ * - Cores customizáveis por item
+ * - IDs únicos para gradientes
+ * - Formatação de eixos pt-BR
  */
 export const EnhancedBarChart = ({
   data,
@@ -32,65 +49,124 @@ export const EnhancedBarChart = ({
   layout = 'vertical',
   height = 300,
 }: EnhancedBarChartProps) => {
+  // Gera IDs únicos para gradientes
+  const getGradientId = useChartGradientId('bar');
+
+  // Definições de gradientes memoizadas
+  const gradientDefs = useMemo(
+    () =>
+      colors.map((color, idx) => (
+        <linearGradient
+          key={getGradientId(idx)}
+          id={getGradientId(idx)}
+          x1="0"
+          y1="0"
+          x2={layout === 'vertical' ? '1' : '0'}
+          y2={layout === 'vertical' ? '0' : '1'}
+        >
+          <stop offset="0%" stopColor={color} stopOpacity={1} />
+          <stop offset="100%" stopColor={color} stopOpacity={0.7} />
+        </linearGradient>
+      )),
+    [colors, getGradientId, layout]
+  );
+
+  // Configuração de raio das bordas baseado no layout
+  const barRadius: [number, number, number, number] =
+    layout === 'vertical' ? [0, 6, 6, 0] : [6, 6, 0, 0];
+
+  // Largura do eixo Y para layout vertical (categorias)
+  const yAxisWidth = layout === 'vertical' ? 120 : 50;
+
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <BarChart data={data} layout={layout}>
-        <defs>
-          {/* Gradientes verticais multi-stop para profundidade */}
-          {colors.map((color, idx) => (
-            <linearGradient
-              key={`bar-gradient-${idx}`}
-              id={`bar-gradient-${idx}`}
-              x1="0"
-              y1="0"
-              x2="0"
-              y2="1"
-            >
-              <stop offset="0%" stopColor={color} stopOpacity={1} />
-              <stop offset="60%" stopColor={color} stopOpacity={0.85} />
-              <stop offset="100%" stopColor={color} stopOpacity={0.65} />
-            </linearGradient>
-          ))}
-        </defs>
+      <BarChart
+        data={data}
+        layout={layout}
+        margin={{
+          top: 5,
+          right: 10,
+          left: layout === 'vertical' ? 0 : -10,
+          bottom: 5,
+        }}
+      >
+        <defs>{gradientDefs}</defs>
 
         <CartesianGrid
           strokeDasharray="3 3"
           stroke="hsl(var(--border))"
-          opacity={0.3}
+          opacity={0.4}
           horizontal={layout === 'vertical'}
           vertical={layout === 'horizontal'}
         />
 
         {layout === 'vertical' ? (
           <>
-            <XAxis type="number" />
-            <YAxis dataKey={nameKey} type="category" width={150} />
+            <XAxis
+              type="number"
+              tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+              tickLine={false}
+              axisLine={{ stroke: 'hsl(var(--border))' }}
+              tickFormatter={axisFormatNumber}
+            />
+            <YAxis
+              dataKey={nameKey}
+              type="category"
+              width={yAxisWidth}
+              tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(value) => truncateLabel(String(value), 18)}
+            />
           </>
         ) : (
           <>
-            <XAxis dataKey={nameKey} type="category" />
-            <YAxis type="number" />
+            <XAxis
+              dataKey={nameKey}
+              type="category"
+              tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+              tickLine={false}
+              axisLine={{ stroke: 'hsl(var(--border))' }}
+              tickFormatter={(value) => truncateLabel(String(value), 12)}
+              interval={0}
+              angle={data.length > 5 ? -35 : 0}
+              textAnchor={data.length > 5 ? 'end' : 'middle'}
+              height={data.length > 5 ? 60 : 30}
+            />
+            <YAxis
+              type="number"
+              tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={axisFormatNumber}
+              width={50}
+            />
           </>
         )}
 
-        <Tooltip content={<EnhancedTooltip formatter={formatter} />} />
+        <Tooltip
+          content={<EnhancedTooltip formatter={formatter} />}
+          cursor={{ fill: 'hsl(var(--muted))', opacity: 0.3 }}
+        />
 
         <Bar
           dataKey={dataKey}
-          radius={layout === 'vertical' ? [0, 8, 8, 0] : [8, 8, 0, 0]}
-          animationDuration={800}
-          animationEasing="ease-in-out"
+          radius={barRadius}
+          animationDuration={600}
+          animationEasing="ease-out"
+          maxBarSize={50}
         >
           {data.map((entry, index) => {
             const fillColor = customColors
               ? customColors(entry)
-              : `url(#bar-gradient-${index % colors.length})`;
+              : `url(#${getGradientId(index % colors.length)})`;
 
             return (
               <Cell
                 key={`cell-${index}`}
                 fill={fillColor}
-                className="hover:opacity-80 hover:brightness-110 transition-all cursor-pointer"
+                className="transition-opacity duration-200 hover:opacity-80"
+                style={{ cursor: 'pointer' }}
               />
             );
           })}
