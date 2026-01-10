@@ -1,63 +1,142 @@
-import { useState } from 'react';
-import { BotMessageSquare } from 'lucide-react';
+/**
+ * AI Assistant Page
+ *
+ * Conversational AI chatbot with streaming responses and rich visualizations.
+ * Features:
+ * - Real-time streaming responses (word-by-word)
+ * - Conversation context (maintains history)
+ * - Rich visualizations (charts, cards, tables)
+ * - Session persistence
+ */
+
+import { useState, useRef, useEffect } from 'react';
+import { BotMessageSquare, Send, Loader2, Bot, User, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
-import { aiService } from '@/services/ai-service';
+import { PageHeader } from '@/components/common/PageHeader';
+import { VisualizationRenderer } from '@/components/ai/VisualizationRenderer';
+import { useAIChatStore } from '@/stores/ai-chat-store';
+import { aiStreamingService } from '@/services/ai-streaming-service';
 import { formatDate } from '@/lib/formatters';
 import { getModuleBadgeColor, getModuleLabel, getEntityLabel } from '@/lib/helpers';
-import { PageHeader } from '@/components/common/PageHeader';
-import type { ChatMessage } from '@/types';
-import { Loader2, Send, Bot, User } from 'lucide-react';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function AIAssistant() {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const {
+    sessionId,
+    messages,
+    isStreaming,
+    setSessionId,
+    addMessage,
+    updateMessage,
+    appendToMessage,
+    setStreaming,
+    clearMessages,
+  } = useAIChatStore();
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+  }, [messages]);
 
   const handleSend = async () => {
-    if (!input.trim() || loading) return;
+    if (!input.trim() || isStreaming) return;
 
-    const userMessage: ChatMessage = {
+    const userMessage = {
       id: Date.now().toString(),
-      role: 'user',
+      role: 'user' as const,
       content: input,
       timestamp: new Date(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    addMessage(userMessage);
     setInput('');
-    setLoading(true);
+    setStreaming(true);
+
+    // Create placeholder for assistant message
+    const assistantId = (Date.now() + 1).toString();
+    addMessage({
+      id: assistantId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+      streaming: true,
+    });
 
     try {
-      const response = await aiService.query({ question: input });
+      await aiStreamingService.streamQuery(
+        userMessage.content,
+        sessionId,
+        (event) => {
+          switch (event.event) {
+            case 'intent':
+              // Could show intent classification to user (optional)
+              console.log('Intent detected:', event.data);
+              break;
 
-      const assistantMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: response.answer,
-        timestamp: new Date(),
-        sources: response.sources,
-      };
+            case 'message_start':
+              if (event.data.session_id) {
+                setSessionId(event.data.session_id);
+              }
+              break;
 
-      setMessages((prev) => [...prev, assistantMessage]);
+            case 'content_chunk':
+              appendToMessage(assistantId, event.data.text);
+              break;
+
+            case 'visualization':
+              updateMessage(assistantId, {
+                visualization: event.data,
+              });
+              break;
+
+            case 'sources':
+              updateMessage(assistantId, {
+                sources: event.data.sources,
+              });
+              break;
+
+            case 'message_end':
+              updateMessage(assistantId, { streaming: false });
+              if (event.data.session_id) {
+                setSessionId(event.data.session_id);
+              }
+              break;
+
+            case 'error':
+              toast({
+                title: 'Erro',
+                description: event.data.message,
+                variant: 'destructive',
+              });
+              updateMessage(assistantId, {
+                content: `Erro: ${event.data.message}`,
+                streaming: false,
+              });
+              break;
+          }
+        }
+      );
     } catch (error: any) {
-      let errorTitle = 'Erro ao consultar AI';
-      let errorDescription = error.message || 'Não foi possível processar sua pergunta.';
-      let errorContent = 'Desculpe, ocorreu um erro ao processar sua pergunta. Tente novamente.';
+      console.error('Streaming error:', error);
 
-      // Check if it's a configuration error
-      if (error.response?.status === 503 || error.message?.includes('configurada')) {
+      let errorTitle = 'Erro ao processar';
+      let errorDescription = error.message || 'Não foi possível processar sua pergunta.';
+
+      // Check for configuration errors
+      if (error.message?.includes('503') || error.message?.includes('configurada')) {
         errorTitle = 'Configuração Necessária';
-        errorDescription = error.response?.data?.message || error.message || 'As chaves de API não estão configuradas.';
-        errorContent = `⚠️ Configuração Necessária\n\nO AI Assistant requer configuração das chaves de API:\n\n1. OPENAI_API_KEY (para embeddings)\n   Obtenha em: https://platform.openai.com/api-keys\n\n2. GROQ_API_KEY (para geração de texto)\n   Obtenha em: https://console.groq.com/keys\n\nAdicione essas chaves no arquivo .env do projeto.`;
-      } else if (error.response?.data?.message) {
-        errorDescription = error.response.data.message;
-        errorContent = error.response.data.message;
+        errorDescription =
+          'O AI Assistant requer chaves de API (OPENAI_API_KEY e GROQ_API_KEY) configuradas no servidor.';
       }
 
       toast({
@@ -67,16 +146,22 @@ export default function AIAssistant() {
         duration: 7000,
       });
 
-      // Add error message
-      const errorMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: errorContent,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      updateMessage(assistantId, {
+        content: `Desculpe, ocorreu um erro: ${errorDescription}`,
+        streaming: false,
+      });
     } finally {
-      setLoading(false);
+      setStreaming(false);
+    }
+  };
+
+  const handleClearHistory = () => {
+    if (confirm('Limpar todo o histórico da conversa?')) {
+      clearMessages();
+      toast({
+        title: 'Histórico limpo',
+        description: 'O histórico da conversa foi apagado.',
+      });
     }
   };
 
@@ -91,43 +176,54 @@ export default function AIAssistant() {
     <div className="flex flex-col h-[calc(100vh-8rem)]">
       <PageHeader
         title="AI Assistant"
-        description="Faça perguntas sobre seus dados pessoais em linguagem natural"
+        description="Converse naturalmente sobre seus dados pessoais"
         icon={<BotMessageSquare />}
-      />
+      >
+        {messages.length > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleClearHistory}
+            disabled={isStreaming}
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Limpar Histórico
+          </Button>
+        )}
+      </PageHeader>
 
-      {/* Chat Messages */}
       <Card className="flex-1 flex flex-col mt-6">
         <ScrollArea className="flex-1 p-4">
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center py-12">
               <Bot className="w-16 h-16 text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-2">Como posso ajudar?</h3>
-              <p className="text-sm text-muted-foreground max-w-md">
-                Pergunte sobre suas finanças, senhas, livros ou qualquer outro dado pessoal.
-                Eu vou buscar informações relevantes e fornecer respostas contextualizadas.
+              <p className="text-sm text-muted-foreground max-w-md mb-4">
+                Faça perguntas sobre suas finanças, senhas, livros ou hábitos.
+                Posso mostrar gráficos, tabelas e estatísticas!
               </p>
               <div className="mt-6 grid gap-2 w-full max-w-md">
                 <p className="text-xs text-muted-foreground text-left">Exemplos de perguntas:</p>
                 <Button
                   variant="outline"
                   className="justify-start text-left"
-                  onClick={() => setInput('Quais foram minhas maiores despesas este mês?')}
+                  onClick={() => setInput('Quanto gastei este mês?')}
                 >
-                  "Quais foram minhas maiores despesas este mês?"
+                  "Quanto gastei este mês?"
                 </Button>
                 <Button
                   variant="outline"
                   className="justify-start text-left"
-                  onClick={() => setInput('Quais livros estou lendo atualmente?')}
+                  onClick={() => setInput('Mostre a evolução das minhas despesas')}
                 >
-                  "Quais livros estou lendo atualmente?"
+                  "Mostre a evolução das minhas despesas"
                 </Button>
                 <Button
                   variant="outline"
                   className="justify-start text-left"
-                  onClick={() => setInput('Quantas senhas tenho cadastradas?')}
+                  onClick={() => setInput('Quais livros estou lendo?')}
                 >
-                  "Quantas senhas tenho cadastradas?"
+                  "Quais livros estou lendo?"
                 </Button>
               </div>
             </div>
@@ -154,8 +250,19 @@ export default function AIAssistant() {
                           : 'bg-muted'
                       }`}
                     >
-                      <p className="whitespace-pre-wrap">{message.content}</p>
+                      <p className="whitespace-pre-wrap">
+                        {message.content}
+                        {message.streaming && (
+                          <span className="inline-block w-2 h-4 ml-1 bg-current animate-pulse" />
+                        )}
+                      </p>
 
+                      {/* Visualization */}
+                      {message.visualization && (
+                        <VisualizationRenderer visualization={message.visualization} />
+                      )}
+
+                      {/* Sources */}
                       {message.sources && message.sources.length > 0 && (
                         <div className="mt-4 pt-4 border-t border-border">
                           <p className="text-xs font-semibold mb-2">Fontes consultadas:</p>
@@ -173,7 +280,7 @@ export default function AIAssistant() {
                                   {source.metadata.title && (
                                     <p className="text-muted-foreground">{source.metadata.title}</p>
                                   )}
-                                  {source.metadata.name && (
+                                  {source.metadata.name && !source.metadata.title && (
                                     <p className="text-muted-foreground">{source.metadata.name}</p>
                                   )}
                                   {source.metadata.description && (
@@ -204,17 +311,7 @@ export default function AIAssistant() {
                   )}
                 </div>
               ))}
-
-              {loading && (
-                <div className="flex gap-3 justify-start">
-                  <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-                    <Bot className="w-5 h-5 text-primary-foreground" />
-                  </div>
-                  <div className="bg-muted rounded-lg p-4">
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  </div>
-                </div>
-              )}
+              <div ref={scrollRef} />
             </div>
           )}
         </ScrollArea>
@@ -227,11 +324,11 @@ export default function AIAssistant() {
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Digite sua pergunta..."
-              disabled={loading}
+              disabled={isStreaming}
               className="flex-1"
             />
-            <Button onClick={handleSend} disabled={loading || !input.trim()}>
-              {loading ? (
+            <Button onClick={handleSend} disabled={isStreaming || !input.trim()}>
+              {isStreaming ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <Send className="w-4 h-4" />
@@ -239,7 +336,7 @@ export default function AIAssistant() {
             </Button>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            Pressione Enter para enviar, Shift+Enter para nova linha
+            Enter para enviar • Shift+Enter para nova linha
           </p>
         </div>
       </Card>

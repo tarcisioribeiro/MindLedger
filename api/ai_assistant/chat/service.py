@@ -113,7 +113,8 @@ class ChatService:
         top_k: int = 10,
         use_cache: bool = True,
         temperature: float = 0.3,
-        max_tokens: int = 1000
+        max_tokens: int = 1000,
+        conversation_history: Optional[List[Dict[str, str]]] = None
     ) -> ChatResponse:
         """
         Process a user query through the complete RAG pipeline.
@@ -134,6 +135,8 @@ class ChatService:
             LLM temperature
         max_tokens : int
             Maximum response tokens
+        conversation_history : List[Dict[str, str]], optional
+            Previous messages in format [{'role': 'user'/'assistant', 'content': '...'}]
 
         Returns
         -------
@@ -145,8 +148,8 @@ class ChatService:
         # Generate query embedding (needed for both cache and retrieval)
         query_embedding = self.embedding_service.get_query_embedding(question)
 
-        # Step 1: Check cache
-        if use_cache:
+        # Step 1: Check cache (skip if conversation history present)
+        if use_cache and not conversation_history:
             cached = self._check_cache(question, query_embedding, owner_id, filters)
             if cached:
                 logger.info("Cache hit, returning cached response")
@@ -168,13 +171,14 @@ class ChatService:
         # Step 4: Build context
         built_context = self.context_builder.build(results)
 
-        # Step 5: Route and generate
+        # Step 5: Route and generate (with conversation history if provided)
         generation_result, routing_ctx = self.router.generate(
             query=question,
             context_text=built_context.text,
             results=results,
             temperature=temperature,
-            max_tokens=max_tokens
+            max_tokens=max_tokens,
+            conversation_history=conversation_history
         )
 
         # Step 6: Build response
@@ -195,8 +199,8 @@ class ChatService:
             }
         )
 
-        # Step 7: Cache response (only if not sensitive)
-        if use_cache and routing_ctx.max_sensitivity != 'alta':
+        # Step 7: Cache response (only if not sensitive and no conversation history)
+        if use_cache and routing_ctx.max_sensitivity != 'alta' and not conversation_history:
             self._cache_response(
                 question, query_embedding, response, owner_id, filters
             )

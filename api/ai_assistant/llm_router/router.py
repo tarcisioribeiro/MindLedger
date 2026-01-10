@@ -194,7 +194,8 @@ class LLMRouter:
         context_text: str,
         results: List[RetrievalResult],
         temperature: float = 0.3,
-        max_tokens: int = 1000
+        max_tokens: int = 1000,
+        conversation_history: Optional[List[dict]] = None
     ) -> Tuple[GenerationResult, RoutingContext]:
         """
         Route and generate response.
@@ -211,6 +212,8 @@ class LLMRouter:
             Sampling temperature
         max_tokens : int
             Maximum tokens
+        conversation_history : List[dict], optional
+            Previous messages [{'role': 'user'/'assistant', 'content': '...'}]
 
         Returns
         -------
@@ -227,9 +230,9 @@ class LLMRouter:
         elif routing_ctx.query_complexity == 'complex':
             query_type = 'analytical'
 
-        # Get prompts
-        system_prompt = get_system_prompt(query_type)
-        user_prompt = build_context_prompt(query, context_text)
+        # Get prompts (with conversation history support)
+        system_prompt = get_system_prompt(query_type, with_conversation=bool(conversation_history))
+        user_prompt = build_context_prompt(query, context_text, conversation_history)
 
         # Generate
         result = provider.generate(

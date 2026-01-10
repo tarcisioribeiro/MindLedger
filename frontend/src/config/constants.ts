@@ -39,6 +39,7 @@ export const API_CONFIG = {
 
     // AI Assistant
     AI_QUERY: '/api/v1/ai/query/',
+    AI_STREAM: '/api/v1/ai/stream/',
 
     // Health
     HEALTH: '/api/v1/health/',
