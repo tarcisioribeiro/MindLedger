@@ -427,6 +427,11 @@ export function RoutineTaskForm({
               <p className="text-xs text-muted-foreground mt-1">
                 Horário base para todas as ocorrências
               </p>
+              {errors.default_time && (
+                <p className="text-sm text-destructive mt-1">
+                  {errors.default_time.message}
+                </p>
+              )}
             </div>
 
             <div>
@@ -460,6 +465,11 @@ export function RoutineTaskForm({
             <p className="text-xs text-muted-foreground mt-1">
               Requer horário padrão. Ex: Horário padrão 8:00 + intervalo 4h = 8:00, 12:00, 16:00...
             </p>
+            {errors.interval_hours && (
+              <p className="text-sm text-destructive mt-1">
+                {errors.interval_hours.message}
+              </p>
+            )}
           </div>
 
           <div>
@@ -480,6 +490,11 @@ export function RoutineTaskForm({
             <p className="text-xs text-muted-foreground mt-1">
               Sobrescreve intervalo. Separe por vírgula (HH:MM)
             </p>
+            {errors.scheduled_times && (
+              <p className="text-sm text-destructive mt-1">
+                {errors.scheduled_times.message}
+              </p>
+            )}
           </div>
         </div>
 

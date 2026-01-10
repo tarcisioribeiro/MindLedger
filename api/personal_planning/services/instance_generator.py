@@ -212,6 +212,8 @@ class InstanceGenerator:
         ).first()
 
         if existing:
+            needs_update = False
+
             # Se force_regenerate e ainda pendente, atualiza dados do template
             if force_regenerate and existing.status == 'pending':
                 existing.task_name = template.name
@@ -219,6 +221,13 @@ class InstanceGenerator:
                 existing.category = template.category
                 existing.scheduled_time = scheduled_time
                 existing.unit = template.unit
+                needs_update = True
+            # Sempre atualiza scheduled_time se estiver vazio e temos horário do template
+            elif existing.scheduled_time is None and scheduled_time is not None:
+                existing.scheduled_time = scheduled_time
+                needs_update = True
+
+            if needs_update:
                 existing.save()
             return existing
 

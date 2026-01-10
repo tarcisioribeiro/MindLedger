@@ -87,7 +87,7 @@ export function KanbanCard({ card }: KanbanCardProps) {
 
           {/* Task Description */}
           {card.description && (
-            <p className="text-xs text-muted-foreground leading-relaxed">
+            <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">
               {card.description}
             </p>
           )}
