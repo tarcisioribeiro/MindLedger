@@ -86,14 +86,18 @@ class ContentExtractor:
     @staticmethod
     def extract_account(account) -> Dict[str, Any]:
         """Extract content from an Account record."""
+        account_name = getattr(account, 'account_name', None) or getattr(account, 'name', 'Conta')
+        institution = getattr(account, 'institution_name', None) or getattr(account, 'institution', None)
+        balance = getattr(account, 'current_balance', None) or getattr(account, 'balance', None)
+
         text_parts = [
-            f"Conta: {account.name}",
+            f"Conta: {account_name}",
             f"Tipo: {account.account_type}",
         ]
-        if account.institution:
-            text_parts.append(f"Instituicao: {account.institution}")
-        if account.balance is not None:
-            text_parts.append(f"Saldo: R$ {account.balance:.2f}")
+        if institution:
+            text_parts.append(f"Instituicao: {institution}")
+        if balance is not None:
+            text_parts.append(f"Saldo: R$ {balance:.2f}")
         if hasattr(account, 'description') and account.description:
             text_parts.append(f"Descricao: {account.description}")
 
@@ -104,8 +108,8 @@ class ContentExtractor:
             'tags': [account.account_type] if account.account_type else [],
             'metadata': {
                 'account_type': account.account_type,
-                'institution': account.institution,
-                'balance': float(account.balance) if account.balance else None,
+                'institution': institution,
+                'balance': float(balance) if balance else None,
             }
         }
 
@@ -176,13 +180,19 @@ class ContentExtractor:
         NOTE: The actual password is NEVER included in the embedding.
         Only metadata like name, website, and username are indexed.
         """
+        # Handle different field names: title vs name, site vs website
+        password_name = getattr(password, 'title', None) or getattr(password, 'name', 'Credencial')
+        website = getattr(password, 'site', None) or getattr(password, 'website', None)
+
         text_parts = [
-            f"Senha: {password.name}",
+            f"Senha: {password_name}",
         ]
-        if hasattr(password, 'website') and password.website:
-            text_parts.append(f"Site: {password.website}")
+        if website:
+            text_parts.append(f"Site: {website}")
         if hasattr(password, 'username') and password.username:
             text_parts.append(f"Usuario: {password.username}")
+        if hasattr(password, 'category') and password.category:
+            text_parts.append(f"Categoria: {password.category}")
 
         return {
             'texto_original': ' | '.join(text_parts),
@@ -190,8 +200,9 @@ class ContentExtractor:
             'data_referencia': None,
             'tags': ['senha', 'credencial'],
             'metadata': {
-                'website': getattr(password, 'website', None),
+                'website': website,
                 'has_username': bool(getattr(password, 'username', None)),
+                'category': getattr(password, 'category', None),
             }
         }
 

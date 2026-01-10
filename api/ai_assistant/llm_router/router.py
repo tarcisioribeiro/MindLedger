@@ -128,8 +128,36 @@ class LLMRouter:
         # Check if selected provider is available
         if not provider.is_available():
             if decision == RoutingDecision.LOCAL:
-                logger.error("Ollama is not available")
-                raise RuntimeError("Ollama nao esta disponivel")
+                # Try fallback to cloud if not sensitive
+                if not analysis.requires_local and self.groq.is_available():
+                    logger.warning("Ollama nao disponivel, usando Groq como fallback")
+                    decision = RoutingDecision.CLOUD
+                    provider = self.groq
+                    analysis = SensitivityAnalysis(
+                        max_sensitivity=analysis.max_sensitivity,
+                        has_security_content=analysis.has_security_content,
+                        query_complexity=analysis.query_complexity,
+                        requires_local=False,
+                        reason="Fallback para Groq (Ollama indisponivel)"
+                    )
+                elif self.groq.is_available() and not analysis.has_security_content:
+                    # Allow Groq for non-security content even if high sensitivity
+                    logger.warning("Ollama nao disponivel, usando Groq (dados nao-seguranca)")
+                    decision = RoutingDecision.CLOUD
+                    provider = self.groq
+                    analysis = SensitivityAnalysis(
+                        max_sensitivity=analysis.max_sensitivity,
+                        has_security_content=False,
+                        query_complexity=analysis.query_complexity,
+                        requires_local=False,
+                        reason="Fallback para Groq (Ollama indisponivel)"
+                    )
+                else:
+                    logger.error("Ollama nao disponivel e Groq nao pode ser usado")
+                    raise RuntimeError(
+                        "Ollama nao esta disponivel. Instale o modelo com: "
+                        "docker compose exec ollama ollama pull mistral:7b"
+                    )
             else:
                 # Try fallback to local
                 if self.ollama.is_available():
