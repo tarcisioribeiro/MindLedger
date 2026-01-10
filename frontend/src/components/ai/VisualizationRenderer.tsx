@@ -8,7 +8,7 @@
  */
 
 import React from 'react';
-import { AIVisualization } from '@/stores/ai-chat-store';
+import type { AIVisualization } from '@/stores/ai-chat-store';
 import { StatCard } from '@/components/common/StatCard';
 import { EnhancedPieChart, EnhancedBarChart, EnhancedLineChart } from '@/components/charts';
 import {
@@ -20,6 +20,18 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
+// Default chart colors palette
+const DEFAULT_CHART_COLORS = [
+  '#3b82f6', // blue
+  '#10b981', // emerald
+  '#f59e0b', // amber
+  '#ef4444', // red
+  '#8b5cf6', // violet
+  '#ec4899', // pink
+  '#06b6d4', // cyan
+  '#84cc16', // lime
+];
 
 interface VisualizationRendererProps {
   visualization: AIVisualization;
@@ -59,6 +71,7 @@ export const VisualizationRenderer: React.FC<VisualizationRendererProps> = ({
                 data={visualization.data.data}
                 dataKey={visualization.data.config?.dataKey || 'value'}
                 nameKey={visualization.data.config?.nameKey || 'name'}
+                colors={visualization.data.config?.colors || DEFAULT_CHART_COLORS}
                 height={300}
               />
             )}
@@ -68,6 +81,7 @@ export const VisualizationRenderer: React.FC<VisualizationRendererProps> = ({
                 data={visualization.data.data}
                 dataKey={visualization.data.config?.dataKey || 'value'}
                 nameKey={visualization.data.config?.nameKey || 'name'}
+                colors={visualization.data.config?.colors || DEFAULT_CHART_COLORS}
                 height={300}
                 layout={visualization.data.config?.layout}
               />
@@ -76,11 +90,11 @@ export const VisualizationRenderer: React.FC<VisualizationRendererProps> = ({
             {visualization.data.type === 'line' && (
               <EnhancedLineChart
                 data={visualization.data.data}
-                dataKeys={visualization.data.config?.dataKeys || [visualization.data.config?.dataKey || 'value']}
+                dataKey={visualization.data.config?.dataKey || 'value'}
                 nameKey={visualization.data.config?.nameKey || 'name'}
+                colors={visualization.data.config?.colors || DEFAULT_CHART_COLORS}
                 height={300}
                 withArea={visualization.data.config?.withArea}
-                labels={visualization.data.config?.labels}
               />
             )}
           </CardContent>

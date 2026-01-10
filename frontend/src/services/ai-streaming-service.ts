@@ -44,6 +44,7 @@ class AIStreamingService {
 
     // Create new abort controller
     this.abortController = new AbortController();
+    const { signal } = this.abortController;
 
     return new Promise((resolve, reject) => {
       fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.AI_STREAM}`, {
@@ -57,7 +58,7 @@ class AIStreamingService {
           top_k: topK,
         }),
         credentials: 'include', // Important: send httpOnly cookies
-        signal: this.abortController.signal,
+        signal,
       })
         .then(async (response) => {
           if (!response.ok) {

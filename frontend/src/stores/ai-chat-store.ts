@@ -65,7 +65,7 @@ const initialState = {
 
 export const useAIChatStore = create<AIChatState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       ...initialState,
 
       setSessionId: (id: string) => {
