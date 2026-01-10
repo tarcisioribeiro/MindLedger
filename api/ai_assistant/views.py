@@ -159,15 +159,6 @@ class AIQueryView(APIView):
         # Format response for serializer compatibility
         return {
             'answer': response.answer,
-            'sources': [
-                {
-                    'module': source.get('tipo', 'unknown'),
-                    'type': source.get('content_type', 'unknown'),
-                    'score': source.get('score', 0),
-                    'metadata': source.get('metadata', {})
-                }
-                for source in response.sources
-            ],
             'routing_decision': response.routing_decision,
             'provider': response.provider,
             'cached': response.cached
@@ -192,7 +183,6 @@ class AIStreamingQueryView(APIView):
     - message_start: Indicates start of response
     - content_chunk: Partial answer text (streaming)
     - visualization: Visualization data (sent after text)
-    - sources: Sources data
     - message_end: Indicates end of response with session_id
     - error: Error message if something fails
     """
@@ -324,8 +314,7 @@ class AIStreamingQueryView(APIView):
             if formatted.visualization:
                 yield self._format_sse('visualization', formatted.visualization)
 
-            # 6. Send sources
-            yield self._format_sse('sources', {'sources': formatted.sources})
+            # 6. Sources removidas do output (mantido internamente para logs)
 
             # 7. Add assistant message to session
             session_manager.add_message(
@@ -334,8 +323,7 @@ class AIStreamingQueryView(APIView):
                     role='assistant',
                     content=answer,
                     timestamp=datetime.now(),
-                    visualization=formatted.visualization,
-                    sources=formatted.sources
+                    visualization=formatted.visualization
                 )
             )
 

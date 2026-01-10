@@ -19,6 +19,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { PageHeader } from '@/components/common/PageHeader';
 import { VisualizationRenderer } from '@/components/ai/VisualizationRenderer';
+import { MarkdownRenderer } from '@/components/ai/MarkdownRenderer';
 import { useAIChatStore } from '@/stores/ai-chat-store';
 import { aiStreamingService } from '@/services/ai-streaming-service';
 import { formatDate } from '@/lib/formatters';
@@ -250,12 +251,16 @@ export default function AIAssistant() {
                           : 'bg-muted'
                       }`}
                     >
-                      <p className="whitespace-pre-wrap">
-                        {message.content}
-                        {message.streaming && (
-                          <span className="inline-block w-2 h-4 ml-1 bg-current animate-pulse" />
-                        )}
-                      </p>
+                      {message.role === 'user' ? (
+                        <p className="whitespace-pre-wrap">{message.content}</p>
+                      ) : (
+                        <div>
+                          <MarkdownRenderer content={message.content} />
+                          {message.streaming && (
+                            <span className="inline-block w-2 h-4 ml-1 bg-current animate-pulse" />
+                          )}
+                        </div>
+                      )}
 
                       {/* Visualization */}
                       {message.visualization && (

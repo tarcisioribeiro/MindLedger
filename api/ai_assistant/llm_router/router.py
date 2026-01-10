@@ -151,10 +151,17 @@ class LLMRouter:
 
         # Determine query type for prompt selection
         query_type = 'default'
-        if routing_ctx.query_complexity == 'simple':
+        if routing_ctx.query_complexity == 'greeting':
+            query_type = 'greeting'
+        elif routing_ctx.query_complexity == 'simple':
             query_type = 'simple'
         elif routing_ctx.query_complexity == 'complex':
             query_type = 'analytical'
+
+        # Check if context is limited (few results or low relevance)
+        if len(results) <= 2 and query_type not in ['greeting']:
+            # Use limited context prompt for better handling
+            query_type = 'limited'
 
         # Get prompts (with conversation history support)
         system_prompt = get_system_prompt(query_type, with_conversation=bool(conversation_history))

@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 class QueryComplexity(Enum):
     """Query complexity levels."""
+    GREETING = 'greeting'   # Greetings and casual interactions
     SIMPLE = 'simple'       # Factual, direct answer
     MODERATE = 'moderate'   # Some reasoning needed
     COMPLEX = 'complex'     # Multi-step reasoning, analysis
@@ -60,6 +61,17 @@ class SensitivityClassifier:
         'senha', 'senhas', 'password', 'credencial', 'login',
         'usuario', 'cartao', 'cvv', 'codigo', 'seguranca',
         'arquivo', 'secreto', 'privado'
+    ]
+
+    # Greeting keywords
+    GREETING_KEYWORDS = [
+        'oi', 'ola', 'bom dia', 'boa tarde', 'boa noite',
+        'hey', 'hello', 'hi', 'e ai', 'eai', 'tudo bem',
+        'como vai', 'opa', 'fala', 'salve', 'obrigado',
+        'obrigada', 'valeu', 'vlw', 'brigado', 'tchau',
+        'ate mais', 'ate logo', 'ajuda', 'me ajuda',
+        'o que voce faz', 'o que você faz', 'quem e voce',
+        'quem é você', 'pode me ajudar'
     ]
 
     def analyze(
@@ -139,6 +151,10 @@ class SensitivityClassifier:
 
     def _classify_complexity(self, query: str) -> QueryComplexity:
         """Classify query complexity."""
+        # Check for greetings first
+        if self._is_greeting(query):
+            return QueryComplexity.GREETING
+
         # Check for complex keywords
         complex_count = sum(1 for kw in self.COMPLEX_KEYWORDS if kw in query)
         simple_count = sum(1 for kw in self.SIMPLE_KEYWORDS if kw in query)
@@ -152,6 +168,14 @@ class SensitivityClassifier:
             return QueryComplexity.SIMPLE
         else:
             return QueryComplexity.MODERATE
+
+    def _is_greeting(self, query: str) -> bool:
+        """Check if query is a greeting or casual interaction."""
+        query_clean = query.strip().lower()
+        # Short queries that match greeting patterns
+        if len(query_clean.split()) <= 5:
+            return any(kw in query_clean for kw in self.GREETING_KEYWORDS)
+        return False
 
     def _mentions_security(self, query: str) -> bool:
         """Check if query mentions security-related topics."""

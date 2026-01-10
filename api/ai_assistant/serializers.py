@@ -17,18 +17,9 @@ class QuerySerializer(serializers.Serializer):
     )
 
 
-class SourceSerializer(serializers.Serializer):
-    """Serializer for source information."""
-    module = serializers.CharField()
-    type = serializers.CharField()
-    score = serializers.FloatField()
-    metadata = serializers.DictField(required=False, default=dict)
-
-
 class QueryResponseSerializer(serializers.Serializer):
     """Serializer for AI Assistant query responses."""
     answer = serializers.CharField(help_text="Resposta gerada pelo AI Assistant")
-    sources = SourceSerializer(many=True, help_text="Fontes utilizadas para gerar a resposta")
     routing_decision = serializers.CharField(
         required=False,
         help_text="Decisao de roteamento (local/cloud/none)"
