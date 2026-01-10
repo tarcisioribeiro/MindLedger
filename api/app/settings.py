@@ -206,6 +206,13 @@ AI_ASSISTANT_CONFIG = {
     'EMBEDDING_BATCH_SIZE': 32,
 }
 
+# OpenAI Configuration (for embeddings when Ollama unavailable)
+OPENAI_CONFIG = {
+    'API_KEY': os.getenv('OPENAI_API_KEY'),
+    'EMBED_MODEL': 'text-embedding-3-small',
+    'EMBED_DIMENSIONS': 1536,
+}
+
 # Groq Configuration (for complex queries, low sensitivity only)
 GROQ_CONFIG = {
     'API_KEY': os.getenv('GROQ_API_KEY'),

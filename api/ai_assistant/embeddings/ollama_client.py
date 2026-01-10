@@ -74,7 +74,7 @@ class OllamaClient:
 
         self._client = httpx.Client(
             base_url=self.base_url,
-            timeout=httpx.Timeout(self.timeout, connect=10.0)
+            timeout=httpx.Timeout(self.timeout, connect=2.0)  # Fast fail if Ollama not available
         )
 
     def __del__(self):
@@ -92,9 +92,10 @@ class OllamaClient:
             True if server is healthy, False otherwise
         """
         try:
-            response = self._client.get('/api/tags')
+            response = self._client.get('/api/tags', timeout=2.0)  # Quick check
             return response.status_code == 200
-        except httpx.RequestError:
+        except (httpx.RequestError, httpx.TimeoutException):
+            logger.debug(f"Ollama health check failed at {self.base_url}")
             return False
 
     def list_models(self) -> List[str]:

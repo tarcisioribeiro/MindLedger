@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from django.conf import settings
 
 from .ollama_client import OllamaClient, get_ollama_client, EmbeddingResponse
+from .openai_client import OpenAIEmbeddingClient, get_openai_client
 from .exceptions import EmbeddingError, EmbeddingGenerationError
 
 logger = logging.getLogger(__name__)
@@ -56,22 +57,54 @@ class EmbeddingService:
         dimensions: Optional[int] = None,
         batch_size: Optional[int] = None
     ):
-        self.client = client or get_ollama_client()
+        self.ollama_client = client or get_ollama_client()
+        self.openai_client = get_openai_client()
 
         ollama_config = getattr(settings, 'OLLAMA_CONFIG', {})
+        openai_config = getattr(settings, 'OPENAI_CONFIG', {})
         ai_config = getattr(settings, 'AI_ASSISTANT_CONFIG', {})
 
-        self.model = model or ollama_config.get('EMBED_MODEL', 'nomic-embed-text')
-        self.dimensions = dimensions or ollama_config.get('EMBED_DIMENSIONS', 768)
+        self.ollama_model = model or ollama_config.get('EMBED_MODEL', 'nomic-embed-text')
+        self.ollama_dimensions = dimensions or ollama_config.get('EMBED_DIMENSIONS', 768)
+        self.openai_model = openai_config.get('EMBED_MODEL', 'text-embedding-3-small')
+        self.openai_dimensions = openai_config.get('EMBED_DIMENSIONS', 1536)
         self.batch_size = batch_size or ai_config.get('EMBEDDING_BATCH_SIZE', 32)
 
         self._model_verified = False
+        self._active_provider = None  # Will be set on first use
 
     def _ensure_model(self) -> None:
         """Verify model is available (cached after first check)."""
         if not self._model_verified:
-            self.client.ensure_model(self.model)
+            # Try Ollama first (local, private)
+            if self.ollama_client.health_check() and self.ollama_client.is_model_available(self.ollama_model):
+                self._active_provider = 'ollama'
+                logger.info("Using Ollama for embeddings (local, private)")
+            # Fallback to OpenAI
+            elif self.openai_client.is_available():
+                self._active_provider = 'openai'
+                logger.warning("Ollama unavailable, using OpenAI for embeddings (cloud)")
+            else:
+                raise ValueError(
+                    "No embedding provider available. Either:\n"
+                    "1. Start Ollama: docker-compose --profile ollama up -d\n"
+                    "2. Set OPENAI_API_KEY in .env (get at https://platform.openai.com/api-keys)"
+                )
             self._model_verified = True
+
+    @property
+    def model(self) -> str:
+        """Get active model name."""
+        if self._active_provider == 'openai':
+            return self.openai_model
+        return self.ollama_model
+
+    @property
+    def dimensions(self) -> int:
+        """Get active embedding dimensions."""
+        if self._active_provider == 'openai':
+            return self.openai_dimensions
+        return self.ollama_dimensions
 
     def is_available(self) -> bool:
         """
@@ -80,10 +113,14 @@ class EmbeddingService:
         Returns
         -------
         bool
-            True if Ollama is reachable and model is available
+            True if any embedding provider is available
         """
         try:
-            return self.client.health_check() and self.client.is_model_available(self.model)
+            # Check Ollama first
+            if self.ollama_client.health_check() and self.ollama_client.is_model_available(self.ollama_model):
+                return True
+            # Fallback to OpenAI
+            return self.openai_client.is_available()
         except Exception:
             return False
 
@@ -112,13 +149,22 @@ class EmbeddingService:
         self._ensure_model()
 
         try:
-            response = self.client.generate_embedding(text, self.model)
-            return EmbeddingResult(
-                text=text,
-                embedding=response.embedding,
-                model=response.model,
-                dimensions=len(response.embedding)
-            )
+            if self._active_provider == 'openai':
+                embedding = self.openai_client.generate_embedding(text)
+                return EmbeddingResult(
+                    text=text,
+                    embedding=embedding,
+                    model=self.openai_model,
+                    dimensions=len(embedding)
+                )
+            else:
+                response = self.ollama_client.generate_embedding(text, self.ollama_model)
+                return EmbeddingResult(
+                    text=text,
+                    embedding=response.embedding,
+                    model=response.model,
+                    dimensions=len(response.embedding)
+                )
         except EmbeddingError:
             raise
         except Exception as e:
@@ -164,15 +210,24 @@ class EmbeddingService:
             batch_texts = [t for _, t in batch]
 
             try:
-                responses = self.client.generate_embeddings_batch(batch_texts, self.model)
-
-                for (original_idx, text), response in zip(batch, responses):
-                    results[original_idx] = EmbeddingResult(
-                        text=text,
-                        embedding=response.embedding,
-                        model=response.model,
-                        dimensions=len(response.embedding)
-                    )
+                if self._active_provider == 'openai':
+                    embeddings = self.openai_client.generate_embeddings_batch(batch_texts)
+                    for (original_idx, text), embedding in zip(batch, embeddings):
+                        results[original_idx] = EmbeddingResult(
+                            text=text,
+                            embedding=embedding,
+                            model=self.openai_model,
+                            dimensions=len(embedding)
+                        )
+                else:
+                    responses = self.ollama_client.generate_embeddings_batch(batch_texts, self.ollama_model)
+                    for (original_idx, text), response in zip(batch, responses):
+                        results[original_idx] = EmbeddingResult(
+                            text=text,
+                            embedding=response.embedding,
+                            model=response.model,
+                            dimensions=len(response.embedding)
+                        )
 
             except EmbeddingError:
                 raise

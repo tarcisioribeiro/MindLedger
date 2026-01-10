@@ -42,10 +42,13 @@ services:
     networks:
       - personalhub-network
 
-  # Ollama for local LLM inference and embeddings
+  # Ollama for local LLM inference and embeddings (OPTIONAL)
+  # This service is optional - the system will use cloud providers (Groq/OpenAI) if Ollama is unavailable
+  # To use Ollama, uncomment the profile line below and run: docker-compose --profile ollama up -d
   ollama:
     image: ollama/ollama:latest
     container_name: personalhub-ollama
+    profiles: ["ollama"]  # Optional service - not started by default
     ports:
       - "${OLLAMA_PORT:-11435}:11435"
     volumes:
@@ -62,10 +65,11 @@ services:
     networks:
       - personalhub-network
 
-  # Inicializador do Ollama - baixa modelos necessarios
+  # Inicializador do Ollama - baixa modelos necessarios (OPTIONAL)
   ollama-init:
     image: curlimages/curl:latest
     container_name: personalhub-ollama-init
+    profiles: ["ollama"]  # Optional service - not started by default
     depends_on:
       ollama:
         condition: service_healthy
@@ -106,8 +110,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      ollama:
-        condition: service_healthy
+      # Ollama is now optional - removed from dependencies
     volumes:
       - ./api:/app
       - ./api/media:/app/media
