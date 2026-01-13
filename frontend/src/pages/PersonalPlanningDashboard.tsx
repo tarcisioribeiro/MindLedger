@@ -210,6 +210,7 @@ export default function PersonalPlanningDashboard() {
                 formatter={(value) => value.toString()}
                 colors={COLORS}
                 emptyMessage="Nenhum dado de progresso"
+                lockChartType="line"
                 dualYAxis={{
                   left: { dataKey: 'total', label: 'Tarefas', color: COLORS[0] },
                   right: { dataKey: 'taxa', label: 'Taxa %', color: COLORS[1] }
@@ -244,7 +245,7 @@ export default function PersonalPlanningDashboard() {
                 colors={COLORS}
                 customColors={(entry) => getCategoryColor(String(entry.category || 'other'))}
                 emptyMessage="Nenhuma tarefa cadastrada"
-                defaultType="bar"
+                lockChartType="pie"
                 layout="horizontal"
                 height={350}
               />

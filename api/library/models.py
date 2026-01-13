@@ -71,18 +71,37 @@ MEDIA_TYPE = (
 # AUTHOR MODEL
 # ============================================================================
 
+ERA_CHOICES = (
+    ('AC', 'Antes de Cristo'),
+    ('DC', 'Depois de Cristo'),
+)
+
+
 class Author(BaseModel):
     """Modelo para autores de livros."""
     name = models.CharField(max_length=200, verbose_name='Nome', unique=True)
-    birthday = models.DateField(
+    birth_year = models.PositiveIntegerField(
         null=True,
         blank=True,
-        verbose_name='Data de Nascimento'
+        verbose_name='Ano de Nascimento'
     )
-    death_date = models.DateField(
+    birth_era = models.CharField(
+        max_length=2,
+        choices=ERA_CHOICES,
+        default='DC',
+        verbose_name='Era (Nascimento)'
+    )
+    death_year = models.PositiveIntegerField(
         null=True,
         blank=True,
-        verbose_name='Data de Falecimento'
+        verbose_name='Ano de Falecimento'
+    )
+    death_era = models.CharField(
+        max_length=2,
+        choices=ERA_CHOICES,
+        null=True,
+        blank=True,
+        verbose_name='Era (Falecimento)'
     )
     nationality = models.CharField(
         max_length=100,
@@ -234,9 +253,9 @@ class Book(BaseModel):
         choices=MEDIA_TYPE
     )
     rating = models.PositiveSmallIntegerField(
-        null=False,
-        blank=False,
-        default=1,
+        null=True,
+        blank=True,
+        default=None,
         verbose_name='Avaliação'
     )
     read_status = models.CharField(

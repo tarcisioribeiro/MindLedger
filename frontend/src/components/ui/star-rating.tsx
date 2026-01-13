@@ -1,0 +1,81 @@
+import { useState } from 'react';
+import { Star } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+interface StarRatingProps {
+  value?: number | null;
+  onChange?: (value: number | null) => void;
+  max?: number;
+  disabled?: boolean;
+  size?: 'sm' | 'md' | 'lg';
+  className?: string;
+}
+
+const sizeClasses = {
+  sm: 'h-4 w-4',
+  md: 'h-5 w-5',
+  lg: 'h-6 w-6',
+};
+
+export function StarRating({
+  value = null,
+  onChange,
+  max = 5,
+  disabled = false,
+  size = 'md',
+  className,
+}: StarRatingProps) {
+  const [hoverValue, setHoverValue] = useState<number | null>(null);
+
+  const handleClick = (rating: number) => {
+    if (disabled) return;
+    // Se clicar na mesma estrela, limpa a avaliação
+    if (value === rating) {
+      onChange?.(null);
+    } else {
+      onChange?.(rating);
+    }
+  };
+
+  const displayValue = hoverValue ?? value ?? 0;
+
+  return (
+    <div
+      className={cn('flex gap-1', className)}
+      onMouseLeave={() => !disabled && setHoverValue(null)}
+    >
+      {Array.from({ length: max }, (_, i) => i + 1).map((rating) => (
+        <button
+          key={rating}
+          type="button"
+          disabled={disabled}
+          onClick={() => handleClick(rating)}
+          onMouseEnter={() => !disabled && setHoverValue(rating)}
+          className={cn(
+            'transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 rounded-sm',
+            disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:scale-110'
+          )}
+        >
+          <Star
+            className={cn(
+              sizeClasses[size],
+              'transition-colors duration-150',
+              rating <= displayValue
+                ? 'fill-yellow-400 text-yellow-400'
+                : 'fill-transparent text-muted-foreground hover:text-yellow-400/50'
+            )}
+          />
+        </button>
+      ))}
+      {value !== null && !disabled && (
+        <button
+          type="button"
+          onClick={() => onChange?.(null)}
+          className="ml-2 text-xs text-muted-foreground hover:text-destructive transition-colors"
+        >
+          Limpar
+        </button>
+      )}
+    </div>
+  );
+}

@@ -423,6 +423,16 @@ export interface DashboardStats {
   credit_cards_count: number;
 }
 
+export interface AccountBalance {
+  id: number;
+  account_name: string;
+  institution_name: string;
+  current_balance: number;
+  pending_revenues: number;
+  pending_expenses: number;
+  future_balance: number;
+}
+
 export interface ChartData {
   name: string;
   value: number;
@@ -669,13 +679,27 @@ export const ARCHIVE_TYPES = [
 // LIBRARY MODULE TYPES
 // ============================================================================
 
+// Era types for historical dates
+export type Era = 'AC' | 'DC';
+
+export const ERAS = [
+  { value: 'DC' as Era, label: 'Depois de Cristo (DC)' },
+  { value: 'AC' as Era, label: 'Antes de Cristo (AC)' },
+];
+
 // Author Types
 export interface Author {
   id: number;
   uuid: string;
   name: string;
-  birthday?: string;
-  death_date?: string;
+  birth_year?: number | null;
+  birth_era?: Era;
+  birth_era_display?: string;
+  death_year?: number | null;
+  death_era?: Era | null;
+  death_era_display?: string;
+  birth_display?: string | null;
+  death_display?: string | null;
   nationality?: string;
   nationality_display?: string;
   biography?: string;
@@ -688,9 +712,11 @@ export interface Author {
 
 export interface AuthorFormData {
   name: string;
-  birthday?: string;
-  death_date?: string;
-  nationality?: string;
+  birth_year?: number | null | undefined;
+  birth_era: Era;
+  death_year?: number | null | undefined;
+  death_era?: Era | null | undefined;
+  nationality: string;
   biography?: string;
   owner: number;
 }
@@ -742,7 +768,7 @@ export interface Book {
   edition: string;
   media_type?: string;
   media_type_display?: string;
-  rating: number;
+  rating: number | null;
   read_status: string;
   read_status_display: string;
   has_summary: boolean;
@@ -766,7 +792,7 @@ export interface BookFormData {
   synopsis: string;
   edition: string;
   media_type?: string;
-  rating: number;
+  rating: number | null;
   read_status: string;
   owner: number;
 }

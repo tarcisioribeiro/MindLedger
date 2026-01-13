@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, BookOpen, TrendingUp, Edit, Trash2 } from 'lucide-react';
+import { Plus, BookOpen, TrendingUp, Edit, Trash2, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -167,6 +167,24 @@ export default function Books() {
     }
   };
 
+  const renderStars = (rating: number | null) => {
+    if (rating === null || rating === 0) return null;
+    return (
+      <div className="flex gap-0.5">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Star
+            key={star}
+            className={`h-4 w-4 ${
+              star <= rating
+                ? 'fill-yellow-400 text-yellow-400'
+                : 'fill-muted text-muted'
+            }`}
+          />
+        ))}
+      </div>
+    );
+  };
+
   if (isLoading) {
     return <LoadingState />;
   }
@@ -236,6 +254,18 @@ export default function Books() {
                   <Badge variant="secondary">{book.genre_display}</Badge>
                 </div>
 
+                {book.rating !== null && book.rating > 0 && (
+                  <div className="flex items-center gap-2">
+                    {renderStars(book.rating)}
+                  </div>
+                )}
+
+                {book.synopsis && (
+                  <p className="text-sm text-muted-foreground line-clamp-2">
+                    {book.synopsis}
+                  </p>
+                )}
+
                 <div className="text-sm text-muted-foreground">
                   {book.publisher_name}
                 </div>
@@ -280,7 +310,9 @@ export default function Books() {
                 )}
 
                 <div className="text-xs text-muted-foreground pt-2">
-                  Adicionado em {formatDate(book.created_at, 'dd/MM/yyyy')}
+                  {book.publish_date
+                    ? `Publicado em ${formatDate(book.publish_date, 'dd/MM/yyyy')}`
+                    : `Adicionado em ${formatDate(book.created_at, 'dd/MM/yyyy')}`}
                 </div>
               </div>
             </CardContent>

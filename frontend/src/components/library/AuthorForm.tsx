@@ -5,7 +5,6 @@ import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { DatePicker } from '@/components/ui/date-picker';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
@@ -14,11 +13,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { authorSchema, type AuthorFormData } from '@/lib/validations';
+import { authorSchema } from '@/lib/validations';
 import { membersService } from '@/services/members-service';
-import { formatLocalDate } from '@/lib/utils';
-import { NATIONALITIES } from '@/types';
-import type { Author } from '@/types';
+import { NATIONALITIES, ERAS } from '@/types';
+import type { Author, AuthorFormData } from '@/types';
 
 interface AuthorFormProps {
   author?: Author;
@@ -40,21 +38,26 @@ export function AuthorForm({
     watch,
     formState: { errors },
   } = useForm<AuthorFormData>({
-    resolver: zodResolver(authorSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(authorSchema) as any,
     defaultValues: author
       ? {
           name: author.name,
-          birthday: author.birthday || '',
-          death_date: author.death_date || '',
-          nationality: author.nationality || 'Brazilian',
+          birth_year: author.birth_year ?? undefined,
+          birth_era: author.birth_era || 'DC',
+          death_year: author.death_year ?? undefined,
+          death_era: author.death_era ?? undefined,
+          nationality: author.nationality || 'BRA',
           biography: author.biography || '',
           owner: author.owner,
         }
       : {
           name: '',
-          birthday: '',
-          death_date: '',
-          nationality: 'Brazilian',
+          birth_year: undefined,
+          birth_era: 'DC',
+          death_year: undefined,
+          death_era: undefined,
+          nationality: 'BRA',
           biography: '',
           owner: 0,
         },
@@ -91,32 +94,86 @@ export function AuthorForm({
           )}
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="birthday">Data de Nascimento</Label>
-          <DatePicker
-            value={watch('birthday')}
-            onChange={(date) => setValue('birthday', date ? formatLocalDate(date) : '')}
-            placeholder="Selecione a data de nascimento"
-          />
-          {errors.birthday && (
-            <p className="text-sm text-destructive mt-1">
-              {errors.birthday.message}
-            </p>
-          )}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="birth_year">Ano de Nascimento</Label>
+            <Input
+              id="birth_year"
+              type="number"
+              {...register('birth_year', { valueAsNumber: true })}
+              placeholder="Ex: 384"
+            />
+            {errors.birth_year && (
+              <p className="text-sm text-destructive mt-1">
+                {errors.birth_year.message}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="birth_era">Era (Nascimento)</Label>
+            <Select
+              value={watch('birth_era')}
+              onValueChange={(value) => setValue('birth_era', value as 'AC' | 'DC')}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a era" />
+              </SelectTrigger>
+              <SelectContent>
+                {ERAS.map((era) => (
+                  <SelectItem key={era.value} value={era.value}>
+                    {era.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.birth_era && (
+              <p className="text-sm text-destructive mt-1">
+                {errors.birth_era.message}
+              </p>
+            )}
+          </div>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="death_date">Data de Falecimento</Label>
-          <DatePicker
-            value={watch('death_date')}
-            onChange={(date) => setValue('death_date', date ? formatLocalDate(date) : '')}
-            placeholder="Selecione a data de falecimento"
-          />
-          {errors.death_date && (
-            <p className="text-sm text-destructive mt-1">
-              {errors.death_date.message}
-            </p>
-          )}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="death_year">Ano de Falecimento</Label>
+            <Input
+              id="death_year"
+              type="number"
+              {...register('death_year', { valueAsNumber: true })}
+              placeholder="Ex: 322 (opcional)"
+            />
+            {errors.death_year && (
+              <p className="text-sm text-destructive mt-1">
+                {errors.death_year.message}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="death_era">Era (Falecimento)</Label>
+            <Select
+              value={watch('death_era') || ''}
+              onValueChange={(value) => setValue('death_era', value as 'AC' | 'DC' | undefined || undefined)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a era (opcional)" />
+              </SelectTrigger>
+              <SelectContent>
+                {ERAS.map((era) => (
+                  <SelectItem key={era.value} value={era.value}>
+                    {era.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.death_era && (
+              <p className="text-sm text-destructive mt-1">
+                {errors.death_era.message}
+              </p>
+            )}
+          </div>
         </div>
 
         <div className="space-y-2">

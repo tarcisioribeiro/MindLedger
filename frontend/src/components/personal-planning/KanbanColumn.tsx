@@ -36,9 +36,9 @@ export function KanbanColumn({ status, title, cards }: KanbanColumnProps) {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col max-h-[calc(100vh-14rem)]">
       {/* Column Header */}
-      <div className={`${getHeaderColor()} text-white px-4 py-3 rounded-t-lg`}>
+      <div className={`${getHeaderColor()} text-white px-4 py-3 rounded-t-lg flex-shrink-0`}>
         <h3 className="font-semibold text-lg">{title}</h3>
         <p className="text-sm opacity-90">{cards.length} {cards.length === 1 ? 'tarefa' : 'tarefas'}</p>
       </div>
@@ -46,7 +46,7 @@ export function KanbanColumn({ status, title, cards }: KanbanColumnProps) {
       {/* Column Body */}
       <div
         ref={setNodeRef}
-        className={`flex-1 ${getColorClasses()} border-2 rounded-b-lg p-4 min-h-[500px] transition-colors ${
+        className={`flex-1 ${getColorClasses()} border-2 rounded-b-lg p-4 min-h-[200px] transition-colors overflow-y-auto kanban-scrollbar ${
           isOver ? 'border-dashed border-4 border-info bg-info/20' : ''
         }`}
       >

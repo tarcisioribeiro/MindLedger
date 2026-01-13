@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Wallet, TrendingDown, TrendingUp, CreditCard, LayoutDashboard } from 'lucide-react';
+import { Wallet, TrendingDown, TrendingUp, CreditCard, LayoutDashboard, Building2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AnimatedPage } from '@/components/common/AnimatedPage';
 import { containerVariants, itemVariants } from '@/lib/animations';
 import { StatCard } from '@/components/common/StatCard';
@@ -13,16 +14,18 @@ import { translate } from '@/config/constants';
 import { formatCurrency } from '@/lib/formatters';
 import { PageHeader } from '@/components/common/PageHeader';
 import { LoadingState } from '@/components/common/LoadingState';
-import type { DashboardStats, Expense, Revenue } from '@/types';
+import type { DashboardStats, Expense, Revenue, AccountBalance } from '@/types';
 import { format, subMonths, startOfMonth, endOfMonth, eachMonthOfInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useChartColors } from '@/lib/chart-colors';
 import { ChartContainer } from '@/components/charts';
+import { cn } from '@/lib/utils';
 
 export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [revenues, setRevenues] = useState<Revenue[]>([]);
+  const [accountBalances, setAccountBalances] = useState<AccountBalance[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
@@ -33,14 +36,16 @@ export default function Dashboard() {
   const loadData = async () => {
     try {
       setIsLoading(true);
-      const [statsData, expensesData, revenuesData] = await Promise.all([
+      const [statsData, expensesData, revenuesData, accountBalancesData] = await Promise.all([
         dashboardService.getStats(),
         expensesService.getAll(),
         revenuesService.getAll(),
+        dashboardService.getAccountBalances(),
       ]);
       setStats(statsData);
       setExpenses(expensesData);
       setRevenues(revenuesData);
+      setAccountBalances(accountBalancesData);
     } catch (error: any) {
       toast({ title: 'Erro ao carregar dados', description: error.message, variant: 'destructive' });
     } finally {
@@ -115,6 +120,79 @@ export default function Dashboard() {
           description="Visão geral das suas finanças"
           icon={<LayoutDashboard />}
         />
+
+        {/* Balanço de Contas */}
+        <motion.div variants={itemVariants} initial="hidden" animate="visible">
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-muted-foreground" />
+                <CardTitle>Balanço de Contas</CardTitle>
+              </div>
+              <p className="text-sm text-muted-foreground">Saldo atual e projeção futura por conta</p>
+            </CardHeader>
+            <CardContent>
+              {accountBalances.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Conta</TableHead>
+                      <TableHead className="text-right">Saldo Atual</TableHead>
+                      <TableHead className="text-right">Saldo Futuro</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {accountBalances.map((account) => (
+                      <TableRow key={account.id}>
+                        <TableCell className="font-medium">
+                          <div>
+                            <div>{account.account_name}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {translate('institutions', account.institution_name)}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span className={cn(
+                            "font-semibold",
+                            account.current_balance >= 0 ? "text-success" : "text-destructive"
+                          )}>
+                            {formatCurrency(account.current_balance)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div>
+                            <span className={cn(
+                              "font-semibold",
+                              account.future_balance >= 0 ? "text-success" : "text-destructive"
+                            )}>
+                              {formatCurrency(account.future_balance)}
+                            </span>
+                            {(account.pending_revenues > 0 || account.pending_expenses > 0) && (
+                              <div className="text-xs text-muted-foreground mt-1">
+                                {account.pending_revenues > 0 && (
+                                  <span className="text-success">+{formatCurrency(account.pending_revenues)}</span>
+                                )}
+                                {account.pending_revenues > 0 && account.pending_expenses > 0 && " / "}
+                                {account.pending_expenses > 0 && (
+                                  <span className="text-destructive">-{formatCurrency(account.pending_expenses)}</span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  Nenhuma conta cadastrada
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
 
         <motion.div
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"

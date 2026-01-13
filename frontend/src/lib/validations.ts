@@ -494,12 +494,30 @@ export const authorSchema = z.object({
   name: z.string()
     .min(1, requiredError('Nome'))
     .max(200, maxError('Nome', 200)),
-  birthday: z.string()
-    .optional()
-    .or(z.literal('')),
-  death_date: z.string()
-    .optional()
-    .or(z.literal('')),
+  birth_year: z.union([
+    z.number({ message: numberError('Ano de nascimento') })
+      .int('Ano deve ser um número inteiro')
+      .positive('Ano deve ser positivo')
+      .max(new Date().getFullYear(), 'Ano não pode ser no futuro'),
+    z.nan(),
+    z.null(),
+  ]).optional()
+    .transform(val => (typeof val === 'number' && !isNaN(val)) ? val : null),
+  birth_era: z.enum(['AC', 'DC'], {
+    message: 'Selecione uma era válida',
+  }),
+  death_year: z.union([
+    z.number({ message: numberError('Ano de falecimento') })
+      .int('Ano deve ser um número inteiro')
+      .positive('Ano deve ser positivo'),
+    z.nan(),
+    z.null(),
+  ]).optional()
+    .transform(val => (typeof val === 'number' && !isNaN(val)) ? val : null),
+  death_era: z.enum(['AC', 'DC'], {
+    message: 'Selecione uma era válida',
+  }).optional()
+    .nullable(),
   nationality: z.string()
     .min(1, requiredError('Nacionalidade'))
     .max(100, maxError('Nacionalidade', 100)),
@@ -582,7 +600,8 @@ export const bookSchema = z.object({
     .number({ message: numberError('Avaliação') })
     .int('Avaliação deve ser um número inteiro')
     .min(0, 'Avaliação mínima é 0')
-    .max(5, 'Avaliação máxima é 5'),
+    .max(5, 'Avaliação máxima é 5')
+    .nullable(),
   read_status: z.string()
     .min(1, requiredError('Status de leitura'))
     .max(50, maxError('Status de leitura', 50)),

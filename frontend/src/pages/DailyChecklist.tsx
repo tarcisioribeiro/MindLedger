@@ -1,13 +1,14 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Save, CheckCircle2 } from 'lucide-react';
+import { Save, CheckCircle2, StickyNote } from 'lucide-react';
 import {
   DndContext,
   DragOverlay,
-  closestCorners,
+  rectIntersection,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
+  MeasuringStrategy,
   type DragStartEvent,
   type DragOverEvent,
   type DragEndEvent,
@@ -24,13 +25,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Card, CardContent } from '@/components/ui/card';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { PageHeader } from '@/components/common/PageHeader';
 import { LoadingState } from '@/components/common/LoadingState';
 import { KanbanColumn } from '@/components/personal-planning/KanbanColumn';
@@ -84,6 +88,7 @@ export default function DailyChecklist() {
   const [reflectionId, setReflectionId] = useState<number | undefined>();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isReflectionOpen, setIsReflectionOpen] = useState(false);
   const [ownerId, setOwnerId] = useState(0);
   const [summary, setSummary] = useState({
     total: 0,
@@ -95,11 +100,21 @@ export default function DailyChecklist() {
   const { toast } = useToast();
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  const measuringConfig = {
+    droppable: {
+      strategy: MeasuringStrategy.Always,
+    },
+  };
 
   // Converte TaskInstance[] para TaskCard[]
   const convertInstancesToCards = (instances: TaskInstance[]): TaskCard[] => {
@@ -336,15 +351,78 @@ export default function DailyChecklist() {
       />
 
       <div className="flex items-center gap-4">
-        <div className="flex-1">
-          <Label htmlFor="date">Data</Label>
-          <DatePicker
-            value={selectedDate ? parseLocalDate(selectedDate) : undefined}
-            onChange={(date) => setSelectedDate(date ? formatLocalDate(date) : '')}
-            placeholder="Selecione a data"
-            className="max-w-xs"
-          />
+        <div className="flex items-end gap-2">
+          <div>
+            <Label htmlFor="date">Data</Label>
+            <DatePicker
+              value={selectedDate ? parseLocalDate(selectedDate) : undefined}
+              onChange={(date) => setSelectedDate(date ? formatLocalDate(date) : '')}
+              placeholder="Selecione a data"
+              className="max-w-xs"
+            />
+          </div>
+          <Dialog open={isReflectionOpen} onOpenChange={setIsReflectionOpen}>
+            <DialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                className="relative"
+                title="Adicionar reflexão do dia"
+              >
+                <StickyNote className="h-4 w-4" />
+                {(reflection.trim() || mood) && (
+                  <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-primary" />
+                )}
+              </Button>
+            </DialogTrigger>
+            <DialogContent size="md">
+              <DialogHeader>
+                <DialogTitle>Reflexão do Dia</DialogTitle>
+                <DialogDescription>
+                  Como foi o seu dia? Registre seus pensamentos e sentimentos
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div>
+                  <Label htmlFor="mood">Como você se sentiu hoje?</Label>
+                  <Select value={mood} onValueChange={setMood}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione seu humor..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MOOD_CHOICES.map((choice) => (
+                        <SelectItem key={choice.value} value={choice.value}>
+                          {choice.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="reflection">Reflexão</Label>
+                  <Textarea
+                    id="reflection"
+                    value={reflection}
+                    onChange={(e) => setReflection(e.target.value)}
+                    placeholder="Escreva sobre o seu dia, conquistas, desafios, aprendizados..."
+                    rows={6}
+                  />
+                  {reflection.length > 0 && reflection.length < 10 && (
+                    <p className="text-sm text-destructive mt-1">
+                      A reflexão deve ter no mínimo 10 caracteres
+                    </p>
+                  )}
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsReflectionOpen(false)}>
+                  Fechar
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
+        <div className="flex-1" />
         <div className="text-lg font-semibold">
           {completedTasks} de {cards.length} itens concluídos
           {summary.completion_rate > 0 && (
@@ -370,7 +448,8 @@ export default function DailyChecklist() {
       ) : (
         <DndContext
           sensors={sensors}
-          collisionDetection={closestCorners}
+          collisionDetection={rectIntersection}
+          measuring={measuringConfig}
           onDragStart={handleDragStart}
           onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
@@ -398,48 +477,6 @@ export default function DailyChecklist() {
           </DragOverlay>
         </DndContext>
       )}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Reflexão do Dia</CardTitle>
-          <CardDescription>
-            Como foi o seu dia? Registre seus pensamentos e sentimentos
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="mood">Como você se sentiu hoje?</Label>
-            <Select value={mood} onValueChange={setMood}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione seu humor..." />
-              </SelectTrigger>
-              <SelectContent>
-                {MOOD_CHOICES.map((choice) => (
-                  <SelectItem key={choice.value} value={choice.value}>
-                    {choice.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label htmlFor="reflection">Reflexão</Label>
-            <Textarea
-              id="reflection"
-              value={reflection}
-              onChange={(e) => setReflection(e.target.value)}
-              placeholder="Escreva sobre o seu dia, conquistas, desafios, aprendizados..."
-              rows={6}
-            />
-            {reflection.length > 0 && reflection.length < 10 && (
-              <p className="text-sm text-destructive mt-1">
-                A reflexão deve ter no mínimo 10 caracteres
-              </p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
 
       <div className="flex justify-end">
         <Button onClick={handleSave} disabled={isSaving} size="lg">

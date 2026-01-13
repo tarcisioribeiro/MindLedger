@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { StarRating } from '@/components/ui/star-rating';
 import {
   Select,
   SelectContent,
@@ -22,7 +23,6 @@ import {
   BOOK_GENRES,
   LITERARY_TYPES,
   MEDIA_TYPES,
-  READ_STATUS,
 } from '@/types';
 import type { Book, Author, Publisher } from '@/types';
 
@@ -69,7 +69,7 @@ export function BookForm({
           synopsis: book.synopsis,
           edition: book.edition,
           media_type: book.media_type || '',
-          rating: book.rating,
+          rating: book.rating ?? null,
           read_status: book.read_status,
           owner: book.owner,
         }
@@ -85,7 +85,7 @@ export function BookForm({
           synopsis: '',
           edition: '1ª',
           media_type: '',
-          rating: 0,
+          rating: null,
           read_status: 'to_read',
           owner: 0,
         },
@@ -334,42 +334,15 @@ export function BookForm({
         </div>
 
         <div>
-          <Label htmlFor="rating">Avaliação (0-5) *</Label>
-          <Input
-            id="rating"
-            type="number"
-            min="0"
-            max="5"
-            {...register('rating', {
-              setValueAs: (value) => (value === '' ? 0 : parseInt(value)),
-            })}
+          <Label htmlFor="rating">Avaliação</Label>
+          <StarRating
+            value={watch('rating')}
+            onChange={(value) => setValue('rating', value)}
+            size="md"
+            className="mt-2"
           />
           {errors.rating && (
             <p className="text-sm text-destructive mt-1">{errors.rating.message}</p>
-          )}
-        </div>
-
-        <div>
-          <Label htmlFor="read_status">Status de Leitura *</Label>
-          <Select
-            value={watch('read_status')}
-            onValueChange={(value) => setValue('read_status', value)}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {READ_STATUS.map((status) => (
-                <SelectItem key={status.value} value={status.value}>
-                  {status.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {errors.read_status && (
-            <p className="text-sm text-destructive mt-1">
-              {errors.read_status.message}
-            </p>
           )}
         </div>
 
