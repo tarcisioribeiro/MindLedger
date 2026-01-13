@@ -20,7 +20,6 @@ import {
   HandCoins,
   Archive,
   Key,
-  ScrollText,
   BookOpen,
   UserPen,
   Building2,

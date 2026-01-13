@@ -5,8 +5,6 @@ import { securityDashboardService, type SecurityDashboardStats } from '@/service
 import { useToast } from '@/hooks/use-toast';
 import { PageHeader } from '@/components/common/PageHeader';
 import { LoadingState } from '@/components/common/LoadingState';
-import { formatDistanceToNow } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { useChartColors } from '@/lib/chart-colors';
 import { ChartContainer } from '@/components/charts';
 
