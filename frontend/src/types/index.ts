@@ -270,12 +270,9 @@ export interface CreditCardExpenseFormData {
   horary: string;
   category: string;
   card: number;
-  installment: number;
-  payed: boolean;
+  installment?: number;
+  payed?: boolean;
   total_installments: number;
-  merchant?: string;
-  transaction_id?: string;
-  location?: string;
   bill?: number | null;
   member?: number | null;
   notes?: string;

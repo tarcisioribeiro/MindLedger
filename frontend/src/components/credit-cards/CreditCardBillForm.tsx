@@ -1,5 +1,5 @@
 import { useForm } from 'react-hook-form';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,6 +7,7 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAlertDialog } from '@/hooks/use-alert-dialog';
 import { TRANSLATIONS } from '@/config/constants';
+import { creditCardExpensesService } from '@/services/credit-card-expenses-service';
 import type { CreditCardBill, CreditCardBillFormData, CreditCard } from '@/types';
 
 import { formatLocalDate } from '@/lib/utils';
@@ -26,6 +27,7 @@ export const CreditCardBillForm: React.FC<CreditCardBillFormProps> = ({
   isLoading = false
 }) => {
   const { showAlert } = useAlertDialog();
+  const [isCalculating, setIsCalculating] = useState(false);
   const { register, handleSubmit, setValue, watch } = useForm<CreditCardBillFormData>({
     defaultValues: {
       credit_card: 0,
@@ -36,6 +38,36 @@ export const CreditCardBillForm: React.FC<CreditCardBillFormProps> = ({
       closed: false,
     },
   });
+
+  // Função para calcular valores automaticamente
+  const calculateBillAmounts = async (billId?: number) => {
+    if (!billId) return;
+
+    try {
+      setIsCalculating(true);
+      // Buscar todas as despesas associadas à esta fatura
+      const expenses = await creditCardExpensesService.getByBill(billId);
+
+      // Calcular total das despesas
+      const totalAmount = expenses.reduce((sum, exp) => sum + parseFloat(exp.value), 0);
+
+      // Calcular valor já pago (despesas marcadas como pagas)
+      const paidAmount = expenses
+        .filter(exp => exp.payed)
+        .reduce((sum, exp) => sum + parseFloat(exp.value), 0);
+
+      // Calcular pagamento mínimo (10% do total)
+      const minimumPayment = totalAmount * 0.1;
+
+      setValue('total_amount', totalAmount);
+      setValue('minimum_payment', minimumPayment);
+      setValue('paid_amount', paidAmount);
+    } catch (error) {
+      console.error('Erro ao calcular valores da fatura:', error);
+    } finally {
+      setIsCalculating(false);
+    }
+  };
 
   useEffect(() => {
     if (bill) {
@@ -53,6 +85,9 @@ export const CreditCardBillForm: React.FC<CreditCardBillFormProps> = ({
       setValue('status', bill.status);
       if (bill.due_date) setValue('due_date', bill.due_date);
       if (bill.payment_date) setValue('payment_date', bill.payment_date);
+
+      // Calcular valores automaticamente ao carregar fatura existente
+      calculateBillAmounts(bill.id);
     } else if (creditCards.length > 0) {
       setValue('credit_card', creditCards[0].id);
     }
@@ -164,7 +199,10 @@ export const CreditCardBillForm: React.FC<CreditCardBillFormProps> = ({
         {bill && (
           <>
             <div className="space-y-2">
-              <Label htmlFor="total_amount">Valor Total</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="total_amount">Valor Total</Label>
+                {isCalculating && <span className="text-xs text-muted-foreground">Calculando...</span>}
+              </div>
               <Input
                 id="total_amount"
                 type="number"
@@ -172,9 +210,10 @@ export const CreditCardBillForm: React.FC<CreditCardBillFormProps> = ({
                 {...register('total_amount', { valueAsNumber: true })}
                 placeholder="0.00"
                 disabled
+                className="font-semibold"
               />
               <p className="text-xs text-muted-foreground">
-                Calculado automaticamente com base nas despesas
+                Soma de todas as despesas associadas à fatura
               </p>
             </div>
 
@@ -187,9 +226,10 @@ export const CreditCardBillForm: React.FC<CreditCardBillFormProps> = ({
                 {...register('minimum_payment', { valueAsNumber: true })}
                 placeholder="0.00"
                 disabled
+                className="font-semibold text-amber-600"
               />
               <p className="text-xs text-muted-foreground">
-                Calculado automaticamente (10% do total)
+                10% do valor total
               </p>
             </div>
 
@@ -201,8 +241,12 @@ export const CreditCardBillForm: React.FC<CreditCardBillFormProps> = ({
                 step="0.01"
                 {...register('paid_amount', { valueAsNumber: true })}
                 placeholder="0.00"
-                disabled={isLoading}
+                disabled
+                className="font-semibold text-success"
               />
+              <p className="text-xs text-muted-foreground">
+                Soma das despesas marcadas como pagas
+              </p>
             </div>
 
             <div className="space-y-2">

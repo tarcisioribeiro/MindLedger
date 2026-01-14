@@ -167,6 +167,16 @@ export default function CreditCardBills() {
       ),
     },
     {
+      key: 'minimum_payment',
+      label: 'Pag. Mínimo',
+      align: 'right',
+      render: (bill) => (
+        <span className="text-sm font-medium text-amber-600">
+          {formatCurrency(bill.minimum_payment)}
+        </span>
+      ),
+    },
+    {
       key: 'paid_amount',
       label: 'Pago',
       align: 'right',

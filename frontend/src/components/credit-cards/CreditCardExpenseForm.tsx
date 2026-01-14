@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { useAlertDialog } from '@/hooks/use-alert-dialog';
 import { TRANSLATIONS } from '@/config/constants';
@@ -38,12 +37,7 @@ export const CreditCardExpenseForm: React.FC<CreditCardExpenseFormProps> = ({
       horary: new Date().toTimeString().split(' ')[0].substring(0, 5),
       category: '',
       card: 0,
-      installment: 1,
       total_installments: 1,
-      payed: false,
-      merchant: '',
-      transaction_id: '',
-      location: '',
       bill: null,
       member: null,
       notes: '',
@@ -58,17 +52,51 @@ export const CreditCardExpenseForm: React.FC<CreditCardExpenseFormProps> = ({
   // Calcular valor por parcela
   const installmentValue = watchedTotalInstallments > 0
     ? (watchedValue / watchedTotalInstallments)
-    : 0;
+    : watchedValue;
 
-  // Atualizar membro automaticamente quando cartão é selecionado
+  // Função para encontrar a fatura atual de um cartão
+  const getCurrentBill = (cardId: number) => {
+    if (!bills || bills.length === 0) return null;
+
+    const today = new Date();
+    const cardBills = bills.filter(b => b.credit_card === cardId);
+
+    // Encontrar fatura cujo período inclui a data atual
+    const currentBill = cardBills.find(b => {
+      const beginDate = new Date(b.invoice_beginning_date);
+      const endDate = new Date(b.invoice_ending_date);
+      return today >= beginDate && today <= endDate;
+    });
+
+    if (currentBill) return currentBill.id;
+
+    // Se não encontrar, pegar a fatura mais recente em aberto
+    const openBills = cardBills.filter(b => b.status === 'open');
+    if (openBills.length > 0) {
+      openBills.sort((a, b) => new Date(b.invoice_beginning_date).getTime() - new Date(a.invoice_beginning_date).getTime());
+      return openBills[0].id;
+    }
+
+    return null;
+  };
+
+  // Atualizar membro e fatura automaticamente quando cartão é selecionado
   useEffect(() => {
-    if (watchedCard && creditCards.length > 0) {
+    if (watchedCard && creditCards.length > 0 && !expense) {
       const selectedCard = creditCards.find(c => c.id === watchedCard);
+
+      // Atualizar membro
       if (selectedCard?.owner) {
         setValue('member', selectedCard.owner);
       }
+
+      // Atualizar fatura automaticamente
+      const billId = getCurrentBill(watchedCard);
+      if (billId) {
+        setValue('bill', billId);
+      }
     }
-  }, [watchedCard, creditCards, setValue]);
+  }, [watchedCard, creditCards, bills, setValue, expense]);
 
   useEffect(() => {
     if (expense) {
@@ -78,16 +106,12 @@ export const CreditCardExpenseForm: React.FC<CreditCardExpenseFormProps> = ({
       setValue('horary', expense.horary);
       setValue('category', expense.category);
       setValue('card', expense.card);
-      setValue('installment', expense.installment);
       setValue('total_installments', expense.total_installments);
-      setValue('payed', expense.payed);
-      setValue('merchant', expense.merchant || '');
-      setValue('transaction_id', expense.transaction_id || '');
-      setValue('location', expense.location || '');
       setValue('bill', expense.bill);
       setValue('member', expense.member);
       setValue('notes', expense.notes || '');
     } else if (creditCards.length > 0) {
+      // Seleciona automaticamente o primeiro cartão
       setValue('card', creditCards[0].id);
     }
   }, [expense, creditCards, setValue]);
@@ -192,18 +216,7 @@ export const CreditCardExpenseForm: React.FC<CreditCardExpenseFormProps> = ({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="installment">Parcela Atual *</Label>
-          <Input
-            id="installment"
-            type="number"
-            min="1"
-            {...register('installment', { required: true, valueAsNumber: true })}
-            disabled={isLoading}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="total_installments">Total de Parcelas *</Label>
+          <Label htmlFor="total_installments">Número de Parcelas *</Label>
           <Input
             id="total_installments"
             type="number"
@@ -211,43 +224,11 @@ export const CreditCardExpenseForm: React.FC<CreditCardExpenseFormProps> = ({
             {...register('total_installments', { required: true, valueAsNumber: true })}
             disabled={isLoading}
           />
-        </div>
-
-        <div className="space-y-2">
-          <Label>Valor por Parcela</Label>
-          <div className="px-3 py-2 border rounded-md bg-muted/50 text-sm font-semibold">
-            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(installmentValue)}
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="merchant">Estabelecimento</Label>
-          <Input
-            id="merchant"
-            {...register('merchant')}
-            placeholder="Ex: Mercado XYZ"
-            disabled={isLoading}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="location">Local</Label>
-          <Input
-            id="location"
-            {...register('location')}
-            placeholder="Ex: São Paulo - SP"
-            disabled={isLoading}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="transaction_id">ID da Transação</Label>
-          <Input
-            id="transaction_id"
-            {...register('transaction_id')}
-            placeholder="Ex: TRX123456"
-            disabled={isLoading}
-          />
+          <p className="text-xs text-muted-foreground">
+            {watchedTotalInstallments > 1
+              ? `Serão criadas ${watchedTotalInstallments} parcelas de ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(installmentValue)} cada`
+              : 'Pagamento à vista'}
+          </p>
         </div>
 
         {bills.length > 0 && (
@@ -279,16 +260,6 @@ export const CreditCardExpenseForm: React.FC<CreditCardExpenseFormProps> = ({
             placeholder="Informações adicionais..."
             disabled={isLoading}
           />
-        </div>
-
-        <div className="flex items-center space-x-2 md:col-span-2">
-          <Checkbox
-            id="payed"
-            checked={watch('payed')}
-            onCheckedChange={(checked: boolean) => setValue('payed', !!checked)}
-            disabled={isLoading}
-          />
-          <Label htmlFor="payed" className="cursor-pointer">Despesa Paga</Label>
         </div>
       </div>
 

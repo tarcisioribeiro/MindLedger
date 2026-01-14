@@ -69,13 +69,72 @@ export default function CreditCardExpenses() {
   const handleSubmit = async (data: CreditCardExpenseFormData) => {
     try {
       setIsSubmitting(true);
+
       if (selectedExpense) {
+        // Modo edição: atualizar despesa existente
         await creditCardExpensesService.update(selectedExpense.id, data);
         toast({ title: 'Despesa atualizada', description: 'A despesa foi atualizada com sucesso.' });
       } else {
-        await creditCardExpensesService.create(data);
-        toast({ title: 'Despesa criada', description: 'A despesa foi criada com sucesso.' });
+        // Modo criação: implementar parcelamento automático
+        const totalInstallments = data.total_installments || 1;
+
+        if (totalInstallments > 1) {
+          // Criar múltiplas despesas (parcelamento)
+          const installmentValue = data.value / totalInstallments;
+          const baseDate = new Date(data.date);
+
+          const promises = [];
+
+          for (let i = 0; i < totalInstallments; i++) {
+            // Calcular data da parcela (adicionar 30 dias por parcela)
+            const installmentDate = new Date(baseDate);
+            installmentDate.setDate(installmentDate.getDate() + (i * 30));
+
+            // Determinar a fatura correta para esta parcela
+            let installmentBill = data.bill;
+            if (bills.length > 0) {
+              const matchingBill = bills.find(b => {
+                if (b.credit_card !== data.card) return false;
+                const beginDate = new Date(b.invoice_beginning_date);
+                const endDate = new Date(b.invoice_ending_date);
+                return installmentDate >= beginDate && installmentDate <= endDate;
+              });
+              if (matchingBill) {
+                installmentBill = matchingBill.id;
+              }
+            }
+
+            const installmentData = {
+              ...data,
+              value: installmentValue,
+              date: installmentDate.toISOString().split('T')[0],
+              installment: i + 1,
+              total_installments: totalInstallments,
+              bill: installmentBill,
+              payed: false, // Sempre criar como não paga
+            };
+
+            promises.push(creditCardExpensesService.create(installmentData));
+          }
+
+          await Promise.all(promises);
+          toast({
+            title: 'Despesas criadas',
+            description: `${totalInstallments} parcelas foram criadas com sucesso.`,
+          });
+        } else {
+          // Pagamento à vista (1 parcela)
+          const expenseData = {
+            ...data,
+            installment: 1,
+            total_installments: 1,
+            payed: false, // Sempre criar como não paga
+          };
+          await creditCardExpensesService.create(expenseData);
+          toast({ title: 'Despesa criada', description: 'A despesa foi criada com sucesso.' });
+        }
       }
+
       setIsDialogOpen(false);
       loadData();
     } catch (error: any) {
