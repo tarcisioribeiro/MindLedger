@@ -84,41 +84,105 @@ export const TRANSLATIONS = {
   // Expense Categories
   expenseCategories: {
     'food and drink': 'Comida e Bebida',
+    'food': 'Alimentação',
     'bills and services': 'Contas e Serviços',
     electronics: 'Eletrônicos',
     'family and friends': 'Amizades e Família',
     pets: 'Animais de Estimação',
     'digital signs': 'Assinaturas Digitais',
+    subscriptions: 'Assinaturas',
     house: 'Casa',
+    home: 'Casa',
+    housing: 'Moradia',
     purchases: 'Compras',
+    shopping: 'Compras',
     donate: 'Doações',
+    donation: 'Doações',
     education: 'Educação',
     loans: 'Empréstimos',
     entertainment: 'Entretenimento',
+    leisure: 'Lazer',
     taxes: 'Impostos',
     investments: 'Investimentos',
     others: 'Outros',
+    other: 'Outro',
     vestuary: 'Roupas',
+    clothing: 'Roupas',
     'health and care': 'Saúde e Cuidados Pessoais',
+    health: 'Saúde',
+    healthcare: 'Saúde',
     'professional services': 'Serviços Profissionais',
+    services: 'Serviços',
     supermarket: 'Supermercado',
+    groceries: 'Supermercado',
     rates: 'Taxas',
+    fees: 'Taxas',
     transport: 'Transporte',
+    transportation: 'Transporte',
     travels: 'Viagens',
+    travel: 'Viagens',
+    utilities: 'Utilidades',
+    insurance: 'Seguros',
+    personal: 'Pessoal',
+    beauty: 'Beleza',
+    fitness: 'Fitness',
+    gym: 'Academia',
+    restaurant: 'Restaurante',
+    restaurants: 'Restaurantes',
+    cafe: 'Café',
+    delivery: 'Delivery',
+    rent: 'Aluguel',
+    fuel: 'Combustível',
+    parking: 'Estacionamento',
+    maintenance: 'Manutenção',
+    repairs: 'Reparos',
+    gifts: 'Presentes',
+    charity: 'Caridade',
+    kids: 'Crianças',
+    baby: 'Bebê',
+    pharmacy: 'Farmácia',
+    medical: 'Médico',
+    dental: 'Dentista',
+    vision: 'Oftalmologia',
+    streaming: 'Streaming',
+    games: 'Jogos',
+    books: 'Livros',
+    hobbies: 'Hobbies',
+    sports: 'Esportes',
+    vacation: 'Férias',
+    flight: 'Passagem Aérea',
+    hotel: 'Hotel',
+    accommodation: 'Hospedagem',
   },
 
   // Revenue Categories
   revenueCategories: {
     deposit: 'Depósito',
     award: 'Prêmio',
+    bonus: 'Bônus',
     salary: 'Salário',
+    wage: 'Salário',
     ticket: 'Vale',
     income: 'Rendimentos',
+    interest: 'Juros',
+    dividend: 'Dividendos',
     refund: 'Reembolso',
     cashback: 'Cashback',
     transfer: 'Transferência Recebida',
     received_loan: 'Empréstimo Recebido',
     loan_devolution: 'Devolução de Empréstimo',
+    freelance: 'Freelance',
+    rental: 'Aluguel Recebido',
+    commission: 'Comissão',
+    gift: 'Presente',
+    inheritance: 'Herança',
+    sale: 'Venda',
+    reimbursement: 'Reembolso',
+    pension: 'Pensão',
+    retirement: 'Aposentadoria',
+    investment_return: 'Retorno de Investimento',
+    other: 'Outro',
+    others: 'Outros',
   },
 
   // Card Brands
@@ -145,6 +209,8 @@ export const TRANSLATIONS = {
     paid: 'Pago',
     overdue: 'Atrasado',
     cancelled: 'Cancelado',
+    scheduled: 'Agendado',
+    processing: 'Processando',
   },
 
   // Loan Status
@@ -153,6 +219,7 @@ export const TRANSLATIONS = {
     paid: 'Pago',
     overdue: 'Atrasado',
     cancelled: 'Cancelado',
+    pending: 'Pendente',
   },
 
   // Member Types
@@ -198,6 +265,249 @@ export const TRANSLATIONS = {
     quarterly: 'Trimestral',
     semiannual: 'Semestral',
     annual: 'Anual',
+    once: 'Uma vez',
+    yearly: 'Anual',
+  },
+
+  // Password Categories (Security Module)
+  passwordCategories: {
+    social: 'Redes Sociais',
+    email: 'E-mail',
+    banking: 'Banco',
+    bank: 'Banco',
+    shopping: 'Compras',
+    streaming: 'Streaming',
+    gaming: 'Jogos',
+    work: 'Trabalho',
+    education: 'Educação',
+    government: 'Governo',
+    healthcare: 'Saúde',
+    health: 'Saúde',
+    utilities: 'Utilidades',
+    entertainment: 'Entretenimento',
+    finance: 'Finanças',
+    financial: 'Financeiro',
+    travel: 'Viagens',
+    food: 'Alimentação',
+    communication: 'Comunicação',
+    productivity: 'Produtividade',
+    development: 'Desenvolvimento',
+    cloud: 'Nuvem',
+    security: 'Segurança',
+    crypto: 'Criptomoedas',
+    cryptocurrency: 'Criptomoedas',
+    investment: 'Investimentos',
+    insurance: 'Seguros',
+    personal: 'Pessoal',
+    family: 'Família',
+    other: 'Outro',
+    others: 'Outros',
+  },
+
+  // Password Strength
+  passwordStrength: {
+    weak: 'Fraca',
+    medium: 'Média',
+    strong: 'Forte',
+    very_strong: 'Muito Forte',
+  },
+
+  // Book Genres (Library Module)
+  bookGenres: {
+    fiction: 'Ficção',
+    non_fiction: 'Não-Ficção',
+    nonfiction: 'Não-Ficção',
+    fantasy: 'Fantasia',
+    science_fiction: 'Ficção Científica',
+    scifi: 'Ficção Científica',
+    mystery: 'Mistério',
+    thriller: 'Suspense',
+    romance: 'Romance',
+    horror: 'Terror',
+    biography: 'Biografia',
+    autobiography: 'Autobiografia',
+    history: 'História',
+    self_help: 'Autoajuda',
+    selfhelp: 'Autoajuda',
+    business: 'Negócios',
+    psychology: 'Psicologia',
+    philosophy: 'Filosofia',
+    religion: 'Religião',
+    spirituality: 'Espiritualidade',
+    science: 'Ciência',
+    technology: 'Tecnologia',
+    programming: 'Programação',
+    art: 'Arte',
+    poetry: 'Poesia',
+    drama: 'Drama',
+    comedy: 'Comédia',
+    adventure: 'Aventura',
+    children: 'Infantil',
+    young_adult: 'Jovem Adulto',
+    education: 'Educação',
+    cooking: 'Culinária',
+    travel: 'Viagens',
+    health: 'Saúde',
+    fitness: 'Fitness',
+    sports: 'Esportes',
+    music: 'Música',
+    graphic_novel: 'Graphic Novel',
+    manga: 'Mangá',
+    comics: 'Quadrinhos',
+    classic: 'Clássico',
+    contemporary: 'Contemporâneo',
+    literary: 'Literário',
+    dystopian: 'Distopia',
+    paranormal: 'Paranormal',
+    crime: 'Crime',
+    detective: 'Detetive',
+    political: 'Político',
+    economics: 'Economia',
+    sociology: 'Sociologia',
+    anthropology: 'Antropologia',
+    other: 'Outro',
+    others: 'Outros',
+  },
+
+  // Book Media Types
+  bookMediaTypes: {
+    physical: 'Físico',
+    ebook: 'E-book',
+    audiobook: 'Audiolivro',
+    pdf: 'PDF',
+    kindle: 'Kindle',
+  },
+
+  // Book Languages
+  bookLanguages: {
+    portuguese: 'Português',
+    english: 'Inglês',
+    spanish: 'Espanhol',
+    french: 'Francês',
+    german: 'Alemão',
+    italian: 'Italiano',
+    japanese: 'Japonês',
+    chinese: 'Chinês',
+    korean: 'Coreano',
+    russian: 'Russo',
+    arabic: 'Árabe',
+    other: 'Outro',
+  },
+
+  // Reading Status
+  readingStatus: {
+    to_read: 'Para Ler',
+    reading: 'Lendo',
+    read: 'Lido',
+    abandoned: 'Abandonado',
+    on_hold: 'Em Pausa',
+  },
+
+  // Task Categories (Planning Module)
+  taskCategories: {
+    health: 'Saúde',
+    studies: 'Estudos',
+    spiritual: 'Espiritual',
+    exercise: 'Exercício',
+    nutrition: 'Nutrição',
+    meditation: 'Meditação',
+    reading: 'Leitura',
+    writing: 'Escrita',
+    work: 'Trabalho',
+    leisure: 'Lazer',
+    family: 'Família',
+    social: 'Social',
+    finance: 'Finanças',
+    household: 'Casa',
+    personal_care: 'Cuidados Pessoais',
+    creativity: 'Criatividade',
+    learning: 'Aprendizado',
+    career: 'Carreira',
+    relationships: 'Relacionamentos',
+    mindfulness: 'Mindfulness',
+    sleep: 'Sono',
+    hydration: 'Hidratação',
+    gratitude: 'Gratidão',
+    journaling: 'Diário',
+    planning: 'Planejamento',
+    review: 'Revisão',
+    other: 'Outro',
+    others: 'Outros',
+  },
+
+  // Mood Types
+  moodTypes: {
+    excellent: 'Excelente',
+    good: 'Bom',
+    neutral: 'Neutro',
+    bad: 'Ruim',
+    terrible: 'Péssimo',
+  },
+
+  // Entity Types (for AI responses)
+  entityTypes: {
+    expense: 'Despesa',
+    expenses: 'Despesas',
+    revenue: 'Receita',
+    revenues: 'Receitas',
+    account: 'Conta',
+    accounts: 'Contas',
+    transfer: 'Transferência',
+    transfers: 'Transferências',
+    credit_card: 'Cartão de Crédito',
+    credit_cards: 'Cartões de Crédito',
+    loan: 'Empréstimo',
+    loans: 'Empréstimos',
+    password: 'Senha',
+    passwords: 'Senhas',
+    book: 'Livro',
+    books: 'Livros',
+    reading: 'Leitura',
+    readings: 'Leituras',
+    author: 'Autor',
+    authors: 'Autores',
+    publisher: 'Editora',
+    publishers: 'Editoras',
+    task: 'Tarefa',
+    tasks: 'Tarefas',
+    goal: 'Objetivo',
+    goals: 'Objetivos',
+    reflection: 'Reflexão',
+    reflections: 'Reflexões',
+  },
+
+  // Common Terms
+  commonTerms: {
+    total: 'Total',
+    average: 'Média',
+    minimum: 'Mínimo',
+    maximum: 'Máximo',
+    count: 'Quantidade',
+    sum: 'Soma',
+    balance: 'Saldo',
+    income: 'Receita',
+    outcome: 'Despesa',
+    profit: 'Lucro',
+    loss: 'Prejuízo',
+    category: 'Categoria',
+    type: 'Tipo',
+    status: 'Status',
+    date: 'Data',
+    description: 'Descrição',
+    value: 'Valor',
+    amount: 'Quantia',
+    name: 'Nome',
+    title: 'Título',
+    month: 'Mês',
+    year: 'Ano',
+    day: 'Dia',
+    week: 'Semana',
+    today: 'Hoje',
+    yesterday: 'Ontem',
+    tomorrow: 'Amanhã',
+    current: 'Atual',
+    previous: 'Anterior',
+    next: 'Próximo',
   },
 };
 
@@ -239,6 +549,36 @@ export const REVERSE_TRANSLATIONS = {
   paymentFrequency: Object.fromEntries(
     Object.entries(TRANSLATIONS.paymentFrequency).map(([k, v]) => [v, k])
   ),
+  passwordCategories: Object.fromEntries(
+    Object.entries(TRANSLATIONS.passwordCategories).map(([k, v]) => [v, k])
+  ),
+  passwordStrength: Object.fromEntries(
+    Object.entries(TRANSLATIONS.passwordStrength).map(([k, v]) => [v, k])
+  ),
+  bookGenres: Object.fromEntries(
+    Object.entries(TRANSLATIONS.bookGenres).map(([k, v]) => [v, k])
+  ),
+  bookMediaTypes: Object.fromEntries(
+    Object.entries(TRANSLATIONS.bookMediaTypes).map(([k, v]) => [v, k])
+  ),
+  bookLanguages: Object.fromEntries(
+    Object.entries(TRANSLATIONS.bookLanguages).map(([k, v]) => [v, k])
+  ),
+  readingStatus: Object.fromEntries(
+    Object.entries(TRANSLATIONS.readingStatus).map(([k, v]) => [v, k])
+  ),
+  taskCategories: Object.fromEntries(
+    Object.entries(TRANSLATIONS.taskCategories).map(([k, v]) => [v, k])
+  ),
+  moodTypes: Object.fromEntries(
+    Object.entries(TRANSLATIONS.moodTypes).map(([k, v]) => [v, k])
+  ),
+  entityTypes: Object.fromEntries(
+    Object.entries(TRANSLATIONS.entityTypes).map(([k, v]) => [v, k])
+  ),
+  commonTerms: Object.fromEntries(
+    Object.entries(TRANSLATIONS.commonTerms).map(([k, v]) => [v, k])
+  ),
 };
 
 // Helper function to translate
@@ -255,4 +595,75 @@ export const reverseTranslate = (
   value: string
 ): string => {
   return REVERSE_TRANSLATIONS[category][value as keyof typeof REVERSE_TRANSLATIONS[typeof category]] || value;
+};
+
+/**
+ * Tradução automática - procura em todas as seções
+ * Útil quando não se sabe de qual categoria vem o termo
+ *
+ * @param key - Termo em inglês a ser traduzido
+ * @returns Termo traduzido em português ou o termo original se não encontrado
+ *
+ * @example
+ * autoTranslate('entertainment') // "Entretenimento"
+ * autoTranslate('supermarket') // "Supermercado"
+ * autoTranslate('salary') // "Salário"
+ */
+export const autoTranslate = (key: string): string => {
+  if (!key) return key;
+
+  const normalizedKey = key.toLowerCase().trim();
+
+  // Procura em todas as seções de tradução
+  for (const section of Object.values(TRANSLATIONS)) {
+    const found = (section as Record<string, string>)[normalizedKey];
+    if (found) return found;
+  }
+
+  // Se não encontrou, tenta com underscores convertidos para espaços
+  const withSpaces = normalizedKey.replace(/_/g, ' ');
+  for (const section of Object.values(TRANSLATIONS)) {
+    const found = (section as Record<string, string>)[withSpaces];
+    if (found) return found;
+  }
+
+  // Retorna o termo original com primeira letra maiúscula
+  return key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ');
+};
+
+/**
+ * Traduz um texto completo, substituindo termos em inglês por português
+ * Útil para traduzir respostas do AI que contenham termos técnicos
+ *
+ * @param text - Texto a ser traduzido
+ * @returns Texto com termos traduzidos
+ *
+ * @example
+ * translateText("Your expenses in entertainment were high")
+ * // "Your expenses in Entretenimento were high"
+ */
+export const translateText = (text: string): string => {
+  if (!text) return text;
+
+  let translatedText = text;
+
+  // Coleta todos os termos para tradução
+  const allTerms: [string, string][] = [];
+  for (const section of Object.values(TRANSLATIONS)) {
+    for (const [key, value] of Object.entries(section as Record<string, string>)) {
+      allTerms.push([key, value]);
+    }
+  }
+
+  // Ordena por tamanho (maior primeiro) para evitar substituições parciais
+  allTerms.sort((a, b) => b[0].length - a[0].length);
+
+  // Substitui os termos
+  for (const [englishTerm, portugueseTerm] of allTerms) {
+    // Cria regex case-insensitive para substituir
+    const regex = new RegExp(`\\b${englishTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+    translatedText = translatedText.replace(regex, portugueseTerm);
+  }
+
+  return translatedText;
 };

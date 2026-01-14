@@ -66,7 +66,16 @@ export const ChartContainer = ({
   const [isAnimating, setIsAnimating] = useState(false);
 
   // Se lockChartType estiver definido, use-o; caso contrário, use o tipo armazenado
-  const chartType = lockChartType || storedChartType;
+  // Garante que o tipo usado esteja nos tipos habilitados
+  const getValidChartType = (): ChartType => {
+    if (lockChartType) return lockChartType;
+    if (enabledTypes.includes(storedChartType)) return storedChartType;
+    // Se o tipo armazenado não está habilitado, use o defaultType ou o primeiro habilitado
+    if (enabledTypes.includes(defaultType)) return defaultType;
+    return enabledTypes[0] || 'pie';
+  };
+
+  const chartType = getValidChartType();
 
   const handleToggle = () => {
     if (isAnimating) return;
