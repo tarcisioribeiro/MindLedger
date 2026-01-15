@@ -31,6 +31,15 @@ export interface AISource {
   metadata: Record<string, any>;
 }
 
+export interface SQLMetadata {
+  query: string;
+  explanation?: string;
+  executionTimeMs?: number;
+  rowCount?: number;
+  truncated?: boolean;
+  dataRows?: any[];
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
@@ -39,6 +48,8 @@ export interface ChatMessage {
   sources?: AISource[];
   visualization?: AIVisualization;
   streaming?: boolean;
+  executionMode?: 'sql' | 'rag' | 'hybrid';
+  sqlMetadata?: SQLMetadata;
 }
 
 interface AIChatState {

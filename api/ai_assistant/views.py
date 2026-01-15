@@ -139,12 +139,13 @@ class AIQueryView(APIView):
 
     def _process_query(self, question: str, member, top_k: int) -> dict:
         """
-        Process query using the RAG architecture.
+        Process query using SQL or RAG architecture based on intent.
 
         Uses:
-        - Local Ollama for embeddings (nomic-embed-text)
-        - pgvector for semantic search
-        - Intelligent routing: Ollama for sensitive, Groq for complex
+        - Intent classification to determine execution mode (SQL/RAG)
+        - For SQL: Direct database queries with LLM-generated SQL
+        - For RAG: Semantic search with pgvector
+        - Groq for LLM generation
         - Redis cache for performance
         """
         from .chat.service import get_chat_service
@@ -157,12 +158,25 @@ class AIQueryView(APIView):
         )
 
         # Format response for serializer compatibility
-        return {
+        result = {
             'answer': response.answer,
             'routing_decision': response.routing_decision,
             'provider': response.provider,
-            'cached': response.cached
+            'cached': response.cached,
+            'execution_mode': response.execution_mode,
         }
+
+        # Include SQL-specific fields if present
+        if response.sql_query:
+            result['sql_query'] = response.sql_query
+        if response.sql_explanation:
+            result['sql_explanation'] = response.sql_explanation
+        if response.data_rows is not None:
+            result['data_rows'] = response.data_rows
+        if response.visualization:
+            result['visualization'] = response.visualization
+
+        return result
 
 
 class AIStreamingQueryView(APIView):
@@ -179,10 +193,15 @@ class AIStreamingQueryView(APIView):
     }
 
     Response: SSE stream with events:
-    - intent: Intent classification result
+    - intent: Intent classification result (includes execution_mode)
+    - sql_generation: SQL generation status (if execution_mode=sql)
+    - sql_query: Generated SQL query (if execution_mode=sql)
+    - sql_execution: SQL execution status (if execution_mode=sql)
+    - sql_results: SQL results metadata (if execution_mode=sql)
     - message_start: Indicates start of response
     - content_chunk: Partial answer text (streaming)
     - visualization: Visualization data (sent after text)
+    - sql_display: SQL query display (if execution_mode=sql)
     - message_end: Indicates end of response with session_id
     - error: Error message if something fails
     """
@@ -257,18 +276,21 @@ class AIStreamingQueryView(APIView):
             ]
             intent_result = intent_classifier.classify(question, conversation_history)
 
+            # Include execution_mode in intent event
             yield self._format_sse('intent', {
                 'module': intent_result.module,
                 'intent_type': intent_result.intent_type,
                 'response_type': intent_result.response_type,
-                'confidence': intent_result.confidence
+                'confidence': intent_result.confidence,
+                'execution_mode': intent_result.execution_mode.value,
+                'should_use_sql': intent_result.should_use_sql
             })
 
-            # 3. RAG search and LLM generation
+            # 3. SQL or RAG query
             from .chat.service import get_chat_service
             chat_service = get_chat_service()
 
-            # Call existing chat service with conversation history
+            # Call chat service with conversation history
             response = chat_service.query(
                 question=question,
                 owner_id=member.id,
@@ -276,8 +298,21 @@ class AIStreamingQueryView(APIView):
                 conversation_history=conversation_history
             )
 
-            # 4. Stream the answer (simulate streaming from complete response)
-            yield self._format_sse('message_start', {})
+            # 4. If SQL mode, emit SQL-specific events
+            if response.execution_mode == 'sql' and response.sql_query:
+                yield self._format_sse('sql_query', {
+                    'sql': response.sql_query,
+                    'explanation': response.sql_explanation or ''
+                })
+
+                yield self._format_sse('sql_results', {
+                    'row_count': response.metadata.get('row_count', 0),
+                    'truncated': response.metadata.get('truncated', False),
+                    'execution_time_ms': response.metadata.get('execution_time_ms', 0)
+                })
+
+            # 5. Stream the answer
+            yield self._format_sse('message_start', {'execution_mode': response.execution_mode})
 
             # Stream answer in chunks (preserving line breaks)
             answer = response.answer
@@ -288,53 +323,73 @@ class AIStreamingQueryView(APIView):
                 yield self._format_sse('content_chunk', {'text': chunk})
                 time.sleep(0.03)  # Small delay for smoother streaming
 
-            # 5. Generate visualization
-            response_formatter = get_response_formatter()
-            # Convert response.sources to proper format for formatter
-            rag_results = []
-            for source in response.sources:
-                class RAGResult:
-                    def __init__(self, s):
-                        self.module = s.get('tipo', 'unknown')
-                        self.entity_type = s.get('content_type', 'unknown')
-                        self.score = s.get('score', 0)
-                        self.metadata = s.get('metadata', {})
-                rag_results.append(RAGResult(source))
+            # 6. Send visualization
+            visualization = response.visualization
+            if not visualization and response.execution_mode == 'rag':
+                # Generate visualization for RAG mode using response formatter
+                response_formatter = get_response_formatter()
+                rag_results = []
+                for source in response.sources:
+                    class RAGResult:
+                        def __init__(self, s):
+                            self.module = s.get('tipo', 'unknown')
+                            self.entity_type = s.get('content_type', 'unknown')
+                            self.score = s.get('score', 0)
+                            self.metadata = s.get('metadata', {})
+                    rag_results.append(RAGResult(source))
 
-            formatted = response_formatter.format_response(
-                intent_result,
-                rag_results,
-                answer,
-                member
-            )
+                formatted = response_formatter.format_response(
+                    intent_result,
+                    rag_results,
+                    answer,
+                    member
+                )
+                visualization = formatted.visualization
 
-            if formatted.visualization:
-                yield self._format_sse('visualization', formatted.visualization)
+            if visualization:
+                yield self._format_sse('visualization', visualization)
 
-            # 6. Sources removidas do output (mantido internamente para logs)
+            # 7. Send SQL display for SQL mode (always show SQL at the end)
+            if response.execution_mode == 'sql' and response.sql_query:
+                yield self._format_sse('sql_display', {
+                    'query': response.sql_query,
+                    'explanation': response.sql_explanation or '',
+                    'execution_time_ms': response.metadata.get('execution_time_ms', 0)
+                })
 
-            # 7. Add assistant message to session
+            # 8. Send data rows for SQL mode (optional, for frontend table rendering)
+            if response.execution_mode == 'sql' and response.data_rows:
+                yield self._format_sse('data_rows', {
+                    'rows': response.data_rows[:50],  # Limit to 50 rows in stream
+                    'total_count': len(response.data_rows),
+                    'truncated': len(response.data_rows) > 50
+                })
+
+            # 9. Add assistant message to session
             session_manager.add_message(
                 session.session_id,
                 ConversationMessage(
                     role='assistant',
                     content=answer,
                     timestamp=datetime.now(),
-                    visualization=formatted.visualization
+                    visualization=visualization
                 )
             )
 
-            # 8. Log activity
+            # 10. Log activity
             ActivityLog.log_action(
                 user=request.user,
                 action='streaming_query',
                 model_name='ai_assistant',
-                description=f"Streaming query: {question[:100]}...",
+                description=f"Streaming query ({response.execution_mode}): {question[:100]}...",
                 ip_address=request.META.get('REMOTE_ADDR')
             )
 
-            # 9. End message
-            yield self._format_sse('message_end', {'session_id': session.session_id})
+            # 11. End message
+            yield self._format_sse('message_end', {
+                'session_id': session.session_id,
+                'execution_mode': response.execution_mode
+            })
 
         except Exception as e:
             import traceback

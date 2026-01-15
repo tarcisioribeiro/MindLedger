@@ -1,8 +1,9 @@
 """
 Chat Service
 
-Main orchestrator for the RAG pipeline.
-LLM-agnostic chat service that combines retrieval, routing, and generation.
+Main orchestrator for the RAG pipeline with SQL query support.
+LLM-agnostic chat service that combines retrieval, routing, generation,
+and direct database queries based on user intent.
 """
 
 import logging
@@ -15,6 +16,11 @@ from ..retrieval.service import RetrievalService, RetrievalFilter, RetrievalResu
 from ..llm_router.router import LLMRouter, RoutingContext, get_llm_router
 from ..cache.service import CacheService, get_cache_service
 from ..embeddings.service import EmbeddingService, get_embedding_service
+from ..intent_classifier import IntentClassifier, IntentResult, ExecutionMode, get_intent_classifier
+from ..query_engine.generator import SQLGenerator, SQLGenerationError, get_sql_generator
+from ..query_engine.validator import SQLValidator, SQLValidationError
+from ..query_engine.executor import QueryExecutor, QueryExecutionError, get_query_executor
+from ..query_engine.formatter import QueryResultFormatter, get_query_result_formatter
 from .context import ContextBuilder, get_context_builder
 
 logger = logging.getLogger(__name__)
@@ -41,6 +47,16 @@ class ChatResponse:
         Type of cache hit (exact/semantic)
     metadata : Dict
         Additional metadata
+    sql_query : str, optional
+        SQL query executed (if SQL mode)
+    sql_explanation : str, optional
+        Explanation of the SQL query
+    data_rows : List[Dict], optional
+        Raw data from SQL query
+    execution_mode : str
+        Execution mode used (sql/rag/hybrid)
+    visualization : Dict, optional
+        Visualization configuration
     """
     answer: str
     sources: List[Dict[str, Any]]
@@ -49,38 +65,54 @@ class ChatResponse:
     cached: bool = False
     cache_type: Optional[str] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
+    # SQL-specific fields
+    sql_query: Optional[str] = None
+    sql_explanation: Optional[str] = None
+    data_rows: Optional[List[Dict[str, Any]]] = None
+    execution_mode: str = 'rag'
+    visualization: Optional[Dict[str, Any]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization."""
-        return {
+        result = {
             'answer': self.answer,
             'sources': self.sources,
             'routing_decision': self.routing_decision,
             'provider': self.provider,
             'cached': self.cached,
             'cache_type': self.cache_type,
-            'metadata': self.metadata
+            'metadata': self.metadata,
+            'execution_mode': self.execution_mode,
         }
+        # Include SQL fields if present
+        if self.sql_query:
+            result['sql_query'] = self.sql_query
+        if self.sql_explanation:
+            result['sql_explanation'] = self.sql_explanation
+        if self.data_rows is not None:
+            result['data_rows'] = self.data_rows
+        if self.visualization:
+            result['visualization'] = self.visualization
+        return result
 
 
 class ChatService:
     """
-    Main chat service orchestrating the RAG pipeline.
+    Main chat service orchestrating the RAG pipeline with SQL support.
 
     This service:
-    1. Checks semantic cache for cached responses
-    2. Retrieves relevant context using pgvector
-    3. Routes to appropriate LLM based on sensitivity
-    4. Generates response
-    5. Caches result for future queries
+    1. Classifies intent to determine execution mode (SQL/RAG/Hybrid)
+    2. For SQL mode: generates, validates, executes SQL and formats results
+    3. For RAG mode: uses semantic search and LLM generation
+    4. Caches results for future queries
 
-    The service is completely LLM-agnostic and never directly
-    accesses the database - all data comes through the retrieval layer.
+    The service supports both RAG-based semantic search and direct
+    database queries for precise data retrieval.
 
     Attributes
     ----------
     retrieval_service : RetrievalService
-        For semantic search
+        For semantic search (RAG mode)
     llm_router : LLMRouter
         For LLM selection
     cache_service : CacheService
@@ -89,6 +121,16 @@ class ChatService:
         For query embeddings
     context_builder : ContextBuilder
         For context formatting
+    intent_classifier : IntentClassifier
+        For intent and execution mode detection
+    sql_generator : SQLGenerator
+        For SQL generation (SQL mode)
+    sql_validator : SQLValidator
+        For SQL validation (SQL mode)
+    query_executor : QueryExecutor
+        For SQL execution (SQL mode)
+    result_formatter : QueryResultFormatter
+        For formatting SQL results (SQL mode)
     """
 
     def __init__(
@@ -97,13 +139,24 @@ class ChatService:
         llm_router: Optional[LLMRouter] = None,
         cache_service: Optional[CacheService] = None,
         embedding_service: Optional[EmbeddingService] = None,
-        context_builder: Optional[ContextBuilder] = None
+        context_builder: Optional[ContextBuilder] = None,
+        intent_classifier: Optional[IntentClassifier] = None,
+        sql_generator: Optional[SQLGenerator] = None,
+        query_executor: Optional[QueryExecutor] = None,
+        result_formatter: Optional[QueryResultFormatter] = None
     ):
+        # RAG services
         self.retrieval = retrieval_service or get_retrieval_service()
         self.router = llm_router or get_llm_router()
         self.cache = cache_service or get_cache_service()
         self.embedding_service = embedding_service or get_embedding_service()
         self.context_builder = context_builder or get_context_builder()
+        # SQL services
+        self.intent_classifier = intent_classifier or get_intent_classifier()
+        self.sql_generator = sql_generator or get_sql_generator()
+        self.sql_validator = SQLValidator()
+        self.query_executor = query_executor or get_query_executor()
+        self.result_formatter = result_formatter or get_query_result_formatter()
 
     def query(
         self,
@@ -117,7 +170,7 @@ class ChatService:
         conversation_history: Optional[List[Dict[str, str]]] = None
     ) -> ChatResponse:
         """
-        Process a user query through the complete RAG pipeline.
+        Process a user query through SQL or RAG pipeline based on intent.
 
         Parameters
         ----------
@@ -144,6 +197,174 @@ class ChatService:
             Complete response with answer and metadata
         """
         logger.info(f"Processing query for owner {owner_id}: {question[:50]}...")
+
+        # Step 1: Classify intent to determine execution mode
+        intent_result = self.intent_classifier.classify(question, conversation_history)
+        logger.info(
+            f"Intent classified: module={intent_result.module}, "
+            f"intent_type={intent_result.intent_type}, "
+            f"execution_mode={intent_result.execution_mode.value}"
+        )
+
+        # Step 2: Route based on execution mode
+        if intent_result.should_use_sql:
+            try:
+                return self._handle_sql_query(
+                    question=question,
+                    owner_id=owner_id,
+                    intent_result=intent_result,
+                    use_cache=use_cache,
+                    conversation_history=conversation_history
+                )
+            except (SQLGenerationError, SQLValidationError, QueryExecutionError) as e:
+                logger.warning(f"SQL execution failed, falling back to RAG: {e}")
+                # Fall back to RAG on SQL failure
+
+        # Step 3: Use RAG pipeline
+        return self._handle_rag_query(
+            question=question,
+            owner_id=owner_id,
+            filters=filters,
+            top_k=top_k,
+            use_cache=use_cache,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            conversation_history=conversation_history
+        )
+
+    def _handle_sql_query(
+        self,
+        question: str,
+        owner_id: int,
+        intent_result: IntentResult,
+        use_cache: bool = True,
+        conversation_history: Optional[List[Dict[str, str]]] = None
+    ) -> ChatResponse:
+        """
+        Handle query using SQL execution.
+
+        Parameters
+        ----------
+        question : str
+            User's question
+        owner_id : int
+            Owner's ID for data access
+        intent_result : IntentResult
+            Classified intent
+        use_cache : bool
+            Whether to use caching
+        conversation_history : List[Dict[str, str]], optional
+            Previous messages
+
+        Returns
+        -------
+        ChatResponse
+            Response with SQL results and formatted answer
+        """
+        logger.info(f"Handling SQL query for: {question[:50]}...")
+
+        # Step 1: Generate SQL
+        generation_result = self.sql_generator.generate(
+            question=question,
+            owner_id=owner_id
+        )
+        logger.info(f"Generated SQL: {generation_result.sql[:100]}...")
+
+        # Step 2: Validate and sanitize SQL
+        validation_result = self.sql_validator.validate(
+            sql=generation_result.sql,
+            owner_id=owner_id,
+            inject_owner_filter=True,
+            inject_limit=True
+        )
+
+        if validation_result.warnings:
+            logger.warning(f"SQL validation warnings: {validation_result.warnings}")
+
+        # Step 3: Execute SQL
+        query_result = self.query_executor.execute(validation_result.sanitized_sql)
+        logger.info(
+            f"SQL executed: {query_result.row_count} rows in "
+            f"{query_result.execution_time_ms:.2f}ms"
+        )
+
+        # Step 4: Format results
+        formatted = self.result_formatter.format(
+            query_result=query_result,
+            generation_result=generation_result,
+            question=question,
+            generate_summary=True
+        )
+
+        # Step 5: Build response
+        response = ChatResponse(
+            answer=formatted.summary,
+            sources=[],  # SQL queries don't have RAG sources
+            routing_decision='sql',
+            provider='groq',
+            cached=False,
+            sql_query=formatted.sql_query,
+            sql_explanation=formatted.sql_explanation,
+            data_rows=formatted.data,
+            execution_mode='sql',
+            visualization=formatted.visualization,
+            metadata={
+                'row_count': formatted.row_count,
+                'truncated': formatted.truncated,
+                'execution_time_ms': formatted.execution_time_ms,
+                'query_type': formatted.metadata.get('query_type'),
+                'module': formatted.metadata.get('module'),
+                'tables': formatted.metadata.get('tables', []),
+                'confidence': formatted.metadata.get('confidence', 0),
+                'intent': {
+                    'module': intent_result.module,
+                    'intent_type': intent_result.intent_type,
+                    'confidence': intent_result.confidence,
+                }
+            }
+        )
+
+        return response
+
+    def _handle_rag_query(
+        self,
+        question: str,
+        owner_id: int,
+        filters: Optional[RetrievalFilter] = None,
+        top_k: int = 10,
+        use_cache: bool = True,
+        temperature: float = 0.3,
+        max_tokens: int = 1000,
+        conversation_history: Optional[List[Dict[str, str]]] = None
+    ) -> ChatResponse:
+        """
+        Handle query using RAG pipeline.
+
+        Parameters
+        ----------
+        question : str
+            User's question
+        owner_id : int
+            Owner's ID for data access
+        filters : RetrievalFilter, optional
+            Retrieval filters
+        top_k : int
+            Number of results to retrieve
+        use_cache : bool
+            Whether to use caching
+        temperature : float
+            LLM temperature
+        max_tokens : int
+            Maximum response tokens
+        conversation_history : List[Dict[str, str]], optional
+            Previous messages
+
+        Returns
+        -------
+        ChatResponse
+            Response from RAG pipeline
+        """
+        logger.info(f"Handling RAG query for: {question[:50]}...")
 
         # Generate query embedding (needed for both cache and retrieval)
         query_embedding = self.embedding_service.get_query_embedding(question)
@@ -188,6 +409,7 @@ class ChatService:
             routing_decision=routing_ctx.decision.value,
             provider=routing_ctx.provider_name,
             cached=False,
+            execution_mode='rag',
             metadata={
                 'tokens_used': generation_result.tokens_used,
                 'context_tokens': built_context.token_count,
@@ -206,7 +428,7 @@ class ChatService:
             )
 
         logger.info(
-            f"Query processed: provider={routing_ctx.provider_name}, "
+            f"RAG query processed: provider={routing_ctx.provider_name}, "
             f"results={len(results)}, tokens={generation_result.tokens_used}"
         )
 

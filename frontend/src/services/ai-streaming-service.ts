@@ -15,7 +15,11 @@ export interface StreamEvent {
     | 'visualization'
     | 'sources'
     | 'message_end'
-    | 'error';
+    | 'error'
+    | 'sql_query'
+    | 'sql_results'
+    | 'sql_display'
+    | 'data_rows';
   data: any;
 }
 

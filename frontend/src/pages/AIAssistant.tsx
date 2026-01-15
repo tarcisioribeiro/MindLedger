@@ -21,6 +21,7 @@ import { useAlertDialog } from '@/hooks/use-alert-dialog';
 import { PageHeader } from '@/components/common/PageHeader';
 import { VisualizationRenderer } from '@/components/ai/VisualizationRenderer';
 import { MarkdownRenderer } from '@/components/ai/MarkdownRenderer';
+import { SQLDisplay } from '@/components/ai/SQLDisplay';
 import { useAIChatStore } from '@/stores/ai-chat-store';
 import { aiStreamingService } from '@/services/ai-streaming-service';
 import { formatDate } from '@/lib/formatters';
@@ -82,14 +83,70 @@ export default function AIAssistant() {
         (event) => {
           switch (event.event) {
             case 'intent':
-              // Could show intent classification to user (optional)
+              // Store execution mode from intent classification
               console.log('Intent detected:', event.data);
+              if (event.data.execution_mode) {
+                updateMessage(assistantId, {
+                  executionMode: event.data.execution_mode,
+                });
+              }
               break;
 
             case 'message_start':
               if (event.data.session_id) {
                 setSessionId(event.data.session_id);
               }
+              if (event.data.execution_mode) {
+                updateMessage(assistantId, {
+                  executionMode: event.data.execution_mode,
+                });
+              }
+              break;
+
+            case 'sql_query':
+              // SQL query generated
+              updateMessage(assistantId, {
+                sqlMetadata: {
+                  query: event.data.sql,
+                  explanation: event.data.explanation,
+                },
+              });
+              break;
+
+            case 'sql_results':
+              // SQL execution results metadata
+              updateMessage(assistantId, {
+                sqlMetadata: {
+                  ...messages.find((m) => m.id === assistantId)?.sqlMetadata,
+                  rowCount: event.data.row_count,
+                  truncated: event.data.truncated,
+                  executionTimeMs: event.data.execution_time_ms,
+                } as any,
+              });
+              break;
+
+            case 'sql_display':
+              // Final SQL display (sent at end after streaming answer)
+              updateMessage(assistantId, {
+                sqlMetadata: {
+                  ...messages.find((m) => m.id === assistantId)?.sqlMetadata,
+                  query: event.data.query,
+                  explanation: event.data.explanation,
+                  executionTimeMs: event.data.execution_time_ms,
+                } as any,
+              });
+              break;
+
+            case 'data_rows':
+              // Raw SQL data rows
+              updateMessage(assistantId, {
+                sqlMetadata: {
+                  ...messages.find((m) => m.id === assistantId)?.sqlMetadata,
+                  dataRows: event.data.rows,
+                  rowCount: event.data.total_count,
+                  truncated: event.data.truncated,
+                } as any,
+              });
               break;
 
             case 'content_chunk':
@@ -271,6 +328,11 @@ export default function AIAssistant() {
                             <span className="inline-block w-2 h-4 ml-1 bg-current animate-pulse" />
                           )}
                         </div>
+                      )}
+
+                      {/* SQL Query Display */}
+                      {message.sqlMetadata && (
+                        <SQLDisplay sqlMetadata={message.sqlMetadata} />
                       )}
 
                       {/* Visualization */}

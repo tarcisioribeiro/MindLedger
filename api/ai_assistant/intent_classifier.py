@@ -5,6 +5,7 @@ Analyzes user questions to determine:
 - Module (finance, security, library, planning)
 - Intent type (aggregation, trend, comparison, lookup, list)
 - Response type (chart, cards, table, text)
+- Execution mode (sql, rag, hybrid)
 - Extracted entities (dates, categories, amounts)
 
 Uses rule-based keyword matching for fast, predictable classification.
@@ -12,9 +13,17 @@ Can be enhanced with LLM-based classification in the future.
 """
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
+from enum import Enum
+
+
+class ExecutionMode(Enum):
+    """Execution mode for query processing."""
+    RAG = 'rag'      # Semantic search + LLM (for summaries, themes, content-based questions)
+    SQL = 'sql'      # Direct database query (for data aggregation, listing, trends)
+    HYBRID = 'hybrid'  # SQL for data, RAG for context enrichment
 
 
 @dataclass
@@ -25,6 +34,8 @@ class IntentResult:
     response_type: str  # chart, cards, table, text
     entities: Dict[str, Any]  # extracted entities
     confidence: float  # 0.0 to 1.0
+    execution_mode: ExecutionMode = ExecutionMode.SQL  # NEW: execution mode
+    should_use_sql: bool = True  # Convenience flag
 
 
 class IntentClassifier:
@@ -111,6 +122,47 @@ class IntentClassifier:
         'vestuário', 'vestuario', 'roupa', 'calçado', 'calcado'
     ]
 
+    # Keywords that indicate SQL mode should be used (direct database queries)
+    SQL_MODE_KEYWORDS = [
+        # Aggregation indicators
+        'total', 'quanto', 'quantos', 'quantas', 'soma', 'somatório', 'somatorio',
+        'média', 'media', 'maior', 'menor', 'máximo', 'maximo', 'mínimo', 'minimo',
+        # Listing indicators
+        'liste', 'listar', 'mostre', 'mostrar', 'exiba', 'exibir', 'quais',
+        'todos', 'todas', 'últimos', 'ultimos', 'recentes',
+        # Temporal/trend indicators
+        'evolução', 'evolucao', 'histórico', 'historico', 'período', 'periodo',
+        'por mês', 'por mes', 'mensal', 'semanal', 'diário', 'diario',
+        # Counting indicators
+        'contagem', 'count', 'quantidade',
+        # Status queries
+        'pendentes', 'pagas', 'ativas', 'ativos', 'lendo', 'lido', 'lidos',
+        # Data retrieval
+        'saldo', 'valor', 'valores',
+    ]
+
+    # Keywords that indicate RAG mode should be used (semantic search)
+    RAG_MODE_KEYWORDS = [
+        # Content-based questions
+        'sobre', 'tema', 'assunto', 'conteúdo', 'conteudo',
+        'resumo', 'resumir', 'sinopse',
+        'explique', 'explicar', 'explicação', 'explicacao',
+        'o que é', 'o que e', 'o que significa',
+        # Semantic search
+        'relacionado', 'similar', 'parecido',
+        'menciona', 'fala sobre', 'trata de',
+        # Opinion/analysis
+        'recomende', 'sugira', 'sugestão', 'sugestao',
+        'análise', 'analise', 'avaliação', 'avaliacao',
+    ]
+
+    # Greetings and small talk (should use RAG for conversational response)
+    GREETING_KEYWORDS = [
+        'olá', 'ola', 'oi', 'bom dia', 'boa tarde', 'boa noite',
+        'tudo bem', 'como vai', 'obrigado', 'obrigada', 'valeu',
+        'tchau', 'até', 'ate logo', 'ajuda', 'help'
+    ]
+
     def classify(
         self,
         question: str,
@@ -145,12 +197,19 @@ class IntentClassifier:
         # 5. Calculate confidence
         confidence = self._calculate_confidence(question_lower, module, intent_type)
 
+        # 6. Determine execution mode (NEW)
+        execution_mode = self._detect_execution_mode(
+            question_lower, module, intent_type
+        )
+
         return IntentResult(
             module=module,
             intent_type=intent_type,
             response_type=response_type,
             entities=entities,
-            confidence=confidence
+            confidence=confidence,
+            execution_mode=execution_mode,
+            should_use_sql=(execution_mode in (ExecutionMode.SQL, ExecutionMode.HYBRID))
         )
 
     def _detect_module(
@@ -317,6 +376,77 @@ class IntentClassifier:
             confidence = min(confidence * 1.2, 1.0)
 
         return round(confidence, 3)
+
+    def _detect_execution_mode(
+        self,
+        question: str,
+        module: str,
+        intent_type: str
+    ) -> ExecutionMode:
+        """
+        Determine whether to use SQL, RAG, or hybrid execution.
+
+        SQL mode is preferred for:
+        - Data aggregation (totals, counts, averages)
+        - Data listing (show all X, list Y)
+        - Temporal queries (trends, history)
+        - Status-based queries (pending, active, etc.)
+
+        RAG mode is preferred for:
+        - Content-based questions (about themes, summaries)
+        - Semantic search (similar content)
+        - Conversational queries
+        - Opinion/analysis requests
+
+        Hybrid mode is used when:
+        - SQL provides data but RAG can enrich context
+        """
+        # Count keyword matches
+        sql_score = sum(1 for kw in self.SQL_MODE_KEYWORDS if kw in question)
+        rag_score = sum(1 for kw in self.RAG_MODE_KEYWORDS if kw in question)
+        greeting_score = sum(1 for kw in self.GREETING_KEYWORDS if kw in question)
+
+        # Greetings and small talk should use RAG
+        if greeting_score > 0 and sql_score == 0:
+            return ExecutionMode.RAG
+
+        # Security module with sensitive content should prefer RAG
+        # (to avoid exposing passwords in SQL results)
+        if module == 'security' and any(kw in question for kw in ['senha', 'password', 'credencial']):
+            # But listing metadata is OK with SQL
+            if intent_type in ('list', 'lookup') and not any(kw in question for kw in ['ver senha', 'mostrar senha']):
+                return ExecutionMode.SQL
+            return ExecutionMode.RAG
+
+        # Intent-based rules
+        if intent_type in ('aggregation', 'trend', 'list'):
+            # These almost always need SQL
+            if rag_score > sql_score:
+                return ExecutionMode.HYBRID
+            return ExecutionMode.SQL
+
+        if intent_type == 'comparison':
+            return ExecutionMode.SQL
+
+        # Score-based decision
+        if sql_score > rag_score:
+            return ExecutionMode.SQL
+        elif rag_score > sql_score:
+            return ExecutionMode.RAG
+        elif sql_score > 0 and rag_score > 0:
+            return ExecutionMode.HYBRID
+
+        # Default: use SQL for data-driven modules
+        if module in ('finance', 'planning'):
+            return ExecutionMode.SQL
+        elif module == 'library':
+            # Library can be either (data or content)
+            if any(kw in question for kw in ['resumo', 'sobre', 'tema', 'sinopse']):
+                return ExecutionMode.RAG
+            return ExecutionMode.SQL
+
+        # Default to SQL for most queries
+        return ExecutionMode.SQL
 
 
 # Singleton instance
