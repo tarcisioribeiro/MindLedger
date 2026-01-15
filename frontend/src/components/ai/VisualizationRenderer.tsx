@@ -107,7 +107,7 @@ export const VisualizationRenderer: React.FC<VisualizationRendererProps> = ({
       return (
         <Card className="mt-4">
           <CardContent className="pt-6">
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto custom-scrollbar">
               <Table>
                 <TableHeader>
                   <TableRow>

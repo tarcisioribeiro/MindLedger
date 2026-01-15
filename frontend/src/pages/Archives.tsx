@@ -378,7 +378,7 @@ export default function Archives() {
 
       {/* Dialog para criar/editar arquivo */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
           <DialogHeader>
             <DialogTitle>
               {selectedArchive ? 'Editar' : 'Novo'} Arquivo Confidencial
@@ -401,7 +401,7 @@ export default function Archives() {
 
       {/* Dialog para visualizar conteúdo de texto */}
       <Dialog open={isContentDialogOpen} onOpenChange={setIsContentDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto custom-scrollbar">
           <DialogHeader>
             <DialogTitle>{selectedArchive?.title}</DialogTitle>
             <DialogDescription>

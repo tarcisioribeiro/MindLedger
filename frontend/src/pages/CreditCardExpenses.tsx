@@ -330,7 +330,7 @@ export default function CreditCardExpenses() {
       />
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto custom-scrollbar">
           <DialogHeader>
             <DialogTitle>{selectedExpense ? 'Editar' : 'Nova'} Despesa de Cartão</DialogTitle>
             <DialogDescription>Preencha os dados da despesa de cartão de crédito</DialogDescription>

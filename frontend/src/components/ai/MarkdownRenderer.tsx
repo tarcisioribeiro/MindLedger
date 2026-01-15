@@ -49,7 +49,7 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
 
     // Pre block for code blocks
     pre: ({ children }) => (
-      <pre className="block p-4 rounded-lg bg-muted/50 font-mono text-sm border overflow-x-auto my-3">
+      <pre className="block p-4 rounded-lg bg-muted/50 font-mono text-sm border overflow-x-auto custom-scrollbar my-3">
         {children}
       </pre>
     ),
@@ -88,7 +88,7 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
 
     // Tables
     table: ({ children }) => (
-      <div className="overflow-x-auto my-4 rounded-lg border border-border">
+      <div className="overflow-x-auto custom-scrollbar my-4 rounded-lg border border-border">
         <table className="min-w-full border-collapse">{children}</table>
       </div>
     ),

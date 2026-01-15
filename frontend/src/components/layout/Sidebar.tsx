@@ -226,7 +226,7 @@ export const Sidebar = () => {
         </div>
       </div>
 
-      <nav className="space-y-2 flex-1 overflow-y-auto">
+      <nav className="space-y-2 flex-1 overflow-y-auto custom-scrollbar">
         {/* Items principais */}
         {filteredNavItems.map((item) => {
           const isActive = location.pathname === item.href;

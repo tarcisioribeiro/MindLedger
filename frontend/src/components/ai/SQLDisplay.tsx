@@ -44,7 +44,7 @@ export function SQLDisplay({ sqlMetadata }: SQLDisplayProps) {
 
         {/* SQL Query */}
         <div className="relative">
-          <pre className="bg-slate-900 dark:bg-slate-950 rounded-lg p-4 overflow-x-auto">
+          <pre className="bg-slate-900 dark:bg-slate-950 rounded-lg p-4 overflow-x-auto custom-scrollbar">
             <code className="text-xs text-slate-100 font-mono leading-relaxed">
               {query}
             </code>

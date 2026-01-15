@@ -303,7 +303,7 @@ export default function CreditCardBills() {
       />
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto custom-scrollbar">
           <DialogHeader>
             <DialogTitle>{selectedBill ? 'Editar' : 'Nova'} Fatura de Cartão</DialogTitle>
             <DialogDescription>Preencha os dados da fatura de cartão de crédito</DialogDescription>

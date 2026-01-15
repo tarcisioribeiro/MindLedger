@@ -99,7 +99,7 @@ export default function Members() {
         </div>
       ) : (
         <div className="bg-card border rounded-xl overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto custom-scrollbar">
             <table className="w-full">
               <thead className="bg-muted/50 border-b">
                 <tr>
