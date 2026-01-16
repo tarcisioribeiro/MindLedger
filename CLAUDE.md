@@ -26,32 +26,56 @@ PersonalHub/
 
 **Overview**:
 - RAG (Retrieval Augmented Generation) service for semantic search across all modules
-- Uses sentence-transformers for embeddings (local, free, fast)
+- Uses sentence-transformers for embeddings via dedicated microservice
 - Uses Groq API for text generation (`llama-3.3-70b-versatile`)
 
 **How it works**:
 1. User submits a natural language question
 2. System extracts content from Finance, Security, and Library modules
-3. Generates embeddings locally using sentence-transformers (`all-MiniLM-L6-v2`)
+3. Generates embeddings via HTTP call to embeddings service (`all-MiniLM-L6-v2`)
 4. Ranks results by cosine similarity using pgvector
 5. Sends top-k results to Groq for answer generation
 
 **Configuration**:
 - Requires `GROQ_API_KEY` in .env for text generation
-- Embeddings are generated locally (no API key needed)
-- Fast, lightweight, and completely free for embeddings
-- Build time: ~2-3 minutes (faster than previous setup)
+- `EMBEDDING_SERVICE_URL`: URL of embeddings service (default: http://embeddings:8080)
+- Embeddings service runs in separate container (faster builds, reusable)
 
 **Cost**:
-- Embeddings: FREE (runs locally using sentence-transformers)
+- Embeddings: FREE (runs locally via embeddings-service container)
 - Groq LLM: FREE tier with generous limits (6,000 requests/minute)
 
 **Technical Details**:
 - Embedding model: `all-MiniLM-L6-v2` (384 dimensions)
 - 5x faster than larger models
 - Supports multilingual text (including Portuguese)
-- Uses ~80MB RAM
+- Uses ~80MB RAM in embeddings container
 - No external API calls for embeddings = better privacy and zero cost
+
+### Embeddings Service (Microservice)
+
+**Overview**:
+- Dedicated container for embedding generation using sentence-transformers
+- Runs as independent service, reusable by other projects
+- Model pre-downloaded during build for instant startup
+
+**Architecture Benefits**:
+- Faster API container builds (no model download)
+- Independent scaling of embedding workloads
+- Shareable infrastructure across projects
+- Model cached in persistent Docker volume
+
+**Endpoints**:
+- `POST /embeddings`: Generate embeddings for list of texts
+- `GET /health`: Health check (returns model loaded status)
+- `GET /info`: Model information and service limits
+- `GET /docs`: OpenAPI/Swagger documentation
+
+**Configuration**:
+- `EMBEDDING_PORT`: Host port (default: 8080)
+- Model: `all-MiniLM-L6-v2` (384 dimensions, L2 normalized)
+- Max batch size: 128 texts per request
+- Memory limit: 512MB
 
 ### Key Backend Architecture Patterns
 
@@ -265,8 +289,10 @@ export const resourceService = {
 ### Common Settings
 - `DEBUG=True`: Development mode (MUST be False in production)
 - `DB_HOST=db`: Use 'db' for Docker, 'localhost' for local
-- `DB_PORT=5435`: External port (internal is 5432)
+- `DB_PORT=39102`: External port (internal is 5432)
 - `LOG_FORMAT=json`: Structured logging format
+- `EMBEDDING_SERVICE_URL`: URL of embeddings service (default: http://embeddings:8080)
+- `EMBEDDING_PORT`: Host port for embeddings service (default: 8080)
 
 ## Health and Debugging
 
@@ -306,14 +332,21 @@ export const resourceService = {
    - Verify `GROQ_API_KEY` is set in .env
    - Check API key is valid (not placeholder value)
    - Groq errors: Verify free tier limits at https://console.groq.com
-   - Embedding errors: Ensure sentence-transformers is installed (should auto-download model on first use)
+   - Embedding errors: Check if embeddings container is healthy (`docker-compose logs embeddings`)
+
+7. **Embeddings service errors**:
+   - Check container status: `docker-compose ps embeddings`
+   - View logs: `docker-compose logs -f embeddings`
+   - Test health endpoint: `curl http://localhost:8080/health`
+   - If model download failed, rebuild: `docker-compose build --no-cache embeddings`
 
 ## Accessing the Application
 
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:8002
-- **Django Admin**: http://localhost:8002/admin
-- **Database**: localhost:5435 (PostgreSQL)
+- **Frontend**: http://localhost:39101
+- **Backend API**: http://localhost:39100
+- **Django Admin**: http://localhost:39100/admin
+- **Embeddings Service**: http://localhost:8080 (API docs at /docs)
+- **Database**: localhost:39102 (PostgreSQL)
 
 ## Security Notes
 

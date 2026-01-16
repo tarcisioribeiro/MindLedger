@@ -2,24 +2,79 @@
 Embedding Service
 
 Centralized service for generating and managing embeddings.
-This service uses sentence-transformers for fast, local embedding generation
-to ensure sensitive data never leaves the infrastructure.
+This service supports two modes:
+1. HTTP mode (default): Uses external embeddings microservice via HTTP
+2. Local mode: Uses sentence-transformers directly (fallback/development)
+
+The mode is determined by the EMBEDDING_SERVICE_URL setting:
+- If set: Uses HTTP client to call external service
+- If not set or 'local': Falls back to local sentence-transformers
+
+Benefits of HTTP mode:
+- Faster builds (no model download in main container)
+- Reusable service across projects
+- Independent scaling of embedding workloads
 """
 
 import logging
-from typing import List, Optional
+import os
+from typing import List, Optional, Union, Protocol
 from dataclasses import dataclass
 
 from django.conf import settings
 
-from .sentence_transformer_client import (
-    SentenceTransformerClient,
-    get_sentence_transformer_client,
-    EmbeddingResponse
-)
 from .exceptions import EmbeddingError, EmbeddingGenerationError
 
 logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# Protocol for Embedding Clients
+# =============================================================================
+
+class EmbeddingClientProtocol(Protocol):
+    """Protocol defining the interface for embedding clients."""
+    model_name: str
+    dimensions: int
+
+    def is_available(self) -> bool: ...
+    def health_check(self) -> bool: ...
+    def generate_embedding(self, text: str): ...
+    def generate_embeddings_batch(self, texts: List[str], batch_size: int = 32): ...
+
+
+# =============================================================================
+# Client Factory
+# =============================================================================
+
+def _get_embedding_client() -> EmbeddingClientProtocol:
+    """
+    Factory function to get the appropriate embedding client.
+
+    Returns HTTP client if EMBEDDING_SERVICE_URL is configured,
+    otherwise falls back to local sentence-transformers.
+
+    Returns:
+        Configured embedding client (HTTP or local)
+    """
+    embedding_url = getattr(settings, 'EMBEDDING_SERVICE_URL', None)
+
+    # Check if we should use HTTP client
+    if embedding_url and embedding_url.lower() != 'local':
+        logger.info(f"Using HTTP embedding client: {embedding_url}")
+        from .http_client import get_http_embedding_client
+        return get_http_embedding_client(embedding_url)
+
+    # Fallback to local sentence-transformers
+    logger.info("Using local sentence-transformers client")
+    try:
+        from .sentence_transformer_client import get_sentence_transformer_client
+        return get_sentence_transformer_client()
+    except ImportError:
+        raise ImportError(
+            "sentence-transformers not installed and EMBEDDING_SERVICE_URL not configured. "
+            "Either install sentence-transformers or set EMBEDDING_SERVICE_URL in settings."
+        )
 
 
 @dataclass
@@ -37,15 +92,25 @@ class EmbeddingResult:
 
 class EmbeddingService:
     """
-    Service for generating embeddings using sentence-transformers.
+    Service for generating embeddings.
 
     This service provides a high-level interface for embedding generation,
-    with support for single and batch operations. All embeddings are
-    generated locally using sentence-transformers (all-MiniLM-L6-v2) which:
+    with support for single and batch operations. Supports two modes:
+
+    1. HTTP mode (default): Uses external microservice via HTTP
+       - Faster builds (no model in main container)
+       - Reusable across projects
+       - Configure via EMBEDDING_SERVICE_URL setting
+
+    2. Local mode: Uses sentence-transformers directly
+       - Set EMBEDDING_SERVICE_URL='local' or leave unset
+       - Requires sentence-transformers installed
+
+    Both modes use the all-MiniLM-L6-v2 model which:
+    - Produces 384-dimensional embeddings
     - Is fast (5x faster than larger models)
-    - Is lightweight (~80MB RAM)
     - Supports multilingual text (including Portuguese)
-    - Runs entirely locally (no API calls, no costs)
+    - Uses L2 normalization for cosine similarity
 
     Attributes
     ----------
@@ -59,12 +124,12 @@ class EmbeddingService:
 
     def __init__(
         self,
-        client: Optional[SentenceTransformerClient] = None,
+        client: Optional[EmbeddingClientProtocol] = None,
         model: Optional[str] = None,
         dimensions: Optional[int] = None,
         batch_size: Optional[int] = None
     ):
-        self.client = client or get_sentence_transformer_client(model)
+        self.client = client or _get_embedding_client()
 
         embedding_config = getattr(settings, 'EMBEDDING_CONFIG', {})
         ai_config = getattr(settings, 'AI_ASSISTANT_CONFIG', {})
@@ -78,12 +143,20 @@ class EmbeddingService:
         """Verify model is available (cached after first check)."""
         if not self._model_verified:
             if not self.client.is_available():
-                raise ValueError(
-                    "sentence-transformers not available. Install with:\n"
-                    "pip install sentence-transformers"
-                )
+                embedding_url = getattr(settings, 'EMBEDDING_SERVICE_URL', None)
+                if embedding_url and embedding_url.lower() != 'local':
+                    raise ValueError(
+                        f"Embedding service not available at {embedding_url}. "
+                        "Check if the embeddings container is running."
+                    )
+                else:
+                    raise ValueError(
+                        "sentence-transformers not available. Either:\n"
+                        "1. Install with: pip install sentence-transformers\n"
+                        "2. Or configure EMBEDDING_SERVICE_URL to use HTTP service"
+                    )
             self._model_verified = True
-            logger.info(f"Using sentence-transformers model: {self._model} ({self._dimensions}D)")
+            logger.info(f"Embedding service ready: {self._model} ({self._dimensions}D)")
 
     @property
     def model(self) -> str:
@@ -99,10 +172,12 @@ class EmbeddingService:
         """
         Check if the embedding service is available.
 
+        Works with both HTTP and local clients.
+
         Returns
         -------
         bool
-            True if sentence-transformers is available
+            True if embedding service is available and ready
         """
         try:
             return self.client.is_available()

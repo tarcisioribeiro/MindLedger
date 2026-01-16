@@ -51,6 +51,7 @@ import {
   type KanbanStatus,
   type InstanceStatus,
 } from '@/types';
+import { PageContainer } from '@/components/common/PageContainer';
 
 import { formatLocalDate, parseLocalDate } from '@/lib/utils';
 
@@ -232,26 +233,29 @@ export default function DailyChecklist() {
     const activeId = active.id as string;
     const overId = over.id as string;
 
-    const activeCard = cards.find((c) => c.id === activeId);
-    const overCard = cards.find((c) => c.id === overId);
+    setCards((prevCards) => {
+      const activeCard = prevCards.find((c) => c.id === activeId);
+      const overCard = prevCards.find((c) => c.id === overId);
 
-    if (!activeCard) return;
+      if (!activeCard) return prevCards;
 
-    let targetStatus: KanbanStatus | undefined;
+      let targetStatus: KanbanStatus | undefined;
 
-    if (overCard) {
-      targetStatus = overCard.status;
-    } else if (['todo', 'doing', 'done'].includes(overId)) {
-      targetStatus = overId as KanbanStatus;
-    }
+      if (overCard) {
+        targetStatus = overCard.status;
+      } else if (['todo', 'doing', 'done'].includes(overId)) {
+        targetStatus = overId as KanbanStatus;
+      }
 
-    if (!targetStatus || activeCard.status === targetStatus) return;
+      // Retorna o mesmo array se não houver mudança - evita re-renders desnecessários
+      if (!targetStatus || activeCard.status === targetStatus) {
+        return prevCards;
+      }
 
-    setCards((cards) =>
-      cards.map((card) =>
+      return prevCards.map((card) =>
         card.id === activeId ? { ...card, status: targetStatus! } : card
-      )
-    );
+      );
+    });
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -263,26 +267,31 @@ export default function DailyChecklist() {
     const activeId = active.id as string;
     const overId = over.id as string;
 
-    const activeCard = cards.find((c) => c.id === activeId);
-    const overCard = cards.find((c) => c.id === overId);
+    setCards((prevCards) => {
+      const activeCard = prevCards.find((c) => c.id === activeId);
+      const overCard = prevCards.find((c) => c.id === overId);
 
-    if (!activeCard) return;
+      if (!activeCard) return prevCards;
 
-    let finalStatus: KanbanStatus | undefined;
+      let finalStatus: KanbanStatus | undefined;
 
-    if (overCard) {
-      finalStatus = overCard.status;
-    } else if (['todo', 'doing', 'done'].includes(overId)) {
-      finalStatus = overId as KanbanStatus;
-    }
+      if (overCard) {
+        finalStatus = overCard.status;
+      } else if (['todo', 'doing', 'done'].includes(overId)) {
+        finalStatus = overId as KanbanStatus;
+      }
 
-    if (!finalStatus) return;
+      if (!finalStatus) return prevCards;
 
-    if (activeCard.status === finalStatus && overCard) {
-      const activeIndex = cards.findIndex((c) => c.id === activeId);
-      const overIndex = cards.findIndex((c) => c.id === overId);
-      setCards((cards) => arrayMove(cards, activeIndex, overIndex));
-    }
+      // Reordena apenas se estiver na mesma coluna e sobre outro card
+      if (activeCard.status === finalStatus && overCard) {
+        const activeIndex = prevCards.findIndex((c) => c.id === activeId);
+        const overIndex = prevCards.findIndex((c) => c.id === overId);
+        return arrayMove(prevCards, activeIndex, overIndex);
+      }
+
+      return prevCards;
+    });
   };
 
   const handleSave = async () => {
@@ -343,7 +352,7 @@ export default function DailyChecklist() {
   }
 
   return (
-    <div className="space-y-6">
+    <PageContainer>
       <PageHeader
         title="Checklist Diário"
         description="Organize suas tarefas no quadro kanban"
@@ -493,6 +502,6 @@ export default function DailyChecklist() {
           )}
         </Button>
       </div>
-    </div>
+    </PageContainer>
   );
 }

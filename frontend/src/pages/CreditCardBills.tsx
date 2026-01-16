@@ -14,6 +14,7 @@ import { formatCurrency, formatDate } from '@/lib/formatters';
 import { PageHeader } from '@/components/common/PageHeader';
 import { DataTable, type Column } from '@/components/common/DataTable';
 import type { CreditCardBill, CreditCardBillFormData, CreditCard } from '@/types';
+import { PageContainer } from '@/components/common/PageContainer';
 
 export default function CreditCardBills() {
   const [bills, setBills] = useState<CreditCardBill[]>([]);
@@ -217,7 +218,7 @@ export default function CreditCardBills() {
   ];
 
   return (
-    <div className="space-y-6">
+    <PageContainer>
       <PageHeader
         title="Faturas de Cartão"
         description="Gerencie suas faturas de cartão de crédito"
@@ -241,11 +242,19 @@ export default function CreditCardBills() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos os Cartões</SelectItem>
-              {creditCards.map((c) => (
-                <SelectItem key={c.id} value={c.id.toString()}>
-                  {c.on_card_name || c.card_number_masked}
-                </SelectItem>
-              ))}
+              {creditCards.map((c) => {
+                const masked = c.card_number_masked || '****';
+                const digitsOnly = masked.replace(/[^\d]/g, '');
+                const last4 = digitsOnly.length >= 4 ? digitsOnly.slice(-4) : '****';
+                const hasValidNumber = last4 !== '****' && /^\d{4}$/.test(last4);
+                const cardNumber = hasValidNumber ? `**** ${last4}` : '';
+                const brandName = translate('cardBrands', c.flag);
+                return (
+                  <SelectItem key={c.id} value={c.id.toString()}>
+                    {c.on_card_name} {cardNumber} - {brandName}
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -317,6 +326,6 @@ export default function CreditCardBills() {
           />
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   );
 }

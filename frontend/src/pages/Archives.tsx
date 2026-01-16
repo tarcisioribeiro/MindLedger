@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, Eye, Download, FileText, File, Archive as ArchiveIcon } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye, Download, FileText, File, Archive as ArchiveIcon, Calendar, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -18,8 +19,9 @@ import { useToast } from '@/hooks/use-toast';
 import { useAlertDialog } from '@/hooks/use-alert-dialog';
 import { formatDate } from '@/lib/formatters';
 import { PageHeader } from '@/components/common/PageHeader';
-import { DataTable, type Column } from '@/components/common/DataTable';
+import { LoadingState } from '@/components/common/LoadingState';
 import type { Archive, ArchiveFormData, Member } from '@/types';
+import { PageContainer } from '@/components/common/PageContainer';
 
 const ARCHIVE_CATEGORIES: Record<string, string> = {
   personal: 'Pessoal',
@@ -246,74 +248,12 @@ export default function Archives() {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  const columns: Column<Archive>[] = [
-    {
-      key: 'title',
-      label: 'Título',
-      render: (arc) => (
-        <div className="flex items-center gap-2">
-          {arc.archive_type === 'text' ? (
-            <FileText className="w-4 h-4 text-muted-foreground" />
-          ) : (
-            <File className="w-4 h-4 text-muted-foreground" />
-          )}
-          <span className="font-medium">{arc.title}</span>
-        </div>
-      ),
-    },
-    {
-      key: 'category',
-      label: 'Categoria',
-      render: (arc) => <Badge>{ARCHIVE_CATEGORIES[arc.category]}</Badge>,
-    },
-    {
-      key: 'type',
-      label: 'Tipo',
-      render: (arc) => (
-        <Badge variant="outline">{ARCHIVE_TYPES[arc.archive_type]}</Badge>
-      ),
-    },
-    {
-      key: 'file_size',
-      label: 'Tamanho',
-      align: 'right',
-      render: (arc) => (
-        <span className="text-sm text-muted-foreground">
-          {formatFileSize(arc.file_size)}
-        </span>
-      ),
-    },
-    {
-      key: 'tags',
-      label: 'Tags',
-      render: (arc) => (
-        <div className="flex flex-wrap gap-1">
-          {arc.tags?.split(',').slice(0, 3).map((tag, idx) => (
-            <Badge key={idx} variant="secondary" className="text-xs">
-              {tag.trim()}
-            </Badge>
-          ))}
-          {arc.tags && arc.tags.split(',').length > 3 && (
-            <Badge variant="secondary" className="text-xs">
-              +{arc.tags.split(',').length - 3}
-            </Badge>
-          )}
-        </div>
-      ),
-    },
-    {
-      key: 'created_at',
-      label: 'Criado em',
-      render: (arc) => (
-        <span className="text-sm text-muted-foreground">
-          {formatDate(arc.created_at, 'dd/MM/yyyy')}
-        </span>
-      ),
-    },
-  ];
+  if (isLoading) {
+    return <LoadingState />;
+  }
 
   return (
-    <div className="space-y-6">
+    <PageContainer>
       <PageHeader
         title="Arquivos Confidenciais"
         description="Armazene documentos e textos de forma criptografada"
@@ -334,47 +274,96 @@ export default function Archives() {
         />
       </div>
 
-      <DataTable
-        data={filteredArchives}
-        columns={columns}
-        keyExtractor={(arc) => arc.id}
-        isLoading={isLoading}
-        emptyState={{
-          message: 'Nenhum arquivo confidencial encontrado.',
-        }}
-        actions={(arc) => (
-          <div className="flex items-center justify-end gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() =>
-                arc.archive_type === 'text'
-                  ? handleRevealContent(arc)
-                  : handleDownload(arc)
-              }
-              disabled={isRevealing}
-            >
-              {arc.archive_type === 'text' ? (
-                <>
-                  <Eye className="h-3 w-3 mr-1" />
-                  Ver
-                </>
-              ) : (
-                <>
-                  <Download className="h-3 w-3 mr-1" />
-                  Baixar
-                </>
-              )}
-            </Button>
-            <Button variant="ghost" size="icon" onClick={() => handleEdit(arc)}>
-              <Pencil className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={() => handleDelete(arc.id)}>
-              <Trash2 className="h-4 w-4 text-destructive" />
-            </Button>
-          </div>
-        )}
-      />
+      {filteredArchives.length === 0 ? (
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <ArchiveIcon className="w-12 h-12 text-muted-foreground mb-4" />
+            <p className="text-lg font-medium mb-2">Nenhum arquivo encontrado</p>
+            <p className="text-sm text-muted-foreground mb-4">
+              {searchTerm
+                ? 'Tente ajustar sua pesquisa'
+                : 'Comece adicionando seu primeiro arquivo confidencial'}
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {filteredArchives.map((arc) => (
+            <Card key={arc.id}>
+              <CardHeader className="pb-2">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      {arc.archive_type === 'text' ? (
+                        <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                      ) : (
+                        <File className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                      )}
+                      <CardTitle className="text-base truncate">{arc.title}</CardTitle>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge>{ARCHIVE_CATEGORIES[arc.category]}</Badge>
+                      <Badge variant="outline">{ARCHIVE_TYPES[arc.archive_type]}</Badge>
+                    </div>
+                  </div>
+                  <div className="flex gap-1 flex-shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() =>
+                        arc.archive_type === 'text'
+                          ? handleRevealContent(arc)
+                          : handleDownload(arc)
+                      }
+                      disabled={isRevealing}
+                      title={arc.archive_type === 'text' ? 'Ver conteúdo' : 'Baixar arquivo'}
+                    >
+                      {arc.archive_type === 'text' ? (
+                        <Eye className="h-4 w-4" />
+                      ) : (
+                        <Download className="h-4 w-4" />
+                      )}
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(arc)}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDelete(arc.id)}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Calendar className="w-4 h-4" />
+                    <span>{formatDate(arc.created_at, 'dd/MM/yyyy')}</span>
+                  </div>
+                  <span className="text-muted-foreground">{formatFileSize(arc.file_size)}</span>
+                </div>
+                {arc.tags && (
+                  <div className="flex items-center gap-2">
+                    <Tag className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    <div className="flex flex-wrap gap-1">
+                      {arc.tags.split(',').slice(0, 3).map((tag, idx) => (
+                        <Badge key={idx} variant="secondary" className="text-xs">
+                          {tag.trim()}
+                        </Badge>
+                      ))}
+                      {arc.tags.split(',').length > 3 && (
+                        <Badge variant="secondary" className="text-xs">
+                          +{arc.tags.split(',').length - 3}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {/* Dialog para criar/editar arquivo */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -433,6 +422,6 @@ export default function Archives() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   );
 }

@@ -1,9 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, TrendingUp } from 'lucide-react';
+import { Plus, Pencil, Trash2, TrendingUp, Filter, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DatePicker } from '@/components/ui/date-picker';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RevenueForm } from '@/components/revenues/RevenueForm';
+import { TRANSLATIONS } from '@/config/constants';
 import { revenuesService } from '@/services/revenues-service';
 import { accountsService } from '@/services/accounts-service';
 import { loansService } from '@/services/loans-service';
@@ -15,21 +21,76 @@ import { sumByProperty } from '@/lib/helpers';
 import { PageHeader } from '@/components/common/PageHeader';
 import { DataTable, type Column } from '@/components/common/DataTable';
 import type { Revenue, RevenueFormData, Account, Loan } from '@/types';
+import { PageContainer } from '@/components/common/PageContainer';
 
 export default function Revenues() {
   const [revenues, setRevenues] = useState<Revenue[]>([]);
+  const [filteredRevenues, setFilteredRevenues] = useState<Revenue[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loans, setLoans] = useState<Loan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedRevenue, setSelectedRevenue] = useState<Revenue | undefined>();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  const [selectedAccounts, setSelectedAccounts] = useState<number[]>([]);
   const { toast } = useToast();
   const { showConfirm } = useAlertDialog();
 
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    filterRevenues();
+  }, [searchTerm, categoryFilter, statusFilter, startDate, endDate, selectedAccounts, revenues]);
+
+  const filterRevenues = () => {
+    let filtered = [...revenues];
+    if (searchTerm) {
+      filtered = filtered.filter(r =>
+        r.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (r.source && r.source.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    }
+    if (categoryFilter !== 'all') {
+      filtered = filtered.filter(r => r.category === categoryFilter);
+    }
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(r => statusFilter === 'received' ? r.received : !r.received);
+    }
+    if (startDate) {
+      filtered = filtered.filter(r => new Date(r.date) >= startDate);
+    }
+    if (endDate) {
+      filtered = filtered.filter(r => new Date(r.date) <= endDate);
+    }
+    if (selectedAccounts.length > 0) {
+      filtered = filtered.filter(r => selectedAccounts.includes(r.account));
+    }
+    setFilteredRevenues(filtered);
+  };
+
+  const toggleAccount = (accountId: number) => {
+    setSelectedAccounts(prev =>
+      prev.includes(accountId)
+        ? prev.filter(id => id !== accountId)
+        : [...prev, accountId]
+    );
+  };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setCategoryFilter('all');
+    setStatusFilter('all');
+    setStartDate(undefined);
+    setEndDate(undefined);
+    setSelectedAccounts([]);
+  };
 
   const loadData = async () => {
     try {
@@ -40,6 +101,7 @@ export default function Revenues() {
         loansService.getAll(),
       ]);
       setRevenues(revenuesData);
+      setFilteredRevenues(revenuesData);
       setAccounts(accountsData);
       setLoans(Array.isArray(loansData) ? loansData : []);
     } catch (error: any) {
@@ -100,7 +162,7 @@ export default function Revenues() {
   };
 
   const totalRevenues = sumByProperty(
-    revenues.map((r) => ({ value: parseFloat(r.value) })),
+    filteredRevenues.map((r) => ({ value: parseFloat(r.value) })),
     'value'
   );
 
@@ -171,7 +233,7 @@ export default function Revenues() {
   ];
 
   return (
-    <div className="space-y-6">
+    <PageContainer>
       <PageHeader
         title="Receitas"
         description="Acompanhe suas receitas"
@@ -183,17 +245,110 @@ export default function Revenues() {
         }}
       />
 
-      <div className="bg-card border rounded-xl p-4 flex justify-between items-center">
-        <span className="text-sm text-muted-foreground">
-          {revenues.length} receita(s) cadastrada(s)
-        </span>
-        <span className="text-lg font-bold text-success">
-          Total: {formatCurrency(totalRevenues)}
-        </span>
+      <div className="bg-card border rounded-xl p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-muted-foreground" />
+            <span className="font-semibold">Filtros</span>
+          </div>
+          {(searchTerm || categoryFilter !== 'all' || statusFilter !== 'all' || startDate || endDate || selectedAccounts.length > 0) && (
+            <Button variant="ghost" size="sm" onClick={clearFilters}>
+              Limpar Filtros
+            </Button>
+          )}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Input
+            placeholder="Buscar por descrição ou origem..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas Categorias</SelectItem>
+              {Object.entries(TRANSLATIONS.revenueCategories).map(([k, v]) => (
+                <SelectItem key={k} value={k}>
+                  {v}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos Status</SelectItem>
+              <SelectItem value="received">Recebido</SelectItem>
+              <SelectItem value="pending">Pendente</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-1">
+            <label className="text-sm text-muted-foreground">Data Inicial</label>
+            <DatePicker
+              value={startDate}
+              onChange={setStartDate}
+              placeholder="De..."
+              clearable
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm text-muted-foreground">Data Final</label>
+            <DatePicker
+              value={endDate}
+              onChange={setEndDate}
+              placeholder="Até..."
+              clearable
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm text-muted-foreground">Contas</label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-full justify-between">
+                  {selectedAccounts.length === 0
+                    ? 'Todas as Contas'
+                    : `${selectedAccounts.length} conta(s) selecionada(s)`}
+                  <ChevronDown className="w-4 h-4 ml-2" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-2">
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {accounts.map((account) => (
+                    <div
+                      key={account.id}
+                      className="flex items-center gap-2 p-2 hover:bg-accent rounded cursor-pointer"
+                      onClick={() => toggleAccount(account.id)}
+                    >
+                      <Checkbox
+                        checked={selectedAccounts.includes(account.id)}
+                        onCheckedChange={() => toggleAccount(account.id)}
+                      />
+                      <span className="text-sm">{account.account_name}</span>
+                    </div>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+        </div>
+        <div className="flex justify-between items-center pt-2 border-t">
+          <span className="text-sm text-muted-foreground">
+            {filteredRevenues.length} receita(s) encontrada(s)
+          </span>
+          <span className="text-lg font-bold text-success">
+            Total: {formatCurrency(totalRevenues)}
+          </span>
+        </div>
       </div>
 
       <DataTable
-        data={revenues}
+        data={filteredRevenues}
         columns={columns}
         keyExtractor={(revenue) => revenue.id}
         isLoading={isLoading}
@@ -221,6 +376,6 @@ export default function Revenues() {
           <RevenueForm revenue={selectedRevenue} accounts={accounts} loans={loans} onSubmit={handleSubmit} onCancel={() => setIsDialogOpen(false)} isLoading={isSubmitting} />
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   );
 }

@@ -13,6 +13,7 @@ import { formatCurrency, formatDate } from '@/lib/formatters';
 import { PageHeader } from '@/components/common/PageHeader';
 import { DataTable, type Column } from '@/components/common/DataTable';
 import type { Transfer, TransferFormData, Account } from '@/types';
+import { PageContainer } from '@/components/common/PageContainer';
 
 export default function Transfers() {
   const [transfers, setTransfers] = useState<Transfer[]>([]);
@@ -142,7 +143,7 @@ export default function Transfers() {
   ];
 
   return (
-    <div className="space-y-6">
+    <PageContainer>
       <PageHeader
         title="Transferências"
         description="Histórico de transferências"
@@ -183,6 +184,6 @@ export default function Transfers() {
           <TransferForm transfer={selectedTransfer} accounts={accounts} onSubmit={handleSubmit} onCancel={() => setIsDialogOpen(false)} isLoading={isSubmitting} />
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   );
 }

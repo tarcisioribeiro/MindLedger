@@ -29,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { PageContainer } from '@/components/common/PageContainer';
 
 export default function Summaries() {
   const [summaries, setSummaries] = useState<Summary[]>([]);
@@ -186,7 +187,7 @@ export default function Summaries() {
   }
 
   return (
-    <div className="space-y-6">
+    <PageContainer>
       <PageHeader
         title="Resumos"
         description="Gerencie os resumos dos seus livros"
@@ -382,6 +383,6 @@ export default function Summaries() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   );
 }

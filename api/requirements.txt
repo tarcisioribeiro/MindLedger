@@ -30,7 +30,9 @@ isort==5.13.2
 
 # AI Assistant dependencies
 groq==0.14.0
-sentence-transformers==3.3.1
+# sentence-transformers moved to embeddings-service container
+# HTTP client uses requests to communicate with embeddings service
+requests>=2.31.0
 
 # RAG Architecture dependencies
 pgvector==0.3.6

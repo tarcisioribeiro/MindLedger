@@ -272,16 +272,16 @@ export function StoredCardForm({
           <div className="col-span-2">
             <Label htmlFor="finance_card">Cartão Financeiro Vinculado (Opcional)</Label>
             <Select
-              value={watch('finance_card')?.toString() || ''}
+              value={watch('finance_card')?.toString() || 'none'}
               onValueChange={(value) =>
-                setValue('finance_card', value ? parseInt(value) : undefined)
+                setValue('finance_card', value === 'none' ? undefined : parseInt(value))
               }
             >
               <SelectTrigger>
                 <SelectValue placeholder="Nenhum" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nenhum</SelectItem>
+                <SelectItem value="none">Nenhum</SelectItem>
                 {creditCards.map((cc) => (
                   <SelectItem key={cc.id} value={cc.id.toString()}>
                     {cc.name} - {cc.on_card_name}

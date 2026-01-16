@@ -1,0 +1,22 @@
+# =============================================================================
+# Embeddings Service - Dependencies
+# =============================================================================
+# Dependências mínimas para o serviço de embeddings.
+# Mantido propositalmente enxuto para builds rápidos.
+# =============================================================================
+
+# Web framework - FastAPI é leve, rápido e tem excelente suporte a async
+fastapi==0.115.6
+
+# ASGI server - Uvicorn é o servidor recomendado para FastAPI
+uvicorn[standard]==0.34.0
+
+# Embeddings - sentence-transformers com modelo all-MiniLM-L6-v2
+# ~80MB de RAM, 384 dimensões, suporte multilingual
+sentence-transformers==3.3.1
+
+# Validação de dados - Pydantic v2 (já incluído no FastAPI, mas explícito para clareza)
+pydantic==2.10.4
+
+# Numpy para manipulação de arrays (dependência do sentence-transformers)
+numpy>=1.26.0

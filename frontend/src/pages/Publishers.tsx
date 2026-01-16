@@ -17,6 +17,7 @@ import {
 import { PageHeader } from '@/components/common/PageHeader';
 import { LoadingState } from '@/components/common/LoadingState';
 import { PublisherForm } from '@/components/library/PublisherForm';
+import { PageContainer } from '@/components/common/PageContainer';
 
 export default function Publishers() {
   const [publishers, setPublishers] = useState<Publisher[]>([]);
@@ -125,7 +126,7 @@ export default function Publishers() {
   }
 
   return (
-    <div className="space-y-6">
+    <PageContainer>
       <PageHeader
         title="Editoras"
         description="Gerencie as editoras da sua biblioteca"
@@ -242,6 +243,6 @@ export default function Publishers() {
           />
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   );
 }

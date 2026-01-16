@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { AnimatedPage } from '@/components/common/AnimatedPage';
+import { PageContainer } from '@/components/common/PageContainer';
 import { containerVariants, itemVariants } from '@/lib/animations';
 import {
   Wallet,
@@ -98,8 +98,7 @@ export default function Home() {
   ];
 
   return (
-    <AnimatedPage>
-      <div className="space-y-8">
+    <PageContainer className="space-y-8">
         {/* Header */}
         <motion.div
           className="text-center"
@@ -245,7 +244,6 @@ export default function Home() {
             </Card>
           </motion.div>
         </motion.div>
-      </div>
-    </AnimatedPage>
+    </PageContainer>
   );
 }

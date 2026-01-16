@@ -5,6 +5,10 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DatePicker } from '@/components/ui/date-picker';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ChevronDown } from 'lucide-react';
 import { ExpenseForm } from '@/components/expenses/ExpenseForm';
 import { expensesService } from '@/services/expenses-service';
 import { accountsService } from '@/services/accounts-service';
@@ -17,6 +21,7 @@ import { sumByProperty } from '@/lib/helpers';
 import { PageHeader } from '@/components/common/PageHeader';
 import { DataTable, type Column } from '@/components/common/DataTable';
 import type { Expense, ExpenseFormData, Account, Loan } from '@/types';
+import { PageContainer } from '@/components/common/PageContainer';
 
 export default function Expenses() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -30,6 +35,9 @@ export default function Expenses() {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  const [selectedAccounts, setSelectedAccounts] = useState<number[]>([]);
   const { toast } = useToast();
   const { showConfirm } = useAlertDialog();
 
@@ -39,7 +47,7 @@ export default function Expenses() {
 
   useEffect(() => {
     filterExpenses();
-  }, [searchTerm, categoryFilter, statusFilter, expenses]);
+  }, [searchTerm, categoryFilter, statusFilter, startDate, endDate, selectedAccounts, expenses]);
 
   const loadData = async () => {
     try {
@@ -71,7 +79,33 @@ export default function Expenses() {
     if (statusFilter !== 'all') {
       filtered = filtered.filter(e => statusFilter === 'paid' ? e.payed : !e.payed);
     }
+    if (startDate) {
+      filtered = filtered.filter(e => new Date(e.date) >= startDate);
+    }
+    if (endDate) {
+      filtered = filtered.filter(e => new Date(e.date) <= endDate);
+    }
+    if (selectedAccounts.length > 0) {
+      filtered = filtered.filter(e => selectedAccounts.includes(e.account));
+    }
     setFilteredExpenses(filtered);
+  };
+
+  const toggleAccount = (accountId: number) => {
+    setSelectedAccounts(prev =>
+      prev.includes(accountId)
+        ? prev.filter(id => id !== accountId)
+        : [...prev, accountId]
+    );
+  };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setCategoryFilter('all');
+    setStatusFilter('all');
+    setStartDate(undefined);
+    setEndDate(undefined);
+    setSelectedAccounts([]);
   };
 
   const handleSubmit = async (data: ExpenseFormData) => {
@@ -188,7 +222,7 @@ export default function Expenses() {
   ];
 
   return (
-    <div className="space-y-6">
+    <PageContainer>
       <PageHeader
         title="Despesas"
         description="Acompanhe suas despesas"
@@ -201,11 +235,18 @@ export default function Expenses() {
       />
 
       <div className="bg-card border rounded-xl p-4 space-y-4">
-        <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-muted-foreground" />
-          <span className="font-semibold">Filtros</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-muted-foreground" />
+            <span className="font-semibold">Filtros</span>
+          </div>
+          {(searchTerm || categoryFilter !== 'all' || statusFilter !== 'all' || startDate || endDate || selectedAccounts.length > 0) && (
+            <Button variant="ghost" size="sm" onClick={clearFilters}>
+              Limpar Filtros
+            </Button>
+          )}
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <Input
             placeholder="Buscar por descrição..."
             value={searchTerm}
@@ -234,6 +275,56 @@ export default function Expenses() {
               <SelectItem value="pending">Pendente</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-1">
+            <label className="text-sm text-muted-foreground">Data Inicial</label>
+            <DatePicker
+              value={startDate}
+              onChange={setStartDate}
+              placeholder="De..."
+              clearable
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm text-muted-foreground">Data Final</label>
+            <DatePicker
+              value={endDate}
+              onChange={setEndDate}
+              placeholder="Até..."
+              clearable
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm text-muted-foreground">Contas</label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-full justify-between">
+                  {selectedAccounts.length === 0
+                    ? 'Todas as Contas'
+                    : `${selectedAccounts.length} conta(s) selecionada(s)`}
+                  <ChevronDown className="w-4 h-4 ml-2" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-2">
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {accounts.map((account) => (
+                    <div
+                      key={account.id}
+                      className="flex items-center gap-2 p-2 hover:bg-accent rounded cursor-pointer"
+                      onClick={() => toggleAccount(account.id)}
+                    >
+                      <Checkbox
+                        checked={selectedAccounts.includes(account.id)}
+                        onCheckedChange={() => toggleAccount(account.id)}
+                      />
+                      <span className="text-sm">{account.account_name}</span>
+                    </div>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
         <div className="flex justify-between items-center pt-2 border-t">
           <span className="text-sm text-muted-foreground">
@@ -274,6 +365,6 @@ export default function Expenses() {
           <ExpenseForm expense={selectedExpense} accounts={accounts} loans={loans} onSubmit={handleSubmit} onCancel={() => setIsDialogOpen(false)} isLoading={isSubmitting} />
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   );
 }

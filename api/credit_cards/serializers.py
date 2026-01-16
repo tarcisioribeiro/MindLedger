@@ -151,16 +151,53 @@ class CreditCardBillsSerializer(serializers.ModelSerializer):
         - paid_amount = 0
         - status = 'open'
         - closed = False
+        - due_date = calculado automaticamente se não fornecido
         """
+        from datetime import date
+        import calendar
+
         validated_data['total_amount'] = 0
         validated_data['minimum_payment'] = 0
         validated_data['paid_amount'] = 0
         validated_data['status'] = 'open'
         validated_data['closed'] = False
+
+        # Calcular due_date automaticamente se não fornecido
+        if not validated_data.get('due_date'):
+            credit_card = validated_data.get('credit_card')
+            if credit_card and hasattr(credit_card, 'due_day') and credit_card.due_day:
+                year_str = validated_data.get('year', str(date.today().year))
+                month_str = validated_data.get('month', 'Jan')
+                month_map = {
+                    'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4,
+                    'May': 5, 'Jun': 6, 'Jul': 7, 'Aug': 8,
+                    'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
+                }
+                year = int(year_str)
+                month = month_map.get(month_str, 1)
+
+                # Vencimento é no mês seguinte ao da fatura
+                due_month = month + 1 if month < 12 else 1
+                due_year = year if month < 12 else year + 1
+
+                # Ajustar dia se exceder dias do mês
+                due_day = credit_card.due_day
+                max_day = calendar.monthrange(due_year, due_month)[1]
+                if due_day > max_day:
+                    due_day = max_day
+
+                validated_data['due_date'] = date(due_year, due_month, due_day)
+
         return super().create(validated_data)
 
 
 class CreditCardExpensesSerializer(serializers.ModelSerializer):
+    value = serializers.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        coerce_to_string=False
+    )
+
     class Meta:
         model = CreditCardExpense
         fields = '__all__'

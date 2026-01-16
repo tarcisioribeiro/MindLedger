@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, Filter, ShoppingCart } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Plus, Pencil, Trash2, Filter, ShoppingCart, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CreditCardExpenseForm } from '@/components/credit-cards/CreditCardExpenseForm';
@@ -10,11 +11,14 @@ import { creditCardsService } from '@/services/credit-cards-service';
 import { creditCardBillsService } from '@/services/credit-card-bills-service';
 import { useToast } from '@/hooks/use-toast';
 import { useAlertDialog } from '@/hooks/use-alert-dialog';
-import { translate, TRANSLATIONS } from '@/config/constants';
+import { translate, TRANSLATIONS, EXPENSE_CATEGORIES_CANONICAL } from '@/config/constants';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import { PageHeader } from '@/components/common/PageHeader';
 import { DataTable, type Column } from '@/components/common/DataTable';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import type { CreditCardExpense, CreditCardExpenseFormData, CreditCard, CreditCardBill } from '@/types';
+import { PageContainer } from '@/components/common/PageContainer';
 
 export default function CreditCardExpenses() {
   const [expenses, setExpenses] = useState<CreditCardExpense[]>([]);
@@ -26,8 +30,10 @@ export default function CreditCardExpenses() {
   const [selectedExpense, setSelectedExpense] = useState<CreditCardExpense | undefined>();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cardFilter, setCardFilter] = useState<string>('all');
+  const [billFilter, setBillFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [viewMode, setViewMode] = useState<'list' | 'grouped'>('grouped');
   const { toast } = useToast();
   const { showConfirm } = useAlertDialog();
 
@@ -37,7 +43,23 @@ export default function CreditCardExpenses() {
 
   useEffect(() => {
     filterExpenses();
-  }, [cardFilter, categoryFilter, statusFilter, expenses]);
+  }, [cardFilter, billFilter, categoryFilter, statusFilter, expenses]);
+
+  // Faturas filtradas pelo cartão selecionado
+  const availableBills = useMemo(() => {
+    if (cardFilter === 'all') return bills;
+    return bills.filter(b => b.credit_card.toString() === cardFilter);
+  }, [cardFilter, bills]);
+
+  // Reset bill filter when card changes
+  useEffect(() => {
+    if (cardFilter !== 'all') {
+      const currentBillValid = availableBills.some(b => b.id.toString() === billFilter);
+      if (!currentBillValid) {
+        setBillFilter('all');
+      }
+    }
+  }, [cardFilter, availableBills, billFilter]);
 
   const loadData = async () => {
     try {
@@ -61,36 +83,56 @@ export default function CreditCardExpenses() {
   const filterExpenses = () => {
     let filtered = [...expenses];
     if (cardFilter !== 'all') filtered = filtered.filter(e => e.card.toString() === cardFilter);
+    if (billFilter !== 'all') filtered = filtered.filter(e => e.bill?.toString() === billFilter);
     if (categoryFilter !== 'all') filtered = filtered.filter(e => e.category === categoryFilter);
     if (statusFilter !== 'all') filtered = filtered.filter(e => statusFilter === 'paid' ? e.payed : !e.payed);
     setFilteredExpenses(filtered);
   };
+
+  // Agrupar despesas por mês
+  const expensesByMonth = useMemo(() => {
+    const grouped: Record<string, CreditCardExpense[]> = {};
+
+    filteredExpenses.forEach(expense => {
+      const date = new Date(expense.date);
+      const monthKey = format(date, 'yyyy-MM');
+
+      if (!grouped[monthKey]) {
+        grouped[monthKey] = [];
+      }
+      grouped[monthKey].push(expense);
+    });
+
+    // Ordenar por data decrescente
+    return Object.entries(grouped)
+      .sort(([a], [b]) => b.localeCompare(a))
+      .map(([key, monthExpenses]) => ({
+        key,
+        label: format(new Date(key + '-01'), 'MMMM yyyy', { locale: ptBR }),
+        expenses: monthExpenses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+        total: monthExpenses.reduce((sum, e) => sum + parseFloat(e.value), 0)
+      }));
+  }, [filteredExpenses]);
 
   const handleSubmit = async (data: CreditCardExpenseFormData) => {
     try {
       setIsSubmitting(true);
 
       if (selectedExpense) {
-        // Modo edição: atualizar despesa existente
         await creditCardExpensesService.update(selectedExpense.id, data);
         toast({ title: 'Despesa atualizada', description: 'A despesa foi atualizada com sucesso.' });
       } else {
-        // Modo criação: implementar parcelamento automático
         const totalInstallments = data.total_installments || 1;
 
         if (totalInstallments > 1) {
-          // Criar múltiplas despesas (parcelamento)
           const installmentValue = data.value / totalInstallments;
           const baseDate = new Date(data.date);
-
           const promises = [];
 
           for (let i = 0; i < totalInstallments; i++) {
-            // Calcular data da parcela (adicionar 30 dias por parcela)
             const installmentDate = new Date(baseDate);
             installmentDate.setDate(installmentDate.getDate() + (i * 30));
 
-            // Determinar a fatura correta para esta parcela
             let installmentBill = data.bill;
             if (bills.length > 0) {
               const matchingBill = bills.find(b => {
@@ -111,7 +153,7 @@ export default function CreditCardExpenses() {
               installment: i + 1,
               total_installments: totalInstallments,
               bill: installmentBill,
-              payed: false, // Sempre criar como não paga
+              payed: false,
             };
 
             promises.push(creditCardExpensesService.create(installmentData));
@@ -123,12 +165,11 @@ export default function CreditCardExpenses() {
             description: `${totalInstallments} parcelas foram criadas com sucesso.`,
           });
         } else {
-          // Pagamento à vista (1 parcela)
           const expenseData = {
             ...data,
             installment: 1,
             total_installments: 1,
-            payed: false, // Sempre criar como não paga
+            payed: false,
           };
           await creditCardExpensesService.create(expenseData);
           toast({ title: 'Despesa criada', description: 'A despesa foi criada com sucesso.' });
@@ -175,13 +216,23 @@ export default function CreditCardExpenses() {
     }
   };
 
+  const getCardDisplayName = (cardId: number) => {
+    const card = creditCards.find(c => c.id === cardId);
+    if (card) {
+      const digitsOnly = card.card_number_masked?.replace(/[^\d]/g, '') || '';
+      const last4 = digitsOnly.length >= 4 ? digitsOnly.slice(-4) : '****';
+      const brandName = TRANSLATIONS.cardBrands[card.flag as keyof typeof TRANSLATIONS.cardBrands] || card.flag;
+      return `${card.name} **** ${last4} - ${brandName}`;
+    }
+    return 'N/A';
+  };
+
   const getCardName = (cardId: number) => {
     const card = creditCards.find(c => c.id === cardId);
     if (card) {
-      // Extrai apenas os dígitos do número mascarado
-      const digitsOnly = card.card_number_masked ? card.card_number_masked.replace(/[^\d]/g, '') : '';
-      const last4 = digitsOnly && digitsOnly.length >= 4 ? digitsOnly.slice(-4) : '****';
-      return `${card.on_card_name} ****${last4}`;
+      const digitsOnly = card.card_number_masked?.replace(/[^\d]/g, '') || '';
+      const last4 = digitsOnly.length >= 4 ? digitsOnly.slice(-4) : '****';
+      return `${card.name} **** ${last4}`;
     }
     return 'N/A';
   };
@@ -193,7 +244,6 @@ export default function CreditCardExpenses() {
     setIsDialogOpen(true);
   };
 
-  // Definir colunas da tabela
   const columns: Column<CreditCardExpense>[] = [
     {
       key: 'description',
@@ -257,8 +307,11 @@ export default function CreditCardExpenses() {
     },
   ];
 
+  // Colunas simplificadas para visualização agrupada (sem coluna de data)
+  const groupedColumns: Column<CreditCardExpense>[] = columns.filter(c => c.key !== 'date');
+
   return (
-    <div className="space-y-6">
+    <PageContainer>
       <PageHeader
         title="Despesas de Cartão"
         description="Gerencie suas despesas de cartão de crédito"
@@ -271,17 +324,46 @@ export default function CreditCardExpenses() {
       />
 
       <div className="bg-card border rounded-xl p-4 space-y-4">
-        <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-muted-foreground" />
-          <span className="font-semibold">Filtros</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-muted-foreground" />
+            <span className="font-semibold">Filtros</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Visualização:</span>
+            <Select value={viewMode} onValueChange={(v) => setViewMode(v as 'list' | 'grouped')}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="grouped">Por Mês</SelectItem>
+                <SelectItem value="list">Lista</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Select value={cardFilter} onValueChange={setCardFilter}>
             <SelectTrigger><SelectValue placeholder="Todos os Cartões" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos os Cartões</SelectItem>
               {creditCards.map((c) => (
-                <SelectItem key={c.id} value={c.id.toString()}>{c.on_card_name || c.card_number_masked}</SelectItem>
+                <SelectItem key={c.id} value={c.id.toString()}>
+                  {getCardDisplayName(c.id)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={billFilter} onValueChange={setBillFilter} disabled={availableBills.length === 0}>
+            <SelectTrigger>
+              <SelectValue placeholder={availableBills.length === 0 ? "Nenhuma fatura" : "Todas as Faturas"} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as Faturas</SelectItem>
+              {availableBills.map((b) => (
+                <SelectItem key={b.id} value={b.id.toString()}>
+                  {TRANSLATIONS.months[b.month as keyof typeof TRANSLATIONS.months]}/{b.year}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -289,8 +371,8 @@ export default function CreditCardExpenses() {
             <SelectTrigger><SelectValue placeholder="Todas as Categorias" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas as Categorias</SelectItem>
-              {Object.entries(TRANSLATIONS.expenseCategories).map(([k, v]) => (
-                <SelectItem key={k} value={k}>{v}</SelectItem>
+              {EXPENSE_CATEGORIES_CANONICAL.map(({ key, label }) => (
+                <SelectItem key={key} value={key}>{label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -309,25 +391,72 @@ export default function CreditCardExpenses() {
         </div>
       </div>
 
-      <DataTable
-        data={filteredExpenses}
-        columns={columns}
-        keyExtractor={(expense) => expense.id}
-        isLoading={isLoading}
-        emptyState={{
-          message: 'Nenhuma despesa encontrada.',
-        }}
-        actions={(expense) => (
-          <div className="flex items-center justify-end gap-2">
-            <Button variant="ghost" size="icon" onClick={() => handleEdit(expense)}>
-              <Pencil className="w-4 h-4" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={() => handleDelete(expense.id)}>
-              <Trash2 className="w-4 h-4 text-destructive" />
-            </Button>
-          </div>
-        )}
-      />
+      {viewMode === 'grouped' ? (
+        <div className="space-y-6">
+          {expensesByMonth.length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground">
+                Nenhuma despesa encontrada.
+              </CardContent>
+            </Card>
+          ) : (
+            expensesByMonth.map(({ key, label, expenses: monthExpenses, total }) => (
+              <Card key={key}>
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2 text-lg capitalize">
+                      <Calendar className="w-5 h-5 text-primary" />
+                      {label}
+                    </CardTitle>
+                    <span className="text-lg font-bold text-destructive">
+                      {formatCurrency(total)}
+                    </span>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <DataTable
+                    data={monthExpenses}
+                    columns={groupedColumns}
+                    keyExtractor={(expense) => expense.id}
+                    isLoading={false}
+                    emptyState={{ message: 'Nenhuma despesa.' }}
+                    actions={(expense) => (
+                      <div className="flex items-center justify-end gap-2">
+                        <Button variant="ghost" size="icon" onClick={() => handleEdit(expense)}>
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDelete(expense.id)}>
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </Button>
+                      </div>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
+      ) : (
+        <DataTable
+          data={filteredExpenses}
+          columns={columns}
+          keyExtractor={(expense) => expense.id}
+          isLoading={isLoading}
+          emptyState={{
+            message: 'Nenhuma despesa encontrada.',
+          }}
+          actions={(expense) => (
+            <div className="flex items-center justify-end gap-2">
+              <Button variant="ghost" size="icon" onClick={() => handleEdit(expense)}>
+                <Pencil className="w-4 h-4" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => handleDelete(expense.id)}>
+                <Trash2 className="w-4 h-4 text-destructive" />
+              </Button>
+            </div>
+          )}
+        />
+      )}
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto custom-scrollbar">
@@ -345,6 +474,6 @@ export default function CreditCardExpenses() {
           />
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   );
 }

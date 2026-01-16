@@ -20,6 +20,7 @@ import {
 import { PageHeader } from '@/components/common/PageHeader';
 import { LoadingState } from '@/components/common/LoadingState';
 import { ReadingForm } from '@/components/library/ReadingForm';
+import { PageContainer } from '@/components/common/PageContainer';
 
 export default function Readings() {
   const [readings, setReadings] = useState<Reading[]>([]);
@@ -141,7 +142,7 @@ export default function Readings() {
   }
 
   return (
-    <div className="space-y-6">
+    <PageContainer>
       <PageHeader
         title="Leituras"
         description="Acompanhe seu progresso de leitura"
@@ -175,30 +176,31 @@ export default function Readings() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredReadings.map((reading) => (
             <Card key={reading.id}>
-              <CardHeader>
+              <CardHeader className="pb-2">
                 <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <BookOpen className="w-5 h-5 text-muted-foreground" />
-                      <CardTitle className="text-xl">{reading.book_title}</CardTitle>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <BookOpen className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                      <CardTitle className="text-base truncate">{reading.book_title}</CardTitle>
                     </div>
-                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
+                        <Calendar className="w-3 h-3" />
                         {formatDate(reading.reading_date, 'dd/MM/yyyy')}
                       </div>
-                      <Badge variant="secondary">
-                        {reading.pages_read} páginas lidas
+                      <Badge variant="secondary" className="text-xs">
+                        {reading.pages_read} pág.
                       </Badge>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1 flex-shrink-0">
                     <Button
                       variant="ghost"
                       size="icon"
+                      className="h-8 w-8"
                       onClick={() => handleEdit(reading)}
                     >
                       <Edit className="w-4 h-4" />
@@ -206,6 +208,7 @@ export default function Readings() {
                     <Button
                       variant="ghost"
                       size="icon"
+                      className="h-8 w-8"
                       onClick={() => handleDelete(reading.id)}
                     >
                       <Trash2 className="w-4 h-4" />
@@ -213,13 +216,13 @@ export default function Readings() {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-3">
-                {reading.notes && (
-                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+              {reading.notes && (
+                <CardContent className="pt-0">
+                  <p className="text-sm text-muted-foreground line-clamp-3">
                     {reading.notes}
                   </p>
-                )}
-              </CardContent>
+                </CardContent>
+              )}
             </Card>
           ))}
         </div>
@@ -246,6 +249,6 @@ export default function Readings() {
           />
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   );
 }

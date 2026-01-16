@@ -1,3 +1,14 @@
+# =============================================================================
+# PersonalHub - Docker Compose
+# =============================================================================
+# Serviços:
+# - db: PostgreSQL com pgvector para armazenamento de vetores
+# - redis: Cache para sessões e cache semântico
+# - embeddings: Serviço independente de geração de embeddings (sentence-transformers)
+# - api: Django REST Framework backend
+# - frontend: React frontend
+# =============================================================================
+
 services:
   # PostgreSQL Database with pgvector extension
   db:
@@ -42,6 +53,44 @@ services:
     networks:
       - personalhub-network
 
+  # =============================================================================
+  # Embeddings Service - Serviço independente de geração de embeddings
+  # =============================================================================
+  # Este serviço roda sentence-transformers em um container separado.
+  # Benefícios:
+  # - Build do container api muito mais rápido (sem download do modelo)
+  # - Serviço reutilizável por outros projetos
+  # - Modelo pré-baixado durante build (startup instantâneo)
+  # - Escalável independentemente do backend
+  # =============================================================================
+  embeddings:
+    build:
+      context: ./embeddings-service
+      dockerfile: Dockerfile
+    container_name: personalhub-embeddings
+    ports:
+      - "${EMBEDDING_PORT:-8080}:8080"
+    volumes:
+      # Cache persistente de modelos HuggingFace
+      # Evita re-download do modelo se o volume for mantido
+      - embeddings_models:/app/models
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      # Modelo pode demorar para carregar na primeira vez
+      start_period: 120s
+    networks:
+      - personalhub-network
+    # Limites de recursos (CPU-only, sem GPU)
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
 
   # Django API Backend
   api:
@@ -60,10 +109,14 @@ services:
       - PYTHONUNBUFFERED=1
       - DJANGO_SETTINGS_MODULE=app.settings
       - REDIS_URL=redis://redis:6379/0
+      # URL do serviço de embeddings (container interno)
+      - EMBEDDING_SERVICE_URL=http://embeddings:8080
     depends_on:
       db:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      embeddings:
         condition: service_healthy
     volumes:
       - ./api:/app
@@ -110,6 +163,10 @@ volumes:
   postgres_data:
     driver: local
   redis_data:
+    driver: local
+  # Cache de modelos HuggingFace para o serviço de embeddings
+  # Persiste o modelo entre restarts para evitar re-download
+  embeddings_models:
     driver: local
 
 networks:

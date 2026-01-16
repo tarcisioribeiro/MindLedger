@@ -31,6 +31,7 @@ import { PageHeader } from '@/components/common/PageHeader';
 import { LoadingState } from '@/components/common/LoadingState';
 import { SearchInput } from '@/components/common/SearchInput';
 import type { Loan, LoanFormData, Account, Member } from '@/types';
+import { PageContainer } from '@/components/common/PageContainer';
 
 import { formatLocalDate } from '@/lib/utils';
 const EXPENSE_CATEGORIES = [
@@ -240,7 +241,7 @@ export default function Loans() {
   }
 
   return (
-    <div className="space-y-6">
+    <PageContainer>
       <PageHeader
         title="Empréstimos"
         description="Gerencie seus empréstimos"
@@ -268,7 +269,7 @@ export default function Loans() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredLoans.map((loan) => (
-            <div key={loan.id} className="p-4 border rounded-lg space-y-3 hover:shadow-md transition-shadow">
+            <div key={loan.id} className="p-4 bg-card border rounded-lg space-y-3 hover:shadow-md transition-shadow">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <h3 className="font-semibold">{loan.description}</h3>
@@ -615,6 +616,6 @@ export default function Loans() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   );
 }

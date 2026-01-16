@@ -18,6 +18,7 @@ import { formatCurrency, formatDate } from '@/lib/formatters';
 import { PageHeader } from '@/components/common/PageHeader';
 import { DataTable, type Column } from '@/components/common/DataTable';
 import type { Account, AccountFormData } from '@/types';
+import { PageContainer } from '@/components/common/PageContainer';
 
 export default function Accounts() {
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -166,7 +167,7 @@ export default function Accounts() {
   ];
 
   return (
-    <div className="space-y-6">
+    <PageContainer>
       <PageHeader
         title="Contas Bancárias"
         description="Gerencie suas contas bancárias"
@@ -213,6 +214,6 @@ export default function Accounts() {
           <AccountForm account={selectedAccount} onSubmit={handleSubmit} onCancel={() => setIsDialogOpen(false)} isLoading={isSubmitting} />
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   );
 }

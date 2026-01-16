@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAlertDialog } from '@/hooks/use-alert-dialog';
 import type { Member, MemberFormData } from '@/types';
 import { format } from 'date-fns';
+import { PageContainer } from '@/components/common/PageContainer';
 
 export default function Members() {
   const [members, setMembers] = useState<Member[]>([]);
@@ -79,7 +80,7 @@ export default function Members() {
   }
 
   return (
-    <div className="space-y-6">
+    <PageContainer>
       <PageHeader
         title="Membros"
         description="Gerencie membros do sistema"
@@ -151,6 +152,6 @@ export default function Members() {
           <MemberForm member={selectedMember} onSubmit={handleSubmit} onCancel={() => setIsDialogOpen(false)} isLoading={isSubmitting} />
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   );
 }

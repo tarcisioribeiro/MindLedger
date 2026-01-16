@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAlertDialog } from '@/hooks/use-alert-dialog';
 import { authorsService } from '@/services/authors-service';
 import type { Author, AuthorFormData } from '@/types';
-import { Plus, Edit, Trash2, BookOpen, User, UserPen } from 'lucide-react';
+import { Plus, Edit, Trash2, BookOpen, User, UserPen, Calendar } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -17,6 +17,7 @@ import {
 import { PageHeader } from '@/components/common/PageHeader';
 import { LoadingState } from '@/components/common/LoadingState';
 import { AuthorForm } from '@/components/library/AuthorForm';
+import { PageContainer } from '@/components/common/PageContainer';
 
 export default function Authors() {
   const [authors, setAuthors] = useState<Author[]>([]);
@@ -125,7 +126,7 @@ export default function Authors() {
   }
 
   return (
-    <div className="space-y-6">
+    <PageContainer>
       <PageHeader
         title="Autores"
         description="Gerencie os autores da sua biblioteca"
@@ -189,6 +190,24 @@ export default function Authors() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
+                {(author.birth_year || author.death_year) && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Calendar className="w-4 h-4" />
+                    <span>
+                      {author.birth_year && (
+                        <>
+                          {author.birth_year} {author.birth_era_display || ''}
+                        </>
+                      )}
+                      {author.death_year && (
+                        <>
+                          {' - '}
+                          {author.death_year} {author.death_era_display || ''}
+                        </>
+                      )}
+                    </span>
+                  </div>
+                )}
                 {author.biography && (
                   <p className="text-sm text-muted-foreground line-clamp-3">
                     {author.biography}
@@ -226,6 +245,6 @@ export default function Authors() {
           />
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   );
 }

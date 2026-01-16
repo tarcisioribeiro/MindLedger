@@ -187,7 +187,12 @@ CACHES = {
     }
 }
 
-# Embedding Configuration (using sentence-transformers - local, fast, free)
+# Embedding Service Configuration
+# URL do serviço de embeddings (container separado)
+# - Se definido: usa HTTP client para chamar serviço externo
+# - Se 'local' ou não definido: usa sentence-transformers local (requer instalação)
+EMBEDDING_SERVICE_URL = os.getenv('EMBEDDING_SERVICE_URL', 'http://embeddings:8080')
+
 EMBEDDING_CONFIG = {
     'MODEL': 'all-MiniLM-L6-v2',  # Fast, multilingual, 384 dimensions
     'DIMENSIONS': 384,

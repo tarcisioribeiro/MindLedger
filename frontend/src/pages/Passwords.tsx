@@ -36,6 +36,7 @@ import { PageHeader } from '@/components/common/PageHeader';
 import { LoadingState } from '@/components/common/LoadingState';
 import type { Password, PasswordFormData, Member } from '@/types';
 import { PASSWORD_CATEGORIES } from '@/types';
+import { PageContainer } from '@/components/common/PageContainer';
 
 export default function Passwords() {
   const [passwords, setPasswords] = useState<Password[]>([]);
@@ -246,7 +247,7 @@ export default function Passwords() {
   }
 
   return (
-    <div className="space-y-6">
+    <PageContainer>
       <PageHeader
         title="Senhas"
         description="Gerencie suas senhas de forma segura e criptografada"
@@ -493,6 +494,6 @@ export default function Passwords() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   );
 }

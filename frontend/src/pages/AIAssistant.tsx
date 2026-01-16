@@ -242,7 +242,7 @@ export default function AIAssistant() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)]">
+    <div className="container mx-auto px-4 py-8 flex flex-col h-[calc(100vh-8rem)]">
       <PageHeader
         title="AI Assistant"
         description="Converse naturalmente sobre seus dados pessoais"

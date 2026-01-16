@@ -28,6 +28,7 @@ import { PageHeader } from '@/components/common/PageHeader';
 import { LoadingState } from '@/components/common/LoadingState';
 import { BookForm } from '@/components/library/BookForm';
 import type { Book, BookFormData, Author, Publisher } from '@/types';
+import { PageContainer } from '@/components/common/PageContainer';
 
 export default function Books() {
   const [books, setBooks] = useState<Book[]>([]);
@@ -190,7 +191,7 @@ export default function Books() {
   }
 
   return (
-    <div className="space-y-6">
+    <PageContainer>
       <PageHeader
         title="Biblioteca"
         description="Gerencie sua coleção de livros"
@@ -349,6 +350,6 @@ export default function Books() {
           />
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   );
 }

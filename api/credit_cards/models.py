@@ -372,7 +372,7 @@ class CreditCardExpense(BaseModel):
         blank=False,
         null=False,
         decimal_places=2,
-        max_digits=10
+        max_digits=12
     )
     date = models.DateField(
         null=False,

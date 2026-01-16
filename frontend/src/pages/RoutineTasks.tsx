@@ -19,6 +19,7 @@ import { useAlertDialog } from '@/hooks/use-alert-dialog';
 import type { RoutineTask } from '@/types';
 import { routineTaskSchema } from '@/lib/validations';
 import { z } from 'zod';
+import { PageContainer } from '@/components/common/PageContainer';
 
 type RoutineTaskFormData = z.infer<typeof routineTaskSchema>;
 
@@ -222,7 +223,7 @@ export default function RoutineTasks() {
   }
 
   return (
-    <div className="space-y-6">
+    <PageContainer>
       <PageHeader
         title="Tarefas Rotineiras"
         description="Gerencie suas tarefas e hábitos diários"
@@ -266,6 +267,6 @@ export default function RoutineTasks() {
           />
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   );
 }

@@ -20,6 +20,7 @@ import { translate } from '@/config/constants';
 import { PageHeader } from '@/components/common/PageHeader';
 import { DataTable, type Column } from '@/components/common/DataTable';
 import type { StoredCreditCard, StoredCreditCardFormData, CreditCard, Member } from '@/types';
+import { PageContainer } from '@/components/common/PageContainer';
 
 export default function StoredCards() {
   const [cards, setCards] = useState<StoredCreditCard[]>([]);
@@ -278,7 +279,7 @@ export default function StoredCards() {
   ];
 
   return (
-    <div className="space-y-6">
+    <PageContainer>
       <PageHeader
         title="Cartões Armazenados"
         description="Gerencie os dados dos seus cartões de crédito de forma segura"
@@ -361,6 +362,6 @@ export default function StoredCards() {
           />
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   );
 }

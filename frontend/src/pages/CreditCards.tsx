@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, CreditCard as CreditCardIcon } from 'lucide-react';
+import { Plus, Pencil, Trash2, CreditCard as CreditCardIcon, Calendar, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { CreditCardForm } from '@/components/credit-cards/CreditCardForm';
 import { creditCardsService } from '@/services/credit-cards-service';
@@ -12,8 +13,9 @@ import { translate } from '@/config/constants';
 import { formatCurrency } from '@/lib/formatters';
 import { sumByProperty } from '@/lib/helpers';
 import { PageHeader } from '@/components/common/PageHeader';
-import { DataTable, type Column } from '@/components/common/DataTable';
+import { LoadingState } from '@/components/common/LoadingState';
 import type { CreditCard, CreditCardFormData, Account } from '@/types';
+import { PageContainer } from '@/components/common/PageContainer';
 
 export default function CreditCards() {
   const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
@@ -107,60 +109,24 @@ export default function CreditCards() {
     setIsDialogOpen(true);
   };
 
-  // Definir colunas da tabela
-  const columns: Column<CreditCard>[] = [
-    {
-      key: 'name',
-      label: 'Cartão',
-      render: (card) => <div className="font-medium">{card.name}</div>,
-    },
-    {
-      key: 'flag',
-      label: 'Bandeira',
-      render: (card) => <Badge>{translate('cardBrands', card.flag)}</Badge>,
-    },
-    {
-      key: 'card_number_masked',
-      label: 'Número',
-      render: (card) => {
-        const masked = card.card_number_masked || '****';
+  const getCardNumber = (card: CreditCard) => {
+    const masked = card.card_number_masked || '****';
+    if (masked === '****' || masked.replace(/\*/g, '') === '') {
+      return null;
+    }
+    const digitsOnly = masked.replace(/[^\d]/g, '');
+    if (!digitsOnly || digitsOnly.length < 4) {
+      return null;
+    }
+    return `**** ${digitsOnly.slice(-4)}`;
+  };
 
-        // Se é apenas asteriscos ou vazio, mostra "Não cadastrado"
-        if (masked === '****' || masked.replace(/\*/g, '') === '') {
-          return <span className="font-mono text-sm text-muted-foreground">Não cadastrado</span>;
-        }
-
-        // Extrai apenas os dígitos do número mascarado
-        const digitsOnly = masked.replace(/[^\d]/g, '');
-
-        // Se não tem dígitos ou tem menos de 4, mostra "Não cadastrado"
-        if (!digitsOnly || digitsOnly.length < 4) {
-          return <span className="font-mono text-sm text-muted-foreground">Não cadastrado</span>;
-        }
-
-        // Pega os últimos 4 dígitos
-        const last4 = digitsOnly.slice(-4);
-        return <span className="font-mono text-sm">**** {last4}</span>;
-      },
-    },
-    {
-      key: 'credit_limit',
-      label: 'Limite',
-      align: 'right',
-      render: (card) => (
-        <span className="font-semibold">{formatCurrency(card.credit_limit)}</span>
-      ),
-    },
-    {
-      key: 'due_day',
-      label: 'Vencimento',
-      align: 'center',
-      render: (card) => <span className="text-sm">Dia {card.due_day}</span>,
-    },
-  ];
+  if (isLoading) {
+    return <LoadingState />;
+  }
 
   return (
-    <div className="space-y-6">
+    <PageContainer>
       <PageHeader
         title="Cartões de Crédito"
         description="Gerencie seus cartões de crédito"
@@ -179,25 +145,74 @@ export default function CreditCards() {
         <span className="text-lg font-bold">Limite Total: {formatCurrency(totalLimit)}</span>
       </div>
 
-      <DataTable
-        data={creditCards}
-        columns={columns}
-        keyExtractor={(card) => card.id}
-        isLoading={isLoading}
-        emptyState={{
-          message: 'Nenhum cartão cadastrado.',
-        }}
-        actions={(card) => (
-          <div className="flex items-center justify-end gap-2">
-            <Button variant="ghost" size="icon" onClick={() => handleEdit(card)}>
-              <Pencil className="w-4 h-4" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={() => handleDelete(card.id)}>
-              <Trash2 className="w-4 h-4 text-destructive" />
-            </Button>
-          </div>
-        )}
-      />
+      {creditCards.length === 0 ? (
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <CreditCardIcon className="w-12 h-12 text-muted-foreground mb-4" />
+            <p className="text-lg font-medium mb-2">Nenhum cartão cadastrado</p>
+            <p className="text-sm text-muted-foreground mb-4">
+              Comece adicionando seu primeiro cartão de crédito
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {creditCards.map((card) => {
+            const cardNumber = getCardNumber(card);
+            return (
+              <Card key={card.id}>
+                <CardHeader className="pb-2">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <CardTitle className="text-lg">{card.name}</CardTitle>
+                        <Badge variant="secondary">{translate('cardBrands', card.flag)}</Badge>
+                      </div>
+                      {cardNumber && (
+                        <p className="font-mono text-sm text-muted-foreground">{cardNumber}</p>
+                      )}
+                      {card.on_card_name && (
+                        <p className="text-sm text-muted-foreground">{card.on_card_name}</p>
+                      )}
+                    </div>
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(card)}>
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDelete(card.id)}>
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Wallet className="w-4 h-4" />
+                      <span>Limite</span>
+                    </div>
+                    <span className="font-semibold">{formatCurrency(card.credit_limit)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Calendar className="w-4 h-4" />
+                      <span>Vencimento</span>
+                    </div>
+                    <span className="text-sm">Dia {card.due_day}</span>
+                  </div>
+                  {card.associated_account_name && (
+                    <div className="pt-2 border-t">
+                      <p className="text-xs text-muted-foreground">
+                        Conta: {card.associated_account_name}
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl">
@@ -208,6 +223,6 @@ export default function CreditCards() {
           <CreditCardForm creditCard={selectedCard} accounts={accounts} onSubmit={handleSubmit} onCancel={() => setIsDialogOpen(false)} isLoading={isSubmitting} />
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   );
 }

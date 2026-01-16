@@ -1,4 +1,5 @@
 import { useForm } from 'react-hook-form';
+import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,6 +9,7 @@ import { TRANSLATIONS } from '@/config/constants';
 import type { Transfer, TransferFormData, Account } from '@/types';
 
 import { formatLocalDate } from '@/lib/utils';
+
 interface TransferFormProps {
   transfer?: Transfer;
   accounts: Account[];
@@ -36,6 +38,45 @@ export const TransferForm: React.FC<TransferFormProps> = ({ transfer, accounts, 
       destiny_account: undefined,
     },
   });
+
+  const watchedOriginAccount = watch('origin_account');
+
+  // Auto-selecionar contas ao abrir o formulário (modo criação)
+  useEffect(() => {
+    if (!transfer && accounts.length > 0) {
+      const currentOrigin = watch('origin_account');
+      const currentDestiny = watch('destiny_account');
+
+      // Auto-selecionar conta de origem (primeira conta)
+      if (!currentOrigin && accounts.length > 0) {
+        setValue('origin_account', accounts[0].id);
+      }
+
+      // Auto-selecionar conta de destino (segunda conta diferente da origem)
+      if (!currentDestiny && accounts.length > 1) {
+        const originId = currentOrigin || accounts[0].id;
+        const destinyAccount = accounts.find(a => a.id !== originId);
+        if (destinyAccount) {
+          setValue('destiny_account', destinyAccount.id);
+        }
+      }
+    }
+  }, [transfer, accounts.length]);
+
+  // Atualizar conta de destino quando conta de origem muda
+  useEffect(() => {
+    if (!transfer && watchedOriginAccount && accounts.length > 1) {
+      const currentDestiny = watch('destiny_account');
+
+      // Se a conta de destino atual é igual à nova origem, trocar
+      if (currentDestiny === watchedOriginAccount) {
+        const newDestiny = accounts.find(a => a.id !== watchedOriginAccount);
+        if (newDestiny) {
+          setValue('destiny_account', newDestiny.id);
+        }
+      }
+    }
+  }, [watchedOriginAccount]);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

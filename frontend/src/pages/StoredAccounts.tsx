@@ -19,6 +19,7 @@ import { useAlertDialog } from '@/hooks/use-alert-dialog';
 import { PageHeader } from '@/components/common/PageHeader';
 import { DataTable, type Column } from '@/components/common/DataTable';
 import type { StoredBankAccount, StoredBankAccountFormData, Account, Member } from '@/types';
+import { PageContainer } from '@/components/common/PageContainer';
 
 const ACCOUNT_TYPES: Record<string, string> = {
   CC: 'Conta Corrente',
@@ -292,7 +293,7 @@ export default function StoredAccounts() {
   ];
 
   return (
-    <div className="space-y-6">
+    <PageContainer>
       <PageHeader
         title="Contas Bancárias"
         description="Armazene dados das suas contas bancárias com segurança"
@@ -375,6 +376,6 @@ export default function StoredAccounts() {
           />
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   );
 }

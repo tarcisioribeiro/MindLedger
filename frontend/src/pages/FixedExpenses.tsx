@@ -22,6 +22,7 @@ import { useAlertDialog } from '@/hooks/use-alert-dialog';
 import { formatCurrency } from '@/lib/formatters';
 import { TRANSLATIONS } from '@/config/constants';
 import type { FixedExpense, FixedExpenseFormData, Account, CreditCard } from '@/types';
+import { PageContainer } from '@/components/common/PageContainer';
 
 export default function FixedExpenses() {
   const [fixedExpenses, setFixedExpenses] = useState<FixedExpense[]>([]);
@@ -174,7 +175,7 @@ export default function FixedExpenses() {
   ];
 
   return (
-    <div className="space-y-6">
+    <PageContainer>
       <PageHeader
         title="Gastos Fixos Mensais"
         description="Gerencie suas despesas fixas mensais"
@@ -269,6 +270,6 @@ export default function FixedExpenses() {
         fixedExpenses={fixedExpenses.filter((e) => e.is_active)}
         onSuccess={loadData}
       />
-    </div>
+    </PageContainer>
   );
 }

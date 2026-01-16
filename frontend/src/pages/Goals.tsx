@@ -21,6 +21,7 @@ import { useAlertDialog } from '@/hooks/use-alert-dialog';
 import type { Goal, RoutineTask } from '@/types';
 import { goalSchema } from '@/lib/validations';
 import { z } from 'zod';
+import { PageContainer } from '@/components/common/PageContainer';
 
 type GoalFormData = z.infer<typeof goalSchema>;
 
@@ -233,7 +234,7 @@ export default function Goals() {
   }
 
   return (
-    <div className="space-y-6">
+    <PageContainer>
       <PageHeader
         title="Objetivos"
         description="Acompanhe seus objetivos e metas pessoais"
@@ -278,6 +279,6 @@ export default function Goals() {
           />
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   );
 }
