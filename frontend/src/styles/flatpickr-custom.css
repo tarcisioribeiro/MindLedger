@@ -25,9 +25,14 @@
   transform: translateY(-4px);
   /* Garante posicionamento acima de outros elementos */
   z-index: 9999 !important;
-  /* Posicionamento relativo ao container */
-  position: absolute !important;
   margin-top: 4px;
+}
+
+/* Modo static - calendário posicionado inline abaixo do input */
+.flatpickr-calendar.static {
+  position: absolute !important;
+  top: 100% !important;
+  left: 0 !important;
 }
 
 .flatpickr-calendar.open {

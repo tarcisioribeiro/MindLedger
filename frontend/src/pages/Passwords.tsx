@@ -359,7 +359,7 @@ export default function Passwords() {
 
       {filteredPasswords.length === 0 && (
         <div className="text-center py-12">
-          <p>Nenhuma senha encontrada.</p>
+          <p className="text-muted-foreground">Nenhuma senha encontrada.</p>
         </div>
       )}
 

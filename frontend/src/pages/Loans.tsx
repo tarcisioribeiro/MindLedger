@@ -263,7 +263,7 @@ export default function Loans() {
 
       {filteredLoans.length === 0 ? (
         <div className="text-center py-12 border rounded-lg bg-muted/30">
-          <p>Nenhum empréstimo encontrado.</p>
+          <p className="text-muted-foreground">Nenhum empréstimo encontrado.</p>
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

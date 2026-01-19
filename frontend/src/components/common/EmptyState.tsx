@@ -22,12 +22,12 @@ export const EmptyState: React.FC<EmptyStateProps> = ({ icon, title, message, ac
   return (
     <div className="bg-card border rounded-xl p-12 text-center space-y-4">
       {icon && (
-        <div className="flex justify-center opacity-50">
+        <div className="flex justify-center text-muted-foreground">
           {icon}
         </div>
       )}
       {title && <h3 className="text-lg font-semibold">{title}</h3>}
-      <p>{message}</p>
+      <p className="text-muted-foreground">{message}</p>
       {action && (
         <Button onClick={action.onClick} variant="outline" className="mt-4">
           {action.label}

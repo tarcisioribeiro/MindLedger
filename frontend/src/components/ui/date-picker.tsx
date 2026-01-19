@@ -86,10 +86,12 @@ export function DatePicker({
       disableMobile: true,
       defaultDate: dateValue,
       onChange: handleChange,
-      // Anexa o calendário ao container pai para posicionamento correto
-      appendTo: containerRef.current || undefined,
-      // Posição automática baseada no espaço disponível
-      position: 'auto',
+      // Posiciona o calendário abaixo do input usando posicionamento inline
+      // Isso garante que o calendário fique sempre junto ao campo
+      static: true,
+      wrap: false,
+      // Posição abaixo do input
+      positionElement: inputRef.current || undefined,
       // Parser customizado para aceitar DD/MM/YYYY digitado manualmente
       parseDate: (dateStr: string) => {
         const parsed = parseDateBR(dateStr);

@@ -185,10 +185,6 @@ export default function Accounts() {
         isLoading={isLoading}
         emptyState={{
           message: 'Nenhuma conta cadastrada. Clique em "Nova Conta" para começar.',
-          action: {
-            label: 'Nova Conta',
-            onClick: handleCreate,
-          },
         }}
         actions={(account) => (
           <div className="flex items-center justify-end gap-2">

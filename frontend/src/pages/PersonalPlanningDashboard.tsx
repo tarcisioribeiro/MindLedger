@@ -127,11 +127,11 @@ export default function PersonalPlanningDashboard() {
 
   if (!stats) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 space-y-6">
         <PageHeader
-          title="Dashboard - Planejamento Pessoal"
+          title="Dashboard de Planejamento Pessoal"
         />
-        <p className="text-center mt-8">
+        <p className="text-center text-muted-foreground">
           Nenhum dado disponível
         </p>
       </div>
@@ -139,13 +139,13 @@ export default function PersonalPlanningDashboard() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 space-y-6">
       <PageHeader
-        title="Dashboard - Planejamento Pessoal"
+        title="Dashboard de Planejamento Pessoal"
       />
 
       {/* Grid 1: 8 Cards de Métricas Principais */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Tarefas de Hoje"
           value={`${stats.completed_tasks_today} / ${stats.total_tasks_today}`}
@@ -196,7 +196,7 @@ export default function PersonalPlanningDashboard() {
       </div>
 
       {/* Grid 2: Gráficos de Visualização */}
-      <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2 mb-8">
+      <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
         {/* Gráfico 1: Progresso Semanal */}
         {weeklyProgressData.length > 0 && (
           <Card>
@@ -261,7 +261,7 @@ export default function PersonalPlanningDashboard() {
 
       {/* Grid 3: Progresso de Objetivos Ativos */}
       {stats.active_goals_progress && stats.active_goals_progress.length > 0 && (
-        <Card className="mb-8">
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Flag className="h-5 w-5" />
