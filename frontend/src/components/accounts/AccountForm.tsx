@@ -39,6 +39,7 @@ export const AccountForm: React.FC<AccountFormProps> = ({
           institution: account.institution as AccountFormData['institution'],
           account_number: '', // Can't show encrypted number
           balance: parseFloat(account.balance),
+          overdraft_limit: account.overdraft_limit ? parseFloat(account.overdraft_limit) : 0,
           owner: account.owner,
         }
       : {
@@ -47,6 +48,7 @@ export const AccountForm: React.FC<AccountFormProps> = ({
           institution: 'NUB',
           account_number: '',
           balance: 0,
+          overdraft_limit: 0,
           owner: 0,
         },
   });
@@ -153,6 +155,21 @@ export const AccountForm: React.FC<AccountFormProps> = ({
           />
           {errors.balance && (
             <p className="text-sm text-destructive">{errors.balance.message}</p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="overdraft_limit">Limite de Cheque Especial</Label>
+          <Input
+            id="overdraft_limit"
+            type="number"
+            step="0.01"
+            {...register('overdraft_limit', { valueAsNumber: true })}
+            placeholder="0.00"
+            disabled={isLoading}
+          />
+          {errors.overdraft_limit && (
+            <p className="text-sm text-destructive">{errors.overdraft_limit.message}</p>
           )}
         </div>
 

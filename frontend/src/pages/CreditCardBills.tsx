@@ -189,12 +189,16 @@ export default function CreditCardBills() {
 
     // Verifica se last4 contém apenas dígitos e tem 4 caracteres
     const isValidNumber = last4 !== '****' && /^\d{4}$/.test(last4);
-    const cardNumber = isValidNumber ? `**** ${last4}` : 'Não cadastrado';
+    const cardNumber = isValidNumber ? `**** ${last4}` : '';
 
-    const flag = bill.credit_card_flag ? translate('cardBrands', bill.credit_card_flag) : 'N/A';
-    const account = bill.credit_card_associated_account_name || 'N/A';
+    const flag = bill.credit_card_flag ? translate('cardBrands', bill.credit_card_flag) : '';
 
-    return `${cardholderName} ${cardNumber} - ${flag} - ${account}`;
+    // Formato: {nome_cartao} **** {4 últimos} - {bandeira}
+    const parts = [cardholderName];
+    if (cardNumber) parts.push(cardNumber);
+    if (flag) parts.push(`- ${flag}`);
+
+    return parts.join(' ');
   };
 
   const handleEdit = (bill: CreditCardBill) => {

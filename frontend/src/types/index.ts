@@ -41,6 +41,7 @@ export interface Account {
   institution: string;
   account_number_masked: string;
   balance: string;
+  overdraft_limit?: string;
   created_at: string;
   updated_at: string;
   owner: number;
@@ -53,6 +54,7 @@ export interface AccountFormData {
   institution: string;
   account_number: string;
   balance: number;
+  overdraft_limit?: number;
   owner: number;
 }
 
@@ -556,6 +558,21 @@ export interface AccountBalance {
   pending_revenues: number;
   pending_expenses: number;
   future_balance: number;
+}
+
+export interface BalanceForecast {
+  current_total_balance: number;
+  forecast_balance: number;
+  pending_expenses: number;
+  pending_revenues: number;
+  pending_card_bills: number;
+  loans_to_receive: number;
+  loans_to_pay: number;
+  summary: {
+    total_income: number;
+    total_outcome: number;
+    net_change: number;
+  };
 }
 
 export interface ChartData {

@@ -17,6 +17,8 @@ from accounts.models import Account
 from expenses.models import Expense
 from revenues.models import Revenue
 from credit_cards.models import CreditCard, CreditCardInstallment, CreditCardBill
+from loans.models import Loan
+from members.models import Member
 
 
 class AccountBalancesView(APIView):
@@ -232,3 +234,122 @@ class CreditCardExpensesByCategoryView(APIView):
         ]
 
         return Response(result)
+
+
+class BalanceForecastView(APIView):
+    """
+    GET /api/v1/dashboard/balance-forecast/
+
+    Retorna previsão de saldo considerando:
+    - Despesas pendentes
+    - Receitas pendentes
+    - Faturas de cartão não pagas
+    - Empréstimos a receber (usuário é credor)
+    - Empréstimos a pagar (usuário é beneficiado)
+
+    Response:
+    {
+        "current_total_balance": 15000.00,
+        "forecast_balance": 12500.00,
+        "pending_expenses": 1500.00,
+        "pending_revenues": 800.00,
+        "pending_card_bills": 2000.00,
+        "loans_to_receive": 500.00,
+        "loans_to_pay": 1300.00,
+        "summary": {
+            "total_income": 1300.00,
+            "total_outcome": 4800.00,
+            "net_change": -3500.00
+        }
+    }
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # Saldo atual total das contas
+        current_balance = Account.objects.filter(
+            is_deleted=False
+        ).aggregate(
+            total=Sum('current_balance')
+        )['total'] or Decimal('0.00')
+
+        # Despesas pendentes (não pagas, excluindo transferências)
+        pending_expenses = Expense.objects.filter(
+            is_deleted=False,
+            payed=False,
+            related_transfer__isnull=True
+        ).aggregate(
+            total=Sum('value')
+        )['total'] or Decimal('0.00')
+
+        # Receitas pendentes (não recebidas, excluindo transferências)
+        pending_revenues = Revenue.objects.filter(
+            is_deleted=False,
+            received=False,
+            related_transfer__isnull=True
+        ).aggregate(
+            total=Sum('value')
+        )['total'] or Decimal('0.00')
+
+        # Faturas de cartão não pagas (total - valor pago)
+        open_bills = CreditCardBill.objects.filter(
+            is_deleted=False
+        ).exclude(
+            status='paid'
+        )
+        pending_card_bills = Decimal('0.00')
+        for bill in open_bills:
+            total = bill.total_amount or Decimal('0.00')
+            paid = bill.paid_amount or Decimal('0.00')
+            pending_card_bills += (total - paid)
+
+        # Obter o membro do usuário para calcular empréstimos
+        member = Member.objects.filter(user=request.user).first()
+
+        loans_to_receive = Decimal('0.00')
+        loans_to_pay = Decimal('0.00')
+
+        if member:
+            # Empréstimos a receber (usuário é credor, empréstimo não pago)
+            loans_as_creditor = Loan.objects.filter(
+                is_deleted=False,
+                creditor=member,
+                payed=False,
+                status__in=['active', 'pending', 'in_progress']
+            )
+            for loan in loans_as_creditor:
+                remaining = (loan.value or Decimal('0.00')) - (loan.payed_value or Decimal('0.00'))
+                loans_to_receive += remaining
+
+            # Empréstimos a pagar (usuário é beneficiado, empréstimo não pago)
+            loans_as_benefited = Loan.objects.filter(
+                is_deleted=False,
+                benefited=member,
+                payed=False,
+                status__in=['active', 'pending', 'in_progress']
+            )
+            for loan in loans_as_benefited:
+                remaining = (loan.value or Decimal('0.00')) - (loan.payed_value or Decimal('0.00'))
+                loans_to_pay += remaining
+
+        # Calcular totais
+        total_income = pending_revenues + loans_to_receive
+        total_outcome = pending_expenses + pending_card_bills + loans_to_pay
+        net_change = total_income - total_outcome
+        forecast_balance = current_balance + net_change
+
+        return Response({
+            'current_total_balance': float(current_balance),
+            'forecast_balance': float(forecast_balance),
+            'pending_expenses': float(pending_expenses),
+            'pending_revenues': float(pending_revenues),
+            'pending_card_bills': float(pending_card_bills),
+            'loans_to_receive': float(loans_to_receive),
+            'loans_to_pay': float(loans_to_pay),
+            'summary': {
+                'total_income': float(total_income),
+                'total_outcome': float(total_outcome),
+                'net_change': float(net_change),
+            }
+        })

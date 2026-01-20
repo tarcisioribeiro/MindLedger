@@ -80,6 +80,13 @@ class Account(BaseModel):
         decimal_places=2,
         default=0.00  # type: ignore
     )
+    overdraft_limit = models.DecimalField(
+        verbose_name="Limite de Cheque Especial",
+        max_digits=15,
+        decimal_places=2,
+        default=0.00,  # type: ignore
+        help_text="Limite máximo de débito negativo permitido na conta"
+    )
     opening_date = models.DateField(
         verbose_name="Data de Abertura",
         null=True,

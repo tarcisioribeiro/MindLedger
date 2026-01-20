@@ -32,6 +32,7 @@ class AccountSerializer(serializers.ModelSerializer):
             'account_number_masked',
             'balance',
             'minimum_balance',
+            'overdraft_limit',
             'opening_date',
             'description',
             'owner',

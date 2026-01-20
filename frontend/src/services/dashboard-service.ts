@@ -1,5 +1,5 @@
 import { apiClient } from './api-client';
-import type { DashboardStats, AccountBalance, CreditCardExpensesByCategory } from '@/types';
+import type { DashboardStats, AccountBalance, CreditCardExpensesByCategory, BalanceForecast } from '@/types';
 
 interface CreditCardExpensesByCategoryParams {
   card?: number;
@@ -24,6 +24,10 @@ class DashboardService {
       '/api/v1/dashboard/credit-card-expenses-by-category/',
       params as Record<string, any>
     );
+  }
+
+  async getBalanceForecast(): Promise<BalanceForecast> {
+    return apiClient.get<BalanceForecast>('/api/v1/dashboard/balance-forecast/');
   }
 }
 

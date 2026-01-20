@@ -177,7 +177,7 @@ class GoalRecalculateView(APIView):
     Recalcula o progresso do objetivo baseado nos dias passados.
     Para objetivos do tipo 'consecutive_days', atualiza current_value para days_active.
     """
-    permission_classes = [IsAuthenticated, GlobalDefaultPermission]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
         try:
@@ -220,7 +220,7 @@ class GoalResetView(APIView):
     Reseta o progresso do objetivo.
     Define current_value = 0 e start_date = hoje, mantendo o status como ativo.
     """
-    permission_classes = [IsAuthenticated, GlobalDefaultPermission]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
         try:

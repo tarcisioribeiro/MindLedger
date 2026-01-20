@@ -58,6 +58,25 @@ export const CreditCardPurchaseForm: React.FC<CreditCardPurchaseFormProps> = ({
     return watchedTotalValue || 0;
   }, [watchedTotalValue, watchedTotalInstallments]);
 
+  // Obter informações do cartão selecionado (limite disponível)
+  const selectedCardInfo = useMemo(() => {
+    if (!watchedCard || watchedCard === 0) return null;
+    const card = creditCards.find(c => c.id === watchedCard);
+    if (!card) return null;
+    return {
+      name: card.name,
+      creditLimit: parseFloat(card.credit_limit),
+      availableCredit: card.available_credit ?? parseFloat(card.credit_limit),
+      usedCredit: card.used_credit ?? 0,
+    };
+  }, [watchedCard, creditCards]);
+
+  // Verificar se valor excede limite disponível
+  const exceedsLimit = useMemo(() => {
+    if (!selectedCardInfo || !watchedTotalValue) return false;
+    return watchedTotalValue > selectedCardInfo.availableCredit;
+  }, [selectedCardInfo, watchedTotalValue]);
+
   // Função auxiliar para exibir informações do cartão
   const getCardDisplayInfo = (card: CreditCard) => {
     const digitsOnly = card.card_number_masked?.replace(/[^\d]/g, '') || '';
@@ -123,6 +142,15 @@ export const CreditCardPurchaseForm: React.FC<CreditCardPurchaseFormProps> = ({
       await showAlert({
         title: 'Campo obrigatório',
         description: 'Por favor, selecione uma categoria',
+        confirmText: 'Ok',
+      });
+      return;
+    }
+    // Validar limite disponível (apenas para novas compras)
+    if (!purchase && selectedCardInfo && data.total_value > selectedCardInfo.availableCredit) {
+      await showAlert({
+        title: 'Limite insuficiente',
+        description: `O valor de ${formatCurrency(data.total_value)} excede o limite disponível de ${formatCurrency(selectedCardInfo.availableCredit)} no cartão selecionado.`,
         confirmText: 'Ok',
       });
       return;
@@ -227,6 +255,22 @@ export const CreditCardPurchaseForm: React.FC<CreditCardPurchaseFormProps> = ({
             <p className="text-xs text-amber-600">
               Cartão não pode ser alterado após criação
             </p>
+          )}
+          {/* Exibir limite disponível do cartão selecionado */}
+          {selectedCardInfo && !isEditMode && (
+            <div className={`p-2 rounded-md text-sm ${exceedsLimit ? 'bg-red-50 border border-red-200' : 'bg-muted'}`}>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Limite disponível:</span>
+                <span className={`font-semibold ${exceedsLimit ? 'text-destructive' : 'text-success'}`}>
+                  {formatCurrency(selectedCardInfo.availableCredit)}
+                </span>
+              </div>
+              {exceedsLimit && watchedTotalValue > 0 && (
+                <p className="text-xs text-destructive mt-1">
+                  Valor excede o limite em {formatCurrency(watchedTotalValue - selectedCardInfo.availableCredit)}
+                </p>
+              )}
+            </div>
           )}
         </div>
 

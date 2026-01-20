@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Wallet, TrendingDown, TrendingUp, CreditCard, LayoutDashboard, Building2 } from 'lucide-react';
+import { Wallet, TrendingDown, TrendingUp, CreditCard, LayoutDashboard, Building2, Calculator, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -17,7 +17,7 @@ import { translate, TRANSLATIONS } from '@/config/constants';
 import { formatCurrency } from '@/lib/formatters';
 import { PageHeader } from '@/components/common/PageHeader';
 import { LoadingState } from '@/components/common/LoadingState';
-import type { DashboardStats, Expense, Revenue, AccountBalance, CreditCard as CreditCardType, CreditCardBill, CreditCardExpensesByCategory } from '@/types';
+import type { DashboardStats, Expense, Revenue, AccountBalance, CreditCard as CreditCardType, CreditCardBill, CreditCardExpensesByCategory, BalanceForecast } from '@/types';
 import { format, subMonths, startOfMonth, endOfMonth, eachMonthOfInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useChartColors } from '@/lib/chart-colors';
@@ -32,6 +32,7 @@ export default function Dashboard() {
   const [creditCards, setCreditCards] = useState<CreditCardType[]>([]);
   const [creditCardBills, setCreditCardBills] = useState<CreditCardBill[]>([]);
   const [creditCardExpensesByCategory, setCreditCardExpensesByCategory] = useState<CreditCardExpensesByCategory[]>([]);
+  const [balanceForecast, setBalanceForecast] = useState<BalanceForecast | null>(null);
   const [selectedCard, setSelectedCard] = useState<string>('all');
   const [selectedBill, setSelectedBill] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(true);
@@ -63,7 +64,7 @@ export default function Dashboard() {
   const loadData = async () => {
     try {
       setIsLoading(true);
-      const [statsData, expensesData, revenuesData, accountBalancesData, cardsData, billsData, ccExpensesByCategoryData] = await Promise.all([
+      const [statsData, expensesData, revenuesData, accountBalancesData, cardsData, billsData, ccExpensesByCategoryData, forecastData] = await Promise.all([
         dashboardService.getStats(),
         expensesService.getAll(),
         revenuesService.getAll(),
@@ -71,6 +72,7 @@ export default function Dashboard() {
         creditCardsService.getAll(),
         creditCardBillsService.getAll(),
         dashboardService.getCreditCardExpensesByCategory(),
+        dashboardService.getBalanceForecast(),
       ]);
       setStats(statsData);
       setExpenses(expensesData);
@@ -79,6 +81,7 @@ export default function Dashboard() {
       setCreditCards(cardsData);
       setCreditCardBills(billsData);
       setCreditCardExpensesByCategory(ccExpensesByCategoryData);
+      setBalanceForecast(forecastData);
     } catch (error: any) {
       toast({ title: 'Erro ao carregar dados', description: error.message, variant: 'destructive' });
     } finally {
@@ -279,6 +282,121 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </motion.div>
+
+        {/* Previsão de Saldo */}
+        {balanceForecast && (
+          <motion.div variants={itemVariants} initial="hidden" animate="visible">
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <Calculator className="h-5 w-5" />
+                  <CardTitle>Previsão de Saldo</CardTitle>
+                </div>
+                <p className="text-sm">Projeção considerando todas as pendências financeiras</p>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                  <div className="bg-muted/50 rounded-lg p-4 text-center">
+                    <p className="text-xs text-muted-foreground mb-1">Saldo Atual</p>
+                    <p className={cn(
+                      "text-xl font-bold",
+                      balanceForecast.current_total_balance >= 0 ? "text-success" : "text-destructive"
+                    )}>
+                      {formatCurrency(balanceForecast.current_total_balance)}
+                    </p>
+                  </div>
+                  <div className="bg-muted/50 rounded-lg p-4 text-center">
+                    <p className="text-xs text-muted-foreground mb-1">Variação Prevista</p>
+                    <p className={cn(
+                      "text-xl font-bold flex items-center justify-center gap-1",
+                      balanceForecast.summary.net_change >= 0 ? "text-success" : "text-destructive"
+                    )}>
+                      {balanceForecast.summary.net_change >= 0 ? (
+                        <ArrowUpRight className="w-5 h-5" />
+                      ) : (
+                        <ArrowDownRight className="w-5 h-5" />
+                      )}
+                      {formatCurrency(Math.abs(balanceForecast.summary.net_change))}
+                    </p>
+                  </div>
+                  <div className="bg-muted/50 rounded-lg p-4 text-center col-span-1 md:col-span-2">
+                    <p className="text-xs text-muted-foreground mb-1">Saldo Previsto</p>
+                    <p className={cn(
+                      "text-2xl font-bold",
+                      balanceForecast.forecast_balance >= 0 ? "text-success" : "text-destructive"
+                    )}>
+                      {formatCurrency(balanceForecast.forecast_balance)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Entradas Previstas */}
+                  <div className="space-y-3">
+                    <h4 className="font-semibold text-sm flex items-center gap-2 text-success">
+                      <ArrowUpRight className="w-4 h-4" />
+                      Entradas Previstas
+                    </h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-muted-foreground">Receitas Pendentes</span>
+                        <span className="font-medium text-success">
+                          +{formatCurrency(balanceForecast.pending_revenues)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-muted-foreground">Empréstimos a Receber</span>
+                        <span className="font-medium text-success">
+                          +{formatCurrency(balanceForecast.loans_to_receive)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-sm pt-2 border-t">
+                        <span className="font-semibold">Total Entradas</span>
+                        <span className="font-bold text-success">
+                          +{formatCurrency(balanceForecast.summary.total_income)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Saídas Previstas */}
+                  <div className="space-y-3">
+                    <h4 className="font-semibold text-sm flex items-center gap-2 text-destructive">
+                      <ArrowDownRight className="w-4 h-4" />
+                      Saídas Previstas
+                    </h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-muted-foreground">Despesas Pendentes</span>
+                        <span className="font-medium text-destructive">
+                          -{formatCurrency(balanceForecast.pending_expenses)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-muted-foreground">Faturas de Cartão</span>
+                        <span className="font-medium text-destructive">
+                          -{formatCurrency(balanceForecast.pending_card_bills)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-muted-foreground">Empréstimos a Pagar</span>
+                        <span className="font-medium text-destructive">
+                          -{formatCurrency(balanceForecast.loans_to_pay)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-sm pt-2 border-t">
+                        <span className="font-semibold">Total Saídas</span>
+                        <span className="font-bold text-destructive">
+                          -{formatCurrency(balanceForecast.summary.total_outcome)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
 
         <motion.div
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"

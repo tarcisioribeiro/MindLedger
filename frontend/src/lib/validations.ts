@@ -100,6 +100,11 @@ export const accountSchema = z.object({
   balance: z
     .number({ message: numberError('Saldo') })
     .min(0, 'Saldo não pode ser negativo'),
+  overdraft_limit: z
+    .number({ message: numberError('Cheque especial') })
+    .min(0, 'Limite de cheque especial não pode ser negativo')
+    .optional()
+    .default(0),
   owner: z
     .number({ message: 'Proprietário inválido' })
     .int('Proprietário deve ser um número inteiro')

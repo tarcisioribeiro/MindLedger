@@ -57,28 +57,24 @@ export default function CreditCardExpenses() {
     'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
   };
 
-  // Faturas filtradas pelo cartão selecionado e ordenadas (atual primeiro, depois mais antiga para mais nova)
+  // Faturas filtradas pelo cartão selecionado e ordenadas (abertas primeiro em ordem crescente, depois fechadas/pagas em ordem crescente)
   const availableBills = useMemo(() => {
     let filtered = cardFilter === 'all' ? [...bills] : bills.filter(b => b.credit_card.toString() === cardFilter);
 
-    const today = new Date();
-    const currentMonth = today.getMonth() + 1;
-    const currentYear = today.getFullYear();
-
-    // Sort: current bill first, then oldest to newest
+    // Sort: open bills first (ascending by date), then closed/paid bills (ascending by date)
     return filtered.sort((a, b) => {
       const aMonth = MONTH_TO_NUMBER[a.month] || 1;
       const bMonth = MONTH_TO_NUMBER[b.month] || 1;
 
-      // Check if bill is current (current month and year)
-      const aIsCurrent = aMonth === currentMonth && parseInt(a.year) === currentYear;
-      const bIsCurrent = bMonth === currentMonth && parseInt(b.year) === currentYear;
+      // Check if bill is open (not paid and not closed)
+      const aIsOpen = a.status !== 'paid' && a.status !== 'closed';
+      const bIsOpen = b.status !== 'paid' && b.status !== 'closed';
 
-      // Current bill always first
-      if (aIsCurrent && !bIsCurrent) return -1;
-      if (!aIsCurrent && bIsCurrent) return 1;
+      // Open bills before closed/paid ones
+      if (aIsOpen && !bIsOpen) return -1;
+      if (!aIsOpen && bIsOpen) return 1;
 
-      // Then sort by date (oldest to newest for the rest)
+      // Within same group, sort by date ascending (oldest to newest)
       const aDate = new Date(parseInt(a.year), aMonth - 1);
       const bDate = new Date(parseInt(b.year), bMonth - 1);
       return aDate.getTime() - bDate.getTime();
@@ -130,15 +126,31 @@ export default function CreditCardExpenses() {
       setCreditCards(cardsData);
       setBills(billsData);
 
-      // Selecionar automaticamente o primeiro cartão e sua primeira fatura
+      // Selecionar automaticamente o primeiro cartão e sua primeira fatura ABERTA
       if (cardsData.length > 0) {
         const firstCardId = cardsData[0].id.toString();
         setCardFilter(firstCardId);
 
-        // Encontrar a primeira fatura do primeiro cartão
+        // Encontrar a primeira fatura ABERTA do primeiro cartão (não paga e não fechada)
         const firstCardBills = billsData.filter(b => b.credit_card.toString() === firstCardId);
-        if (firstCardBills.length > 0) {
-          setBillFilter(firstCardBills[0].id.toString());
+        // Ordenar: abertas primeiro (por data crescente), depois fechadas/pagas
+        const sortedBills = [...firstCardBills].sort((a, b) => {
+          const aMonth = MONTH_TO_NUMBER[a.month] || 1;
+          const bMonth = MONTH_TO_NUMBER[b.month] || 1;
+          const aIsOpen = a.status !== 'paid' && a.status !== 'closed';
+          const bIsOpen = b.status !== 'paid' && b.status !== 'closed';
+          if (aIsOpen && !bIsOpen) return -1;
+          if (!aIsOpen && bIsOpen) return 1;
+          const aDate = new Date(parseInt(a.year), aMonth - 1);
+          const bDate = new Date(parseInt(b.year), bMonth - 1);
+          return aDate.getTime() - bDate.getTime();
+        });
+        // Selecionar a primeira fatura aberta, ou a primeira se todas estiverem fechadas
+        const firstOpenBill = sortedBills.find(b => b.status !== 'paid' && b.status !== 'closed');
+        if (firstOpenBill) {
+          setBillFilter(firstOpenBill.id.toString());
+        } else if (sortedBills.length > 0) {
+          setBillFilter(sortedBills[0].id.toString());
         }
       }
     } catch (error: any) {
@@ -203,11 +215,18 @@ export default function CreditCardExpenses() {
           pending: billInstallments.filter(i => !i.payed).reduce((sum, i) => sum + i.value, 0),
         };
       })
-      // Ordenar por data de início da fatura (mais recentes primeiro)
+      // Ordenar: abertas primeiro (por data crescente), depois fechadas/pagas (por data crescente)
       .sort((a, b) => {
         if (!a.bill) return 1;
         if (!b.bill) return -1;
-        return new Date(b.bill.invoice_beginning_date).getTime() - new Date(a.bill.invoice_beginning_date).getTime();
+        // Check if bill is open
+        const aIsOpen = a.bill.status !== 'paid' && a.bill.status !== 'closed';
+        const bIsOpen = b.bill.status !== 'paid' && b.bill.status !== 'closed';
+        // Open bills first
+        if (aIsOpen && !bIsOpen) return -1;
+        if (!aIsOpen && bIsOpen) return 1;
+        // Within same group, sort by date ascending (oldest to newest)
+        return new Date(a.bill.invoice_beginning_date).getTime() - new Date(b.bill.invoice_beginning_date).getTime();
       });
   }, [filteredInstallments, bills, creditCards]);
 

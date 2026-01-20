@@ -1,5 +1,10 @@
 from django.urls import path
-from .views import DashboardStatsView, AccountBalancesView, CreditCardExpensesByCategoryView
+from .views import (
+    DashboardStatsView,
+    AccountBalancesView,
+    CreditCardExpensesByCategoryView,
+    BalanceForecastView
+)
 
 urlpatterns = [
     path('stats/', DashboardStatsView.as_view(), name='dashboard-stats'),
@@ -9,4 +14,5 @@ urlpatterns = [
         CreditCardExpensesByCategoryView.as_view(),
         name='credit-card-expenses-by-category'
     ),
+    path('balance-forecast/', BalanceForecastView.as_view(), name='balance-forecast'),
 ]
