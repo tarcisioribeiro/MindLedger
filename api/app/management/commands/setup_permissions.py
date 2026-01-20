@@ -32,6 +32,7 @@ class Command(BaseCommand):
             'credit_cards': ['creditcard', 'creditcardbill', 'creditcardexpense', 'creditcardpurchase', 'creditcardinstallment'],
             'transfers': ['transfer'],
             'loans': ['loan'],
+            'payables': ['payable'],
             'members': ['member'],
             'library': ['author', 'publisher', 'book', 'summary', 'reading'],
             'security': ['password', 'storedcreditcard', 'storedbankaccount', 'archive', 'activitylog'],
