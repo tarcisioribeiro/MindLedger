@@ -33,7 +33,8 @@ apps = [
     'security',
     'library',
     'ai_assistant',
-    'personal_planning'
+    'personal_planning',
+    'payables'
 ]
 
 # Buscar e adicionar permissões
