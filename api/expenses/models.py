@@ -152,6 +152,15 @@ class Expense(BaseModel):
         verbose_name="Fatura de Cartão Relacionada",
         help_text="Fatura de cartão de crédito que esta despesa está pagando"
     )
+    related_payable = models.ForeignKey(
+        'payables.Payable',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='payment_expenses',
+        verbose_name="Valor a Pagar Relacionado",
+        help_text="Valor a pagar que esta despesa está abatendo"
+    )
 
     class Meta:
         ordering = ['-date']
@@ -166,6 +175,7 @@ class Expense(BaseModel):
             models.Index(fields=['related_transfer']),
             models.Index(fields=['related_loan']),
             models.Index(fields=['related_bill_payment']),
+            models.Index(fields=['related_payable']),
         ]
 
     def __str__(self):

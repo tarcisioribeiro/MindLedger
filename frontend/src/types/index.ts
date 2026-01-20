@@ -83,6 +83,8 @@ export interface Expense {
   is_transfer_generated?: boolean;
   related_loan?: number | null;
   loan_description?: string;
+  related_payable?: number | null;
+  payable_description?: string;
   created_at: string;
   updated_at: string;
 }
@@ -103,6 +105,7 @@ export interface ExpenseFormData {
   recurring?: boolean;
   frequency?: string;
   related_loan?: number | null;
+  related_payable?: number | null;
 }
 
 // Revenue Types
@@ -491,6 +494,39 @@ export interface LoanFormData {
   status?: string;
 }
 
+// Payable Types
+export interface Payable {
+  id: number;
+  uuid: string;
+  description: string;
+  value: string;
+  paid_value: string;
+  date: string;
+  due_date?: string;
+  category: string;
+  category_display?: string;
+  member?: number | null;
+  member_name?: string;
+  notes?: string;
+  status: 'active' | 'paid' | 'overdue' | 'cancelled';
+  status_display?: string;
+  remaining_value?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PayableFormData {
+  description: string;
+  value: number;
+  paid_value?: number;
+  date: string;
+  due_date?: string;
+  category: string;
+  member?: number | null;
+  notes?: string;
+  status?: 'active' | 'paid' | 'overdue' | 'cancelled';
+}
+
 // Member Types
 export interface Member {
   id: number;
@@ -568,6 +604,7 @@ export interface BalanceForecast {
   pending_card_bills: number;
   loans_to_receive: number;
   loans_to_pay: number;
+  pending_payables: number;
   summary: {
     total_income: number;
     total_outcome: number;

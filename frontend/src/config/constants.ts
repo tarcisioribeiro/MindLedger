@@ -21,6 +21,7 @@ export const API_CONFIG = {
     CREDIT_CARD_INSTALLMENTS: '/api/v1/credit-cards-installments/',
     TRANSFERS: '/api/v1/transfers/',
     LOANS: '/api/v1/loans/',
+    PAYABLES: '/api/v1/payables/',
     MEMBERS: '/api/v1/members/',
     CURRENT_USER_MEMBER: '/api/v1/members/me/',
     AVAILABLE_PERMISSIONS: '/api/v1/permissions/available/',
@@ -248,6 +249,14 @@ export const TRANSLATIONS = {
     overdue: 'Atrasado',
     cancelled: 'Cancelado',
     pending: 'Pendente',
+  },
+
+  // Payable Status
+  payableStatus: {
+    active: 'Ativo',
+    paid: 'Quitado',
+    overdue: 'Em Atraso',
+    cancelled: 'Cancelado',
   },
 
   // Member Types
@@ -564,6 +573,9 @@ export const REVERSE_TRANSLATIONS = {
   ),
   loanStatus: Object.fromEntries(
     Object.entries(TRANSLATIONS.loanStatus).map(([k, v]) => [v, k])
+  ),
+  payableStatus: Object.fromEntries(
+    Object.entries(TRANSLATIONS.payableStatus).map(([k, v]) => [v, k])
   ),
   memberTypes: Object.fromEntries(
     Object.entries(TRANSLATIONS.memberTypes).map(([k, v]) => [v, k])

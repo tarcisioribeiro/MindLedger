@@ -25,6 +25,7 @@ const CreditCardBills = lazy(() => import('./pages/CreditCardBills'));
 const CreditCardExpenses = lazy(() => import('./pages/CreditCardExpenses'));
 const Transfers = lazy(() => import('./pages/Transfers'));
 const Loans = lazy(() => import('./pages/Loans'));
+const Payables = lazy(() => import('./pages/Payables'));
 const Members = lazy(() => import('./pages/Members'));
 
 // Security Module
@@ -99,6 +100,7 @@ function AnimatedRoutes() {
           <Route path="/credit-card-expenses" element={<Suspense fallback={<LoadingFallback />}><CreditCardExpenses /></Suspense>} />
           <Route path="/transfers" element={<Suspense fallback={<LoadingFallback />}><Transfers /></Suspense>} />
           <Route path="/loans" element={<Suspense fallback={<LoadingFallback />}><Loans /></Suspense>} />
+          <Route path="/payables" element={<Suspense fallback={<LoadingFallback />}><Payables /></Suspense>} />
           <Route path="/members" element={<Suspense fallback={<LoadingFallback />}><Members /></Suspense>} />
 
           {/* Security Module routes */}

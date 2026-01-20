@@ -19,6 +19,7 @@ from revenues.models import Revenue
 from credit_cards.models import CreditCard, CreditCardInstallment, CreditCardBill
 from loans.models import Loan
 from members.models import Member
+from payables.models import Payable
 
 
 class AccountBalancesView(APIView):
@@ -246,6 +247,7 @@ class BalanceForecastView(APIView):
     - Faturas de cartão não pagas
     - Empréstimos a receber (usuário é credor)
     - Empréstimos a pagar (usuário é beneficiado)
+    - Valores a pagar pendentes (payables)
 
     Response:
     {
@@ -256,10 +258,11 @@ class BalanceForecastView(APIView):
         "pending_card_bills": 2000.00,
         "loans_to_receive": 500.00,
         "loans_to_pay": 1300.00,
+        "pending_payables": 500.00,
         "summary": {
             "total_income": 1300.00,
-            "total_outcome": 4800.00,
-            "net_change": -3500.00
+            "total_outcome": 5300.00,
+            "net_change": -4000.00
         }
     }
     """
@@ -333,9 +336,17 @@ class BalanceForecastView(APIView):
                 remaining = (loan.value or Decimal('0.00')) - (loan.payed_value or Decimal('0.00'))
                 loans_to_pay += remaining
 
+        # Valores a pagar pendentes (payables ativos ou em atraso)
+        pending_payables = Payable.objects.filter(
+            is_deleted=False,
+            status__in=['active', 'overdue']
+        ).aggregate(
+            total=Sum('value') - Sum('paid_value')
+        )['total'] or Decimal('0.00')
+
         # Calcular totais
         total_income = pending_revenues + loans_to_receive
-        total_outcome = pending_expenses + pending_card_bills + loans_to_pay
+        total_outcome = pending_expenses + pending_card_bills + loans_to_pay + pending_payables
         net_change = total_income - total_outcome
         forecast_balance = current_balance + net_change
 
@@ -347,6 +358,7 @@ class BalanceForecastView(APIView):
             'pending_card_bills': float(pending_card_bills),
             'loans_to_receive': float(loans_to_receive),
             'loans_to_pay': float(loans_to_pay),
+            'pending_payables': float(pending_payables),
             'summary': {
                 'total_income': float(total_income),
                 'total_outcome': float(total_outcome),

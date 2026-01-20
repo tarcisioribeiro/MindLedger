@@ -117,6 +117,7 @@ const navModules: NavModule[] = [
           { title: 'Gastos do Cartão', href: '/credit-card-expenses', icon: <ShoppingCart className="w-4 h-4" /> },
           { title: 'Transferências', href: '/transfers', icon: <ArrowLeftRight className="w-4 h-4" /> },
           { title: 'Empréstimos', href: '/loans', icon: <HandCoins className="w-4 h-4" /> },
+          { title: 'Valores a Pagar', href: '/payables', icon: <Receipt className="w-4 h-4" /> },
         ],
       },
     ],

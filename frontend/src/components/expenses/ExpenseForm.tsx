@@ -8,21 +8,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAlertDialog } from '@/hooks/use-alert-dialog';
 import { EXPENSE_CATEGORIES_CANONICAL } from '@/config/constants';
 import { membersService } from '@/services/members-service';
-import type { Expense, ExpenseFormData, Account, Member, Loan } from '@/types';
+import type { Expense, ExpenseFormData, Account, Member, Loan, Payable } from '@/types';
 
 import { formatLocalDate } from '@/lib/utils';
 interface ExpenseFormProps {
   expense?: Expense;
   accounts: Account[];
   loans?: Loan[];
+  payables?: Payable[];
   onSubmit: (data: ExpenseFormData) => void;
   onCancel: () => void;
   isLoading?: boolean;
 }
 
-export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, accounts, loans, onSubmit, onCancel, isLoading = false }) => {
+export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, accounts, loans, payables, onSubmit, onCancel, isLoading = false }) => {
   const [currentUserMember, setCurrentUserMember] = useState<Member | null>(null);
   const [eligibleLoans, setEligibleLoans] = useState<Loan[]>([]);
+  const [eligiblePayables, setEligiblePayables] = useState<Payable[]>([]);
   const { showAlert } = useAlertDialog();
 
   const { register, handleSubmit, setValue, watch } = useForm<ExpenseFormData>({
@@ -35,6 +37,8 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, accounts, loa
       category: '',
       account: 0,
       member: null,
+      related_loan: null,
+      related_payable: null,
     },
   });
 
@@ -68,6 +72,16 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, accounts, loa
   }, [loans, currentUserMember]);
 
   useEffect(() => {
+    if (payables) {
+      // Filtrar payables ativos ou em atraso (que ainda podem receber pagamentos)
+      const filtered = payables.filter(payable =>
+        payable.status === 'active' || payable.status === 'overdue'
+      );
+      setEligiblePayables(filtered);
+    }
+  }, [payables]);
+
+  useEffect(() => {
     if (expense) {
       setValue('description', expense.description);
       setValue('value', parseFloat(expense.value));
@@ -78,6 +92,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, accounts, loa
       setValue('account', expense.account);
       setValue('member', expense.member);
       setValue('related_loan', expense.related_loan || null);
+      setValue('related_payable', expense.related_payable || null);
     } else if (accounts.length > 0) {
       setValue('account', accounts[0].id);
     }
@@ -179,6 +194,27 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, accounts, loa
           </Select>
           <p className="text-xs">
             Vincule esta despesa a um empréstimo que você está pagando
+          </p>
+        </div>
+        <div className="space-y-2">
+          <Label>Valor a Pagar Relacionado (Opcional)</Label>
+          <Select
+            value={watch('related_payable')?.toString() || 'none'}
+            onValueChange={(v) => setValue('related_payable', v === 'none' ? null : parseInt(v))}
+            disabled={isLoading}
+          >
+            <SelectTrigger><SelectValue placeholder="Selecione (opcional)" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Nenhum</SelectItem>
+              {eligiblePayables.map((payable) => (
+                <SelectItem key={payable.id} value={payable.id.toString()}>
+                  {payable.description} - Saldo: R$ {payable.remaining_value || '0.00'}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs">
+            Vincule esta despesa a um valor a pagar (ex: dentista, conserto)
           </p>
         </div>
       </div>

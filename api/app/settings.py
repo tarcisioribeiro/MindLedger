@@ -48,6 +48,8 @@ INSTALLED_APPS = [
     'ai_assistant',
     # Personal Planning Module
     'personal_planning',
+    # Payables Module
+    'payables',
 ]
 
 MIDDLEWARE = [

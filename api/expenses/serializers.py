@@ -10,6 +10,11 @@ class ExpenseSerializer(serializers.ModelSerializer):
         decimal_places=2,
         read_only=True
     )
+    payable_description = serializers.CharField(
+        source='related_payable.description',
+        read_only=True,
+        allow_null=True
+    )
 
     class Meta:
         model = Expense

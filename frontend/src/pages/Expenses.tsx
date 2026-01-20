@@ -13,6 +13,7 @@ import { ExpenseForm } from '@/components/expenses/ExpenseForm';
 import { expensesService } from '@/services/expenses-service';
 import { accountsService } from '@/services/accounts-service';
 import { loansService } from '@/services/loans-service';
+import { payablesService } from '@/services/payables-service';
 import { useToast } from '@/hooks/use-toast';
 import { useAlertDialog } from '@/hooks/use-alert-dialog';
 import { translate, TRANSLATIONS } from '@/config/constants';
@@ -20,7 +21,7 @@ import { formatCurrency, formatDateTime } from '@/lib/formatters';
 import { sumByProperty } from '@/lib/helpers';
 import { PageHeader } from '@/components/common/PageHeader';
 import { DataTable, type Column } from '@/components/common/DataTable';
-import type { Expense, ExpenseFormData, Account, Loan } from '@/types';
+import type { Expense, ExpenseFormData, Account, Loan, Payable } from '@/types';
 import { PageContainer } from '@/components/common/PageContainer';
 
 export default function Expenses() {
@@ -28,6 +29,7 @@ export default function Expenses() {
   const [filteredExpenses, setFilteredExpenses] = useState<Expense[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loans, setLoans] = useState<Loan[]>([]);
+  const [payables, setPayables] = useState<Payable[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Expense | undefined>();
@@ -52,15 +54,17 @@ export default function Expenses() {
   const loadData = async () => {
     try {
       setIsLoading(true);
-      const [expensesData, accountsData, loansData] = await Promise.all([
+      const [expensesData, accountsData, loansData, payablesData] = await Promise.all([
         expensesService.getAll(),
         accountsService.getAll(),
         loansService.getAll(),
+        payablesService.getAll(),
       ]);
       setExpenses(expensesData);
       setFilteredExpenses(expensesData);
       setAccounts(accountsData);
       setLoans(Array.isArray(loansData) ? loansData : []);
+      setPayables(Array.isArray(payablesData) ? payablesData : []);
     } catch (error: any) {
       toast({ title: 'Erro ao carregar dados', description: error.message, variant: 'destructive' });
     } finally {
@@ -364,7 +368,7 @@ export default function Expenses() {
             <DialogTitle>{selectedExpense ? 'Editar Despesa' : 'Nova Despesa'}</DialogTitle>
             <DialogDescription>{selectedExpense ? 'Atualize as informações da despesa' : 'Adicione uma nova despesa ao sistema'}</DialogDescription>
           </DialogHeader>
-          <ExpenseForm expense={selectedExpense} accounts={accounts} loans={loans} onSubmit={handleSubmit} onCancel={() => setIsDialogOpen(false)} isLoading={isSubmitting} />
+          <ExpenseForm expense={selectedExpense} accounts={accounts} loans={loans} payables={payables} onSubmit={handleSubmit} onCancel={() => setIsDialogOpen(false)} isLoading={isSubmitting} />
         </DialogContent>
       </Dialog>
     </PageContainer>
