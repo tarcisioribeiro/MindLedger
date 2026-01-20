@@ -16,9 +16,20 @@ echo "Banco de dados está disponível!"
 
 # Criar diretórios necessários para upload de arquivos
 echo "Criando diretórios necessários..."
-mkdir -p /app/media/security/archives 2>/dev/null || true
+CURRENT_YEAR=$(date +%Y)
+CURRENT_MONTH=$(date +%m)
+
+# Create media directories with year/month structure for current date
+mkdir -p /app/media/security/archives/${CURRENT_YEAR}/${CURRENT_MONTH} 2>/dev/null || true
+mkdir -p /app/media/loans 2>/dev/null || true
 mkdir -p /app/logs 2>/dev/null || true
 mkdir -p /app/staticfiles 2>/dev/null || true
+
+# Verify write permissions to media directory
+if [ ! -w "/app/media/security/archives" ]; then
+    echo "⚠️  AVISO: Diretório /app/media/security/archives sem permissão de escrita!"
+    echo "   Execute no host: sudo chown -R \$(id -u):\$(id -g) ./api/media"
+fi
 
 export PGPASSWORD="$DB_PASSWORD"
 

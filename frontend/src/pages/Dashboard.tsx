@@ -384,6 +384,12 @@ export default function Dashboard() {
                           -{formatCurrency(balanceForecast.loans_to_pay)}
                         </span>
                       </div>
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-muted-foreground">Valores a Pagar</span>
+                        <span className="font-medium text-destructive">
+                          -{formatCurrency(balanceForecast.pending_payables)}
+                        </span>
+                      </div>
                       <div className="flex justify-between items-center text-sm pt-2 border-t">
                         <span className="font-semibold">Total Saídas</span>
                         <span className="font-bold text-destructive">

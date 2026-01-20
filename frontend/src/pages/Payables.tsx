@@ -45,7 +45,7 @@ const PAYABLE_STATUSES = ['active', 'paid', 'overdue', 'cancelled'];
 
 export default function Payables() {
   const [payables, setPayables] = useState<Payable[]>([]);
-  const [members, setMembers] = useState<Member[]>([]);
+  const [currentUserMember, setCurrentUserMember] = useState<Member | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedPayable, setSelectedPayable] = useState<Payable | undefined>();
@@ -70,12 +70,12 @@ export default function Payables() {
   const loadData = async () => {
     try {
       setIsLoading(true);
-      const [payablesData, membersData] = await Promise.all([
+      const [payablesData, memberData] = await Promise.all([
         payablesService.getAll(),
-        membersService.getAll(),
+        membersService.getCurrentUserMember(),
       ]);
       setPayables(Array.isArray(payablesData) ? payablesData : []);
-      setMembers(Array.isArray(membersData) ? membersData : []);
+      setCurrentUserMember(memberData);
     } catch (error: any) {
       toast({
         title: 'Erro ao carregar dados',
@@ -83,7 +83,7 @@ export default function Payables() {
         variant: 'destructive',
       });
       setPayables([]);
-      setMembers([]);
+      setCurrentUserMember(null);
     } finally {
       setIsLoading(false);
     }
@@ -111,7 +111,6 @@ export default function Payables() {
       date: payable.date,
       due_date: payable.due_date,
       category: payable.category,
-      member: payable.member,
       notes: payable.notes,
       status: payable.status,
     });
@@ -147,14 +146,19 @@ export default function Payables() {
     setIsSubmitting(true);
 
     try {
+      const dataToSend = {
+        ...formData,
+        member: currentUserMember?.id ?? null,
+      };
+
       if (selectedPayable) {
-        await payablesService.update(selectedPayable.id, formData);
+        await payablesService.update(selectedPayable.id, dataToSend);
         toast({
           title: 'Valor a pagar atualizado',
           description: 'O valor a pagar foi atualizado com sucesso.',
         });
       } else {
-        await payablesService.create(formData);
+        await payablesService.create(dataToSend);
         toast({
           title: 'Valor a pagar criado',
           description: 'O valor a pagar foi criado com sucesso.',
@@ -378,26 +382,6 @@ export default function Payables() {
                     {PAYABLE_STATUSES.map((status) => (
                       <SelectItem key={status} value={status}>
                         {translate('payableStatus', status)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="member">Membro Responsável</Label>
-                <Select
-                  value={formData.member?.toString() || 'none'}
-                  onValueChange={(value) => setFormData({ ...formData, member: value === 'none' ? null : parseInt(value) })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Nenhum</SelectItem>
-                    {members.map((member) => (
-                      <SelectItem key={member.id} value={member.id.toString()}>
-                        {member.name}
                       </SelectItem>
                     ))}
                   </SelectContent>

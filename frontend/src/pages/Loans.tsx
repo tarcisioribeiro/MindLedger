@@ -191,7 +191,9 @@ export default function Loans() {
 
     try {
       if (selectedLoan) {
-        await loansService.update(selectedLoan.id, formData);
+        // Exclude payed_value when updating to preserve auto-calculated value
+        const { payed_value, ...updateData } = formData;
+        await loansService.update(selectedLoan.id, updateData);
         toast({
           title: 'Empréstimo atualizado',
           description: 'O empréstimo foi atualizado com sucesso.',
@@ -376,15 +378,22 @@ export default function Loans() {
               </div>
 
               <div>
-                <Label htmlFor="payed_value">Valor Pago *</Label>
+                <Label htmlFor="payed_value">Valor Pago {selectedLoan ? '(Calculado)' : '*'}</Label>
                 <Input
                   id="payed_value"
                   type="number"
                   step="0.01"
                   value={formData.payed_value}
                   onChange={(e) => setFormData({ ...formData, payed_value: parseFloat(e.target.value) })}
-                  required
+                  required={!selectedLoan}
+                  disabled={!!selectedLoan}
+                  className={selectedLoan ? 'bg-muted cursor-not-allowed' : ''}
                 />
+                {selectedLoan && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Calculado automaticamente a partir das receitas/despesas vinculadas
+                  </p>
+                )}
               </div>
 
               <div>

@@ -17,14 +17,26 @@ export function formatLocalDate(date: Date): string {
 }
 
 /**
- * Parse uma string de data no formato YYYY-MM-DD, incluindo anos negativos (AC)
+ * Parse uma string de data, suportando múltiplos formatos:
+ * - YYYY-MM-DD (ex: 2025-01-20)
+ * - YYYY-MM-DDTHH:mm:ss (ISO timestamp, ex: 2025-01-20T14:30:00Z)
+ * - Anos negativos (ex: -0384-MM-DD)
  * Retorna undefined se a data for inválida
  */
 export function parseLocalDate(dateStr: string): Date | undefined {
   if (!dateStr || dateStr.trim() === '') return undefined;
 
+  // Remove timezone info and time portion for ISO timestamps
+  // Examples: "2025-01-20T14:30:00Z" -> "2025-01-20"
+  //           "2025-01-20T14:30:00.000Z" -> "2025-01-20"
+  //           "2025-01-20T14:30:00-03:00" -> "2025-01-20"
+  let normalizedDate = dateStr;
+  if (dateStr.includes('T')) {
+    normalizedDate = dateStr.split('T')[0];
+  }
+
   // Suporta formato YYYY-MM-DD com anos negativos (ex: -0384-MM-DD)
-  const match = dateStr.match(/^(-?\d+)-(\d{2})-(\d{2})$/);
+  const match = normalizedDate.match(/^(-?\d+)-(\d{2})-(\d{2})$/);
   if (!match) return undefined;
 
   const year = parseInt(match[1], 10);

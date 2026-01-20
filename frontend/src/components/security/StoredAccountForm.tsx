@@ -254,7 +254,7 @@ export function StoredAccountForm({
                 <SelectItem value="none">Nenhuma</SelectItem>
                 {financeAccounts.map((acc) => (
                   <SelectItem key={acc.id} value={acc.id.toString()}>
-                    {acc.account_name} - {acc.institution}
+                    {acc.account_name}
                   </SelectItem>
                 ))}
               </SelectContent>

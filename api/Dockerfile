@@ -43,9 +43,14 @@ RUN useradd -m -u 1000 appuser
 COPY --chown=appuser:appuser . .
 
 # Create required directories with correct permissions (after COPY to ensure proper ownership)
-RUN mkdir -p /app/media/security/archives /app/logs /app/staticfiles && \
+RUN mkdir -p /app/media/security/archives /app/media/loans /app/logs /app/staticfiles && \
     chown -R appuser:appuser /app && \
-    chmod +x /app/entrypoint.sh
+    chmod +x /app/entrypoint.sh && \
+    chmod -R 755 /app/media
+
+# Create media fix script that can be run if needed
+RUN echo '#!/bin/bash\nmkdir -p /app/media/security/archives/$(date +%Y)/$(date +%m) /app/media/loans 2>/dev/null || true' > /app/fix-media-permissions.sh && \
+    chmod +x /app/fix-media-permissions.sh
 
 # Switch to non-root user
 USER appuser
