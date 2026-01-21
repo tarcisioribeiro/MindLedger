@@ -1,6 +1,6 @@
 # PersonalHub
 
-Sistema completo de gestão financeira pessoal com funcionalidades para controle de contas, cartões de crédito, despesas, receitas e empréstimos.
+Sistema completo de gestão pessoal com funcionalidades para controle de planejamento pessoal, finanças, dados pessoais e leituras.
 
 ## Estrutura do Projeto
 
