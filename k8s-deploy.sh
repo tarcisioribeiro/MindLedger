@@ -31,26 +31,26 @@ K8S_DIR="${SCRIPT_DIR}/k8s"
 # =============================================================================
 
 log_info() {
-    echo -e "${BLUE}[INFO]${NC} $1"
+  echo -e "${BLUE}[INFO]${NC} $1"
 }
 
 log_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
+  echo -e "${GREEN}[SUCCESS]${NC} $1"
 }
 
 log_warn() {
-    echo -e "${YELLOW}[WARN]${NC} $1"
+  echo -e "${YELLOW}[WARN]${NC} $1"
 }
 
 log_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
+  echo -e "${RED}[ERROR]${NC} $1"
 }
 
 check_command() {
-    if ! command -v "$1" &> /dev/null; then
-        log_error "$1 is not installed. Please install it first."
-        exit 1
-    fi
+  if ! command -v "$1" &>/dev/null; then
+    log_error "$1 is not installed. Please install it first."
+    exit 1
+  fi
 }
 
 # =============================================================================
@@ -58,19 +58,19 @@ check_command() {
 # =============================================================================
 
 check_prerequisites() {
-    log_info "Checking prerequisites..."
+  log_info "Checking prerequisites..."
 
-    check_command "docker"
-    check_command "kind"
-    check_command "kubectl"
+  check_command "docker"
+  check_command "kind"
+  check_command "kubectl"
 
-    # Check if Docker is running
-    if ! docker info &> /dev/null; then
-        log_error "Docker is not running. Please start Docker first."
-        exit 1
-    fi
+  # Check if Docker is running
+  if ! docker info &>/dev/null; then
+    log_error "Docker is not running. Please start Docker first."
+    exit 1
+  fi
 
-    log_success "All prerequisites met."
+  log_success "All prerequisites met."
 }
 
 # =============================================================================
@@ -78,40 +78,40 @@ check_prerequisites() {
 # =============================================================================
 
 check_registry() {
-    log_info "Checking if local registry exists..."
+  log_info "Checking if local registry exists..."
 
-    if docker ps -a --format '{{.Names}}' | grep -q "^${REGISTRY_NAME}$"; then
-        # Registry container exists
-        if docker ps --format '{{.Names}}' | grep -q "^${REGISTRY_NAME}$"; then
-            log_success "Registry '${REGISTRY_NAME}' is already running on port ${REGISTRY_PORT}."
-            return 0
-        else
-            log_warn "Registry '${REGISTRY_NAME}' exists but is not running. Starting it..."
-            docker start "${REGISTRY_NAME}"
-            log_success "Registry started."
-            return 0
-        fi
+  if docker ps -a --format '{{.Names}}' | grep -q "^${REGISTRY_NAME}$"; then
+    # Registry container exists
+    if docker ps --format '{{.Names}}' | grep -q "^${REGISTRY_NAME}$"; then
+      log_success "Registry '${REGISTRY_NAME}' is already running on port ${REGISTRY_PORT}."
+      return 0
     else
-        return 1
+      log_warn "Registry '${REGISTRY_NAME}' exists but is not running. Starting it..."
+      docker start "${REGISTRY_NAME}"
+      log_success "Registry started."
+      return 0
     fi
+  else
+    return 1
+  fi
 }
 
 create_registry() {
-    log_info "Creating local Docker registry..."
+  log_info "Creating local Docker registry..."
 
-    docker run -d \
-        --restart=always \
-        --name "${REGISTRY_NAME}" \
-        -p "${REGISTRY_PORT}:5000" \
-        registry:2
+  docker run -d \
+    --restart=always \
+    --name "${REGISTRY_NAME}" \
+    -p "${REGISTRY_PORT}:5000" \
+    registry:2
 
-    log_success "Registry '${REGISTRY_NAME}' created and running on port ${REGISTRY_PORT}."
+  log_success "Registry '${REGISTRY_NAME}' created and running on port ${REGISTRY_PORT}."
 }
 
 ensure_registry() {
-    if ! check_registry; then
-        create_registry
-    fi
+  if ! check_registry; then
+    create_registry
+  fi
 }
 
 # =============================================================================
@@ -119,34 +119,34 @@ ensure_registry() {
 # =============================================================================
 
 check_cluster() {
-    log_info "Checking if kind cluster '${CLUSTER_NAME}' exists..."
+  log_info "Checking if kind cluster '${CLUSTER_NAME}' exists..."
 
-    if kind get clusters 2>/dev/null | grep -q "^${CLUSTER_NAME}$"; then
-        log_success "Cluster '${CLUSTER_NAME}' already exists."
-        return 0
-    else
-        return 1
-    fi
+  if kind get clusters 2>/dev/null | grep -q "^${CLUSTER_NAME}$"; then
+    log_success "Cluster '${CLUSTER_NAME}' already exists."
+    return 0
+  else
+    return 1
+  fi
 }
 
 create_cluster() {
-    log_info "Creating kind cluster '${CLUSTER_NAME}'..."
+  log_info "Creating kind cluster '${CLUSTER_NAME}'..."
 
-    kind create cluster --config="${SCRIPT_DIR}/kind-config.yaml"
+  kind create cluster --config="${SCRIPT_DIR}/kind-config.yaml"
 
-    log_success "Cluster '${CLUSTER_NAME}' created."
+  log_success "Cluster '${CLUSTER_NAME}' created."
 }
 
 connect_registry_to_cluster() {
-    log_info "Connecting registry to kind network..."
+  log_info "Connecting registry to kind network..."
 
-    # Connect the registry to the kind network if not already connected
-    if ! docker network inspect kind | grep -q "${REGISTRY_NAME}"; then
-        docker network connect kind "${REGISTRY_NAME}" 2>/dev/null || true
-    fi
+  # Connect the registry to the kind network if not already connected
+  if ! docker network inspect kind | grep -q "${REGISTRY_NAME}"; then
+    docker network connect kind "${REGISTRY_NAME}" 2>/dev/null || true
+  fi
 
-    # Document the local registry
-    kubectl apply -f - <<EOF
+  # Document the local registry
+  kubectl apply -f - <<EOF
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -158,19 +158,19 @@ data:
     help: "https://kind.sigs.k8s.io/docs/user/local-registry/"
 EOF
 
-    log_success "Registry connected to cluster network."
+  log_success "Registry connected to cluster network."
 }
 
 ensure_cluster() {
-    if ! check_cluster; then
-        create_cluster
-    fi
+  if ! check_cluster; then
+    create_cluster
+  fi
 
-    # Set kubectl context
-    kubectl cluster-info --context "kind-${CLUSTER_NAME}" &>/dev/null || \
-        kubectl config use-context "kind-${CLUSTER_NAME}"
+  # Set kubectl context
+  kubectl cluster-info --context "kind-${CLUSTER_NAME}" &>/dev/null ||
+    kubectl config use-context "kind-${CLUSTER_NAME}"
 
-    connect_registry_to_cluster
+  connect_registry_to_cluster
 }
 
 # =============================================================================
@@ -178,26 +178,50 @@ ensure_cluster() {
 # =============================================================================
 
 build_images() {
-    log_info "Building Docker images using docker compose..."
+  log_info "Building Docker images using docker compose..."
 
-    cd "${SCRIPT_DIR}"
-    docker compose build
+  cd "${SCRIPT_DIR}"
+  docker compose build
 
-    log_success "Images built successfully."
+  log_success "Images built successfully."
 }
 
 tag_and_push_images() {
-    log_info "Tagging and pushing images to local registry..."
+  log_info "Tagging and pushing images to local registry..."
 
+<<<<<<< HEAD
     # Tag images for local registry
     docker tag personalhub-api:latest "localhost:${REGISTRY_PORT}/personalhub-api:latest"
     docker tag personalhub-frontend:latest "localhost:${REGISTRY_PORT}/personalhub-frontend:latest"
+||||||| 18a80e2
+    # Tag images for local registry
+    docker tag personalhub-api:latest "localhost:${REGISTRY_PORT}/personalhub-api:latest"
+    docker tag personalhub-frontend:latest "localhost:${REGISTRY_PORT}/personalhub-frontend:latest"
+    docker tag personalhub-embeddings:latest "localhost:${REGISTRY_PORT}/personalhub-embeddings:latest"
+=======
+  # Tag images for local registry
+  docker tag personalhub-api:latest "localhost:${REGISTRY_PORT}/personalhub-api:latest"
+  docker tag personalhub-frontend:latest "localhost:${REGISTRY_PORT}/personalhub-frontend:latest"
+  docker tag personalhub-embeddings:latest "localhost:${REGISTRY_PORT}/personalhub-embeddings:latest"
+>>>>>>> 27ed8c383b4c47d087f3d7604af2bbb621aa7ffc
 
+<<<<<<< HEAD
     # Push to local registry
     docker push "localhost:${REGISTRY_PORT}/personalhub-api:latest"
     docker push "localhost:${REGISTRY_PORT}/personalhub-frontend:latest"
+||||||| 18a80e2
+    # Push to local registry
+    docker push "localhost:${REGISTRY_PORT}/personalhub-api:latest"
+    docker push "localhost:${REGISTRY_PORT}/personalhub-frontend:latest"
+    docker push "localhost:${REGISTRY_PORT}/personalhub-embeddings:latest"
+=======
+  # Push to local registry
+  docker push "localhost:${REGISTRY_PORT}/personalhub-api:latest"
+  docker push "localhost:${REGISTRY_PORT}/personalhub-frontend:latest"
+  docker push "localhost:${REGISTRY_PORT}/personalhub-embeddings:latest"
+>>>>>>> 27ed8c383b4c47d087f3d7604af2bbb621aa7ffc
 
-    log_success "Images pushed to local registry."
+  log_success "Images pushed to local registry."
 }
 
 # =============================================================================
@@ -205,87 +229,119 @@ tag_and_push_images() {
 # =============================================================================
 
 load_env_vars() {
-    log_info "Loading environment variables from .env..."
+  log_info "Loading environment variables from .env..."
 
-    if [[ -f "${SCRIPT_DIR}/.env" ]]; then
-        set -a
-        source "${SCRIPT_DIR}/.env"
-        set +a
-        log_success "Environment variables loaded."
-    else
-        log_error ".env file not found. Please create it from .env.example"
-        exit 1
-    fi
+  if [[ -f "${SCRIPT_DIR}/.env" ]]; then
+    set -a
+    source "${SCRIPT_DIR}/.env"
+    set +a
+    log_success "Environment variables loaded."
+  else
+    log_error ".env file not found. Please create it from .env.example"
+    exit 1
+  fi
 }
 
 apply_manifests() {
-    log_info "Applying Kubernetes manifests..."
+  log_info "Applying Kubernetes manifests..."
 
-    # Apply namespace first
-    kubectl apply -f "${K8S_DIR}/base/namespace.yaml"
+  # Apply namespace first
+  kubectl apply -f "${K8S_DIR}/base/namespace.yaml"
 
-    # Apply secrets with environment variable substitution
-    envsubst < "${K8S_DIR}/base/secrets.yaml" | kubectl apply -f -
+  # Apply secrets with environment variable substitution
+  envsubst <"${K8S_DIR}/base/secrets.yaml" | kubectl apply -f -
 
-    # Apply configmap
-    kubectl apply -f "${K8S_DIR}/base/configmap.yaml"
+  # Apply configmap
+  kubectl apply -f "${K8S_DIR}/base/configmap.yaml"
 
-    # Apply PostgreSQL
-    log_info "Deploying PostgreSQL..."
-    kubectl apply -f "${K8S_DIR}/postgres/"
+  # Apply PostgreSQL
+  log_info "Deploying PostgreSQL..."
+  kubectl apply -f "${K8S_DIR}/postgres/"
 
-    # Apply Redis
-    log_info "Deploying Redis..."
-    kubectl apply -f "${K8S_DIR}/redis/"
+  # Apply Redis
+  log_info "Deploying Redis..."
+  kubectl apply -f "${K8S_DIR}/redis/"
+
+<<<<<<< HEAD
+    # Apply API
+    log_info "Deploying API..."
+    kubectl apply -f "${K8S_DIR}/api/"
+||||||| 18a80e2
+    # Apply Embeddings service
+    log_info "Deploying Embeddings service..."
+    kubectl apply -f "${K8S_DIR}/embeddings/"
 
     # Apply API
     log_info "Deploying API..."
     kubectl apply -f "${K8S_DIR}/api/"
+=======
+  # Apply Embeddings service
+  log_info "Deploying Embeddings service..."
+  kubectl apply -f "${K8S_DIR}/embeddings/"
 
-    # Apply Frontend
-    log_info "Deploying Frontend..."
-    kubectl apply -f "${K8S_DIR}/frontend/"
+  # Apply API
+  log_info "Deploying API..."
+  kubectl apply -f "${K8S_DIR}/api/"
+>>>>>>> 27ed8c383b4c47d087f3d7604af2bbb621aa7ffc
 
-    # Apply NodePort services for external access
-    kubectl apply -f "${K8S_DIR}/base/nodeport-services.yaml"
+  # Apply Frontend
+  log_info "Deploying Frontend..."
+  kubectl apply -f "${K8S_DIR}/frontend/"
 
-    log_success "All manifests applied."
+  # Apply NodePort services for external access
+  kubectl apply -f "${K8S_DIR}/base/nodeport-services.yaml"
+
+  log_success "All manifests applied."
 }
 
 wait_for_deployments() {
-    log_info "Waiting for deployments to be ready..."
+  log_info "Waiting for deployments to be ready..."
 
+<<<<<<< HEAD
     kubectl -n personalhub wait --for=condition=available --timeout=300s deployment/postgres || true
     kubectl -n personalhub wait --for=condition=available --timeout=300s deployment/redis || true
     kubectl -n personalhub wait --for=condition=available --timeout=300s deployment/api || true
     kubectl -n personalhub wait --for=condition=available --timeout=300s deployment/frontend || true
+||||||| 18a80e2
+    kubectl -n personalhub wait --for=condition=available --timeout=300s deployment/postgres || true
+    kubectl -n personalhub wait --for=condition=available --timeout=300s deployment/redis || true
+    kubectl -n personalhub wait --for=condition=available --timeout=300s deployment/embeddings || true
+    kubectl -n personalhub wait --for=condition=available --timeout=300s deployment/api || true
+    kubectl -n personalhub wait --for=condition=available --timeout=300s deployment/frontend || true
+=======
+  kubectl -n personalhub wait --for=condition=available --timeout=300s deployment/postgres || true
+  kubectl -n personalhub wait --for=condition=available --timeout=300s deployment/redis || true
+  kubectl -n personalhub wait --for=condition=available --timeout=300s deployment/embeddings || true
+  kubectl -n personalhub wait --for=condition=available --timeout=300s deployment/api || true
+  kubectl -n personalhub wait --for=condition=available --timeout=300s deployment/frontend || true
+>>>>>>> 27ed8c383b4c47d087f3d7604af2bbb621aa7ffc
 
-    log_success "All deployments are ready."
+  log_success "All deployments are ready."
 }
 
 show_status() {
-    echo ""
-    log_info "=== Deployment Status ==="
-    echo ""
+  echo ""
+  log_info "=== Deployment Status ==="
+  echo ""
 
-    kubectl -n personalhub get pods
-    echo ""
-    kubectl -n personalhub get services
-    echo ""
+  kubectl -n personalhub get pods
+  echo ""
+  kubectl -n personalhub get services
+  echo ""
 
-    log_success "PersonalHub deployed successfully!"
-    echo ""
-    echo -e "${GREEN}Access the application:${NC}"
-    echo -e "  Frontend: ${BLUE}http://localhost:39101${NC}"
-    echo -e "  API:      ${BLUE}http://localhost:39100${NC}"
-    echo -e "  API Docs: ${BLUE}http://localhost:39100/api/v1/docs/${NC}"
-    echo ""
-    echo -e "${YELLOW}Useful commands:${NC}"
-    echo "  kubectl -n personalhub get pods          # List pods"
-    echo "  kubectl -n personalhub logs -f <pod>     # View pod logs"
-    echo "  kubectl -n personalhub describe pod <pod> # Describe pod"
-    echo "  kind delete cluster --name personalhub   # Delete cluster"
-    echo ""
+  log_success "PersonalHub deployed successfully!"
+  echo ""
+  echo -e "${GREEN}Access the application:${NC}"
+  echo -e "  Frontend: ${BLUE}http://localhost:39101${NC}"
+  echo -e "  API:      ${BLUE}http://localhost:39100${NC}"
+  echo -e "  API Docs: ${BLUE}http://localhost:39100/api/v1/docs/${NC}"
+  echo ""
+  echo -e "${YELLOW}Useful commands:${NC}"
+  echo "  kubectl -n personalhub get pods          # List pods"
+  echo "  kubectl -n personalhub logs -f <pod>     # View pod logs"
+  echo "  kubectl -n personalhub describe pod <pod> # Describe pod"
+  echo "  kind delete cluster --name personalhub   # Delete cluster"
+  echo ""
 }
 
 # =============================================================================
@@ -293,21 +349,21 @@ show_status() {
 # =============================================================================
 
 cleanup() {
-    log_warn "Cleaning up PersonalHub Kubernetes resources..."
+  log_warn "Cleaning up PersonalHub Kubernetes resources..."
 
-    read -p "Are you sure you want to delete the cluster? (y/N) " -n 1 -r
+  read -p "Are you sure you want to delete the cluster? (y/N) " -n 1 -r
+  echo
+  if [[ $REPLY =~ ^[Yy]$ ]]; then
+    kind delete cluster --name "${CLUSTER_NAME}"
+    log_success "Cluster deleted."
+
+    read -p "Also remove the local registry? (y/N) " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
-        kind delete cluster --name "${CLUSTER_NAME}"
-        log_success "Cluster deleted."
-
-        read -p "Also remove the local registry? (y/N) " -n 1 -r
-        echo
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
-            docker rm -f "${REGISTRY_NAME}" 2>/dev/null || true
-            log_success "Registry removed."
-        fi
+      docker rm -f "${REGISTRY_NAME}" 2>/dev/null || true
+      log_success "Registry removed."
     fi
+  fi
 }
 
 # =============================================================================
@@ -315,65 +371,67 @@ cleanup() {
 # =============================================================================
 
 main() {
-    echo ""
-    echo "============================================="
-    echo "  PersonalHub - Kubernetes Deployment"
-    echo "============================================="
-    echo ""
+  echo ""
+  echo "============================================="
+  echo "  PersonalHub - Kubernetes Deployment"
+  echo "============================================="
+  echo ""
 
-    case "${1:-deploy}" in
-        deploy)
-            check_prerequisites
-            ensure_registry
-            ensure_cluster
-            build_images
-            tag_and_push_images
-            load_env_vars
-            apply_manifests
-            wait_for_deployments
-            show_status
-            ;;
-        build)
-            check_prerequisites
-            ensure_registry
-            build_images
-            tag_and_push_images
-            ;;
-        apply)
-            check_prerequisites
-            load_env_vars
-            apply_manifests
-            wait_for_deployments
-            show_status
-            ;;
-        status)
-            kubectl -n personalhub get pods,services,pvc
-            ;;
-        logs)
-            if [[ -n "$2" ]]; then
-                kubectl -n personalhub logs -f "$2"
-            else
-                echo "Usage: $0 logs <pod-name>"
-                echo "Available pods:"
-                kubectl -n personalhub get pods -o name
-            fi
-            ;;
-        cleanup|delete)
-            cleanup
-            ;;
-        *)
-            echo "Usage: $0 {deploy|build|apply|status|logs|cleanup}"
-            echo ""
-            echo "Commands:"
-            echo "  deploy  - Full deployment (registry, cluster, build, apply)"
-            echo "  build   - Build and push images only"
-            echo "  apply   - Apply manifests only (cluster must exist)"
-            echo "  status  - Show deployment status"
-            echo "  logs    - View pod logs"
-            echo "  cleanup - Delete cluster and optionally registry"
-            exit 1
-            ;;
-    esac
+  case "${1:-deploy}" in
+  deploy)
+    check_prerequisites
+    ensure_registry
+    ensure_cluster
+    build_images
+    tag_and_push_images
+    load_env_vars
+    apply_manifests
+    wait_for_deployments
+    show_status
+    ;;
+  build)
+    check_prerequisites
+    ensure_registry
+    build_images
+    tag_and_push_images
+    ;;
+  apply)
+    check_prerequisites
+    load_env_vars
+    apply_manifests
+    wait_for_deployments
+    show_status
+    ;;
+  status)
+    kubectl -n personalhub get pods,services,pvc
+    ;;
+  logs)
+    if [[ -n "$2" ]]; then
+      kubectl -n personalhub logs -f "$2"
+    else
+      echo "Usage: $0 logs <pod-name>"
+      echo "Available pods:"
+      kubectl -n personalhub get pods -o name
+    fi
+    ;;
+  cleanup | delete)
+    cleanup
+    ;;
+  *)
+    echo "Usage: $0 {deploy|build|apply|status|logs|cleanup}"
+    echo ""
+    echo "Commands:"
+    echo "  deploy  - Full deployment (registry, cluster, build, apply)"
+    echo "  build   - Build and push images only"
+    echo "  apply   - Apply manifests only (cluster must exist)"
+    echo "  status  - Show deployment status"
+    echo "  logs    - View pod logs"
+    echo "  cleanup - Delete cluster and optionally registry"
+    exit 1
+    ;;
+  esac
 }
 
 main "$@"
+
+# Fim do script

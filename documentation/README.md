@@ -243,4 +243,4 @@ Este projeto está sob a licença MIT. Consulte o arquivo LICENSE na raiz do rep
 **Última atualização**: Janeiro de 2026
 **Mantido por**: Equipe PersonalHub
 
-💜 Feito com atenção aos detalhes e amor por código limpo.
+💜 Feito com atenção aos detalhes e amor pelo código limpo.
