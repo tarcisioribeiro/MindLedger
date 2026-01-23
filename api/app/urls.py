@@ -33,6 +33,8 @@ urlpatterns = [
     path('api/v1/', include('payables.urls')),
     # Vaults Module (Cofres)
     path('api/v1/', include('vaults.urls')),
+    # AI Assistant Module
+    path('api/v1/ai/', include('ai_assistant.urls')),
 ]
 
 if settings.DEBUG:

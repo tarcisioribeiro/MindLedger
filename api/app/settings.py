@@ -50,6 +50,8 @@ INSTALLED_APPS = [
     'payables',
     # Vaults Module (Cofres)
     'vaults',
+    # AI Assistant Module
+    'ai_assistant',
 ]
 
 MIDDLEWARE = [

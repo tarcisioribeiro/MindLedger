@@ -34,6 +34,7 @@ import {
   FolderOpen,
   ClipboardList,
   Vault,
+  Bot,
 } from 'lucide-react';
 
 interface NavSubItem {
@@ -75,6 +76,11 @@ const navItems: NavItem[] = [
     title: 'Início',
     href: '/',
     icon: <Home className="w-5 h-5" />,
+  },
+  {
+    title: 'Assistente IA',
+    href: '/ai-assistant',
+    icon: <Bot className="w-5 h-5" />,
   },
 ];
 
