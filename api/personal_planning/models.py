@@ -97,6 +97,13 @@ class RoutineTask(BaseModel):
         blank=False,
         verbose_name='Categoria'
     )
+    icon = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        verbose_name='Ícone',
+        help_text='Nome do ícone do Lucide (ex: Heart, BookOpen, Dumbbell)'
+    )
     periodicity = models.CharField(
         max_length=20,
         choices=PERIODICITY_CHOICES,
@@ -601,6 +608,12 @@ class TaskInstance(BaseModel):
         max_length=50,
         choices=TASK_CATEGORY_CHOICES,
         verbose_name='Categoria'
+    )
+    icon = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        verbose_name='Ícone'
     )
 
     # Agendamento

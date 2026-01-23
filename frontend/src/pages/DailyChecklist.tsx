@@ -127,6 +127,7 @@ export default function DailyChecklist() {
       description: instance.task_description || undefined,
       category: instance.category,
       category_display: instance.category_display,
+      icon: instance.icon || undefined,
       unit: instance.unit,
       index: instance.occurrence_index,
       total_instances: instances.filter((i) => i.template === instance.template).length,

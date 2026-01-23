@@ -219,6 +219,7 @@ class InstanceGenerator:
                 existing.task_name = template.name
                 existing.task_description = template.description
                 existing.category = template.category
+                existing.icon = template.icon
                 existing.scheduled_time = scheduled_time
                 existing.unit = template.unit
                 needs_update = True
@@ -237,6 +238,7 @@ class InstanceGenerator:
             task_name=template.name,
             task_description=template.description,
             category=template.category,
+            icon=template.icon,
             scheduled_date=target_date,
             scheduled_time=scheduled_time,
             occurrence_index=occurrence_index,
@@ -270,7 +272,8 @@ class InstanceGenerator:
         category: str = 'other',
         scheduled_time: Optional[time] = None,
         description: str = None,
-        unit: str = 'vez'
+        unit: str = 'vez',
+        icon: str = None
     ) -> TaskInstance:
         """
         Cria uma tarefa avulsa (sem template).
@@ -282,6 +285,7 @@ class InstanceGenerator:
             task_name=task_name,
             task_description=description,
             category=category,
+            icon=icon,
             scheduled_date=scheduled_date,
             scheduled_time=scheduled_time,
             occurrence_index=0,

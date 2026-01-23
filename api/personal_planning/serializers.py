@@ -27,7 +27,7 @@ class RoutineTaskSerializer(serializers.ModelSerializer):
         model = RoutineTask
         fields = [
             'id', 'uuid', 'name', 'description', 'category', 'category_display',
-            'periodicity', 'periodicity_display', 'weekday', 'weekday_display',
+            'icon', 'periodicity', 'periodicity_display', 'weekday', 'weekday_display',
             'day_of_month', 'is_active', 'target_quantity', 'unit',
             'custom_weekdays', 'custom_month_days', 'times_per_week',
             'times_per_month', 'interval_days', 'interval_start_date',
@@ -67,7 +67,7 @@ class RoutineTaskCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = RoutineTask
         fields = [
-            'id', 'name', 'description', 'category', 'periodicity',
+            'id', 'name', 'description', 'category', 'icon', 'periodicity',
             'weekday', 'day_of_month', 'is_active',
             'target_quantity', 'unit', 'owner',
             'custom_weekdays', 'custom_month_days', 'times_per_week',
@@ -171,7 +171,7 @@ class TaskInstanceSerializer(serializers.ModelSerializer):
         model = TaskInstance
         fields = [
             'id', 'uuid', 'template', 'template_name',
-            'task_name', 'task_description', 'category', 'category_display',
+            'task_name', 'task_description', 'category', 'category_display', 'icon',
             'scheduled_date', 'scheduled_time', 'time_display', 'occurrence_index',
             'status', 'status_display',
             'target_quantity', 'quantity_completed', 'unit',
@@ -186,7 +186,7 @@ class TaskInstanceCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = TaskInstance
         fields = [
-            'task_name', 'task_description', 'category',
+            'task_name', 'task_description', 'category', 'icon',
             'scheduled_date', 'scheduled_time',
             'target_quantity', 'unit', 'owner'
         ]

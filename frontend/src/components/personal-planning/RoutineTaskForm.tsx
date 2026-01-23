@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { IconPicker } from '@/components/ui/icon-picker';
 import {
   Select,
   SelectContent,
@@ -54,6 +55,7 @@ export function RoutineTaskForm({
           name: task.name,
           description: task.description || '',
           category: task.category,
+          icon: task.icon || null,
           periodicity: task.periodicity,
           weekday: task.weekday,
           day_of_month: task.day_of_month,
@@ -70,6 +72,7 @@ export function RoutineTaskForm({
           name: '',
           description: '',
           category: 'health',
+          icon: null,
           periodicity: 'daily',
           weekday: undefined,
           day_of_month: undefined,
@@ -171,6 +174,19 @@ export function RoutineTaskForm({
           {errors.category && (
             <p className="text-sm text-destructive mt-1">
               {errors.category.message}
+            </p>
+          )}
+        </div>
+
+        <div>
+          <Label htmlFor="icon">Icone</Label>
+          <IconPicker
+            value={watch('icon')}
+            onChange={(value) => setValue('icon', value)}
+          />
+          {errors.icon && (
+            <p className="text-sm text-destructive mt-1">
+              {errors.icon.message}
             </p>
           )}
         </div>

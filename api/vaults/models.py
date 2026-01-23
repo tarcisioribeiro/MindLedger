@@ -117,7 +117,7 @@ class Vault(BaseModel):
 
         return yield_value.quantize(Decimal('0.01'))
 
-    def apply_yield(self, as_of_date=None):
+    def apply_yield(self, as_of_date=None, user=None):
         """
         Aplica o rendimento calculado ao saldo do cofre.
 
@@ -125,6 +125,8 @@ class Vault(BaseModel):
         ----------
         as_of_date : date, optional
             Data até a qual calcular e aplicar o rendimento.
+        user : User, optional
+            Usuário que está realizando a operação.
 
         Returns
         -------
@@ -147,7 +149,7 @@ class Vault(BaseModel):
                 amount=yield_value,
                 balance_after=self.current_balance,
                 description=f"Rendimento automático até {as_of_date}",
-                created_by=self.created_by
+                created_by=user or self.created_by
             )
 
             self.save()
@@ -183,7 +185,7 @@ class Vault(BaseModel):
             )
 
         # Aplicar rendimentos pendentes antes do depósito
-        self.apply_yield()
+        self.apply_yield(user=user)
 
         # Atualizar saldos
         self.current_balance += amount
@@ -230,7 +232,7 @@ class Vault(BaseModel):
             raise ValueError("O valor do saque deve ser positivo")
 
         # Aplicar rendimentos pendentes antes do saque
-        self.apply_yield()
+        self.apply_yield(user=user)
 
         if amount > self.current_balance:
             raise ValueError(
@@ -257,7 +259,7 @@ class Vault(BaseModel):
 
         return transaction
 
-    def recalculate_yields(self, new_rate=None, from_date=None):
+    def recalculate_yields(self, new_rate=None, from_date=None, user=None):
         """
         Recalcula os rendimentos com uma nova taxa a partir de uma data.
 
@@ -267,6 +269,8 @@ class Vault(BaseModel):
             Nova taxa de rendimento. Se não fornecida, usa a taxa atual.
         from_date : date, optional
             Data a partir da qual recalcular. Se não fornecida, recalcula tudo.
+        user : User, optional
+            Usuário que está realizando a operação.
 
         Returns
         -------
@@ -312,7 +316,7 @@ class Vault(BaseModel):
         self.save()
 
         # Aplicar novo rendimento
-        new_yield = self.apply_yield()
+        new_yield = self.apply_yield(user=user)
 
         return {
             'reversed_amount': total_reversed,

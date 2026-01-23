@@ -190,7 +190,7 @@ class VaultApplyYieldView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        yield_value = vault.apply_yield()
+        yield_value = vault.apply_yield(user=request.user)
 
         return Response({
             'message': 'Rendimento aplicado com sucesso' if yield_value > 0 else 'Nenhum rendimento a aplicar',
@@ -258,7 +258,8 @@ class VaultUpdateYieldView(APIView):
         if data.get('recalculate', False):
             recalc_result = vault.recalculate_yields(
                 new_rate=data.get('yield_rate'),
-                from_date=data.get('from_date')
+                from_date=data.get('from_date'),
+                user=request.user
             )
             response_data['recalculation'] = {
                 'reversed_amount': float(recalc_result['reversed_amount']),

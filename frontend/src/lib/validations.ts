@@ -653,6 +653,10 @@ export const routineTaskSchema = z.object({
     .or(z.literal('')),
   category: z.string()
     .min(1, requiredError('Categoria')),
+  icon: z.string()
+    .max(50, maxError('Icone', 50))
+    .optional()
+    .nullable(),
   periodicity: z.string()
     .min(1, requiredError('Periodicidade')),
   weekday: z.number()

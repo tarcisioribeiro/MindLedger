@@ -1156,6 +1156,7 @@ export interface RoutineTask {
   description?: string;
   category: string;
   category_display: string;
+  icon?: string | null;
   periodicity: string;
   periodicity_display: string;
   weekday?: number;
@@ -1187,6 +1188,7 @@ export interface RoutineTaskFormData {
   name: string;
   description?: string;
   category: string;
+  icon?: string | null;
   periodicity: string;
   weekday?: number;
   day_of_month?: number;
@@ -1217,6 +1219,7 @@ export interface TaskCard {
   description?: string;
   category: string;
   category_display: string;
+  icon?: string | null;
   unit: string;
   index: number; // index for tasks with multiple instances (0-based)
   total_instances: number; // total instances from same template
@@ -1308,6 +1311,7 @@ export interface TaskInstance {
   task_description?: string | null;
   category: string;
   category_display: string;
+  icon?: string | null;
   scheduled_date: string;
   scheduled_time?: string | null;
   time_display?: string | null;

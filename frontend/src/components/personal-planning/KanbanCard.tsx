@@ -2,6 +2,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { getIconByName } from '@/components/ui/icon-picker';
 import type { TaskCard } from '@/types';
 
 interface KanbanCardProps {
@@ -65,13 +66,19 @@ export function KanbanCard({ card }: KanbanCardProps) {
           {/* Title and Category */}
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1">
-              <h4 className="font-semibold text-sm leading-tight">
-                {card.task_name}
-                {card.total_instances > 1 && (
-                  <span className="ml-2 text-xs font-normal">
-                    ({card.index + 1}º {card.unit})
-                  </span>
-                )}
+              <h4 className="font-semibold text-sm leading-tight flex items-center gap-1.5">
+                {(() => {
+                  const TaskIcon = getIconByName(card.icon);
+                  return TaskIcon ? <TaskIcon className="h-4 w-4 shrink-0" /> : null;
+                })()}
+                <span>
+                  {card.task_name}
+                  {card.total_instances > 1 && (
+                    <span className="ml-2 text-xs font-normal">
+                      ({card.index + 1}º {card.unit})
+                    </span>
+                  )}
+                </span>
               </h4>
               {card.scheduled_time && (
                 <div className="flex items-center gap-1 mt-1 text-xs">
