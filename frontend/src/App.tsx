@@ -53,6 +53,9 @@ const DailyChecklist = lazy(() => import('./pages/DailyChecklist'));
 const Vaults = lazy(() => import('./pages/Vaults'));
 const FinancialGoals = lazy(() => import('./pages/FinancialGoals'));
 
+// AI Assistant Module
+const AiAssistant = lazy(() => import('./pages/AiAssistant'));
+
 // Loading component
 const LoadingFallback = () => (
   <div className="flex items-center justify-center h-screen">
@@ -128,6 +131,9 @@ function AnimatedRoutes() {
           {/* Vaults Module routes (Cofres e Metas) */}
           <Route path="/vaults" element={<Suspense fallback={<LoadingFallback />}><Vaults /></Suspense>} />
           <Route path="/financial-goals" element={<Suspense fallback={<LoadingFallback />}><FinancialGoals /></Suspense>} />
+
+          {/* AI Assistant Module */}
+          <Route path="/ai-assistant" element={<Suspense fallback={<LoadingFallback />}><AiAssistant /></Suspense>} />
         </Route>
 
         {/* Fallback */}

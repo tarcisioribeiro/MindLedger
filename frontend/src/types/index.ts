@@ -1688,3 +1688,48 @@ export interface FinancialGoalVaultsResponse {
   message: string;
   goal: FinancialGoal;
 }
+
+// ============================================================================
+// AI ASSISTANT MODULE TYPES
+// ============================================================================
+
+export interface AiMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  displayType?: string;
+  data?: Record<string, unknown>[];
+  module?: string;
+  timestamp?: string;
+}
+
+export interface AiResponse {
+  resposta: string;
+  display_type: string;
+  data: Record<string, unknown>[];
+  module: string;
+  count: number;
+  description: string;
+  success: boolean;
+}
+
+export interface AiHistoryItem {
+  id: number;
+  question: string;
+  response: string;
+  module: string;
+  display_type: string;
+  success: boolean;
+  created_at: string;
+}
+
+export interface AiHistoryResponse {
+  conversations: AiHistoryItem[];
+  count: number;
+}
+
+export interface AiHealthResponse {
+  ollama: 'healthy' | 'unavailable';
+  database: 'healthy' | 'unavailable';
+  model: string;
+}
