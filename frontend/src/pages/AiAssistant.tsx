@@ -5,7 +5,7 @@
  */
 import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Bot, Trash2, History, AlertCircle, Sparkles } from 'lucide-react';
+import { Bot, Trash2, AlertCircle, Sparkles } from 'lucide-react';
 import { PageContainer } from '@/components/common/PageContainer';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';

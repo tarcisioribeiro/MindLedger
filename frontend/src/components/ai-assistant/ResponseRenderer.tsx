@@ -145,17 +145,17 @@ export function ResponseRenderer({
                 className="bg-muted/50 rounded-lg p-3 flex items-center justify-between"
               >
                 <div>
-                  <div className="font-medium">{item.titulo || item.title}</div>
+                  <div className="font-medium">{String(item.titulo || item.title || '')}</div>
                   <div className="text-sm text-muted-foreground">
-                    {item.usuario || item.username}
-                    {(item.site) && ` • ${item.site}`}
+                    {String(item.usuario || item.username || '')}
+                    {item.site ? ` • ${String(item.site)}` : null}
                   </div>
                 </div>
-                {(item.categoria || item.category) && (
+                {(item.categoria || item.category) ? (
                   <Badge variant="secondary">
                     {autoTranslate(String(item.categoria || item.category))}
                   </Badge>
-                )}
+                ) : null}
               </div>
             ))}
           </div>
