@@ -45,11 +45,18 @@ class Vault(BaseModel):
         help_text="Total de rendimentos acumulados"
     )
     yield_rate = models.DecimalField(
-        verbose_name="Taxa de Rendimento",
+        verbose_name="Taxa de Rendimento Diária (legado)",
         max_digits=10,
         decimal_places=6,
         default=Decimal('0.000000'),
-        help_text="Taxa de rendimento diária (ex: 0.000329 = 0.0329% ao dia)"
+        help_text="Taxa de rendimento diária (legado) - use annual_yield_rate"
+    )
+    annual_yield_rate = models.DecimalField(
+        verbose_name="Taxa de Rendimento Anual",
+        max_digits=8,
+        decimal_places=4,
+        default=Decimal('0.0000'),
+        help_text="Taxa de rendimento anual (ex: 0.1200 = 12% ao ano)"
     )
     last_yield_date = models.DateField(
         verbose_name="Data do Último Rendimento",
@@ -80,6 +87,16 @@ class Vault(BaseModel):
     def __str__(self):
         return f"{self.description} - {self.account.account_name}"
 
+    @property
+    def daily_yield_rate(self):
+        """
+        Calcula a taxa diária a partir da taxa anual.
+        Se annual_yield_rate > 0, usa ela. Caso contrário, usa yield_rate (legado).
+        """
+        if self.annual_yield_rate > 0:
+            return (self.annual_yield_rate / Decimal('365')).quantize(Decimal('0.000001'))
+        return self.yield_rate
+
     def calculate_yield(self, as_of_date=None):
         """
         Calcula o rendimento do cofre até a data especificada.
@@ -97,7 +114,7 @@ class Vault(BaseModel):
         if as_of_date is None:
             as_of_date = timezone.now().date()
 
-        if not self.last_yield_date or self.yield_rate <= 0:
+        if not self.last_yield_date or self.daily_yield_rate <= 0:
             return Decimal('0.00')
 
         # Número de dias desde o último rendimento
@@ -107,7 +124,7 @@ class Vault(BaseModel):
 
         # Rendimento composto diário
         # Fórmula: V = P * (1 + r)^n - P
-        rate = Decimal(str(self.yield_rate))
+        rate = Decimal(str(self.daily_yield_rate))
         principal = self.current_balance - self.accumulated_yield  # Apenas o principal
         if principal <= 0:
             principal = self.current_balance  # Se não há distinção, usa o saldo total

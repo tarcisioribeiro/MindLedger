@@ -9,6 +9,9 @@ import type {
   VaultOperationResponse,
   VaultYieldResponse,
   VaultYieldUpdateResponse,
+  VaultTransactionUpdateData,
+  VaultTransactionUpdateResponse,
+  VaultTransactionDeleteResponse,
   FinancialGoal,
   FinancialGoalListItem,
   FinancialGoalFormData,
@@ -104,6 +107,15 @@ class VaultsService {
 
     const response = await apiClient.get<PaginatedResponse<VaultTransaction>>(url);
     return response.results;
+  }
+
+  // Transaction Update/Delete
+  async updateTransaction(id: number, data: VaultTransactionUpdateData): Promise<VaultTransactionUpdateResponse> {
+    return apiClient.patch<VaultTransactionUpdateResponse>(`${TRANSACTIONS_BASE_URL}${id}/`, data);
+  }
+
+  async deleteTransaction(id: number): Promise<VaultTransactionDeleteResponse> {
+    return apiClient.delete<VaultTransactionDeleteResponse>(`${TRANSACTIONS_BASE_URL}${id}/`);
   }
 }
 

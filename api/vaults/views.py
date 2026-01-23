@@ -4,14 +4,19 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db import transaction
 from decimal import Decimal
+import logging
 
+from accounts.models import Account
 from .models import Vault, VaultTransaction, FinancialGoal
+
+logger = logging.getLogger(__name__)
 from .serializers import (
     VaultSerializer,
     VaultTransactionSerializer,
     VaultDepositSerializer,
     VaultWithdrawSerializer,
     VaultYieldUpdateSerializer,
+    VaultTransactionUpdateSerializer,
     FinancialGoalSerializer,
     FinancialGoalListSerializer,
 )
@@ -82,9 +87,17 @@ class VaultDepositView(APIView):
                 is_deleted=False,
                 is_active=True
             )
+            # Lock the associated account to prevent race conditions
+            account = Account.objects.select_for_update().get(pk=vault.account_id)
+            vault.account = account
         except Vault.DoesNotExist:
             return Response(
                 {'error': 'Cofre não encontrado ou inativo'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Account.DoesNotExist:
+            return Response(
+                {'error': 'Conta associada não encontrada'},
                 status=status.HTTP_404_NOT_FOUND
             )
 
@@ -114,6 +127,12 @@ class VaultDepositView(APIView):
                 {'error': str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
+        except Exception as e:
+            logger.exception(f"Erro inesperado ao depositar no cofre {pk}: {e}")
+            return Response(
+                {'error': 'Erro interno ao processar o depósito. Por favor, tente novamente.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class VaultWithdrawView(APIView):
@@ -133,9 +152,17 @@ class VaultWithdrawView(APIView):
                 is_deleted=False,
                 is_active=True
             )
+            # Lock the associated account to prevent race conditions
+            account = Account.objects.select_for_update().get(pk=vault.account_id)
+            vault.account = account
         except Vault.DoesNotExist:
             return Response(
                 {'error': 'Cofre não encontrado ou inativo'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Account.DoesNotExist:
+            return Response(
+                {'error': 'Conta associada não encontrada'},
                 status=status.HTTP_404_NOT_FOUND
             )
 
@@ -164,6 +191,12 @@ class VaultWithdrawView(APIView):
             return Response(
                 {'error': str(e)},
                 status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            logger.exception(f"Erro inesperado ao sacar do cofre {pk}: {e}")
+            return Response(
+                {'error': 'Erro interno ao processar o saque. Por favor, tente novamente.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
 
@@ -231,7 +264,16 @@ class VaultUpdateYieldView(APIView):
         data = serializer.validated_data
         response_data = {'message': 'Atualização realizada com sucesso'}
 
-        # Atualizar taxa de rendimento
+        # Atualizar taxa de rendimento anual
+        if 'annual_yield_rate' in data:
+            old_annual_rate = vault.annual_yield_rate
+            vault.annual_yield_rate = data['annual_yield_rate']
+            response_data['annual_yield_rate_changed'] = {
+                'old': float(old_annual_rate),
+                'new': float(data['annual_yield_rate'])
+            }
+
+        # Atualizar taxa de rendimento diária (legado)
         if 'yield_rate' in data:
             old_rate = vault.yield_rate
             vault.yield_rate = data['yield_rate']
@@ -317,6 +359,110 @@ class AllVaultTransactionsView(generics.ListAPIView):
             queryset = queryset.filter(transaction_type=transaction_type)
 
         return queryset
+
+
+class VaultTransactionUpdateView(APIView):
+    """
+    Endpoint para editar ou excluir transações de rendimento.
+
+    PATCH: Edita uma transação de rendimento
+    DELETE: Exclui uma transação de rendimento (soft delete)
+    """
+    permission_classes = (IsAuthenticated, GlobalDefaultPermission,)
+    queryset = VaultTransaction.objects.all()  # Required for GlobalDefaultPermission
+
+    @transaction.atomic
+    def patch(self, request, pk):
+        try:
+            vault_transaction = VaultTransaction.objects.select_for_update().get(
+                pk=pk,
+                is_deleted=False
+            )
+        except VaultTransaction.DoesNotExist:
+            return Response(
+                {'error': 'Transação não encontrada'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        if vault_transaction.transaction_type != 'yield':
+            return Response(
+                {'error': 'Apenas transações de rendimento podem ser editadas'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        vault = Vault.objects.select_for_update().get(pk=vault_transaction.vault_id)
+        old_amount = vault_transaction.amount
+
+        serializer = VaultTransactionUpdateSerializer(
+            vault_transaction,
+            data=request.data,
+            partial=True
+        )
+        if not serializer.is_valid():
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        new_amount = serializer.validated_data.get('amount', old_amount)
+        amount_difference = new_amount - old_amount
+
+        # Atualiza os saldos do cofre
+        vault.current_balance += amount_difference
+        vault.accumulated_yield += amount_difference
+        vault.save()
+
+        serializer.save()
+
+        return Response({
+            'message': 'Transação atualizada com sucesso',
+            'transaction': VaultTransactionSerializer(vault_transaction).data,
+            'vault': VaultSerializer(vault).data,
+            'adjustment': {
+                'old_amount': float(old_amount),
+                'new_amount': float(new_amount),
+                'difference': float(amount_difference)
+            }
+        }, status=status.HTTP_200_OK)
+
+    @transaction.atomic
+    def delete(self, request, pk):
+        try:
+            vault_transaction = VaultTransaction.objects.select_for_update().get(
+                pk=pk,
+                is_deleted=False
+            )
+        except VaultTransaction.DoesNotExist:
+            return Response(
+                {'error': 'Transação não encontrada'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        if vault_transaction.transaction_type != 'yield':
+            return Response(
+                {'error': 'Apenas transações de rendimento podem ser excluídas'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        vault = Vault.objects.select_for_update().get(pk=vault_transaction.vault_id)
+        amount = vault_transaction.amount
+
+        # Reverte os saldos do cofre
+        vault.current_balance -= amount
+        vault.accumulated_yield -= amount
+        vault.save()
+
+        # Soft delete
+        from django.utils import timezone
+        vault_transaction.is_deleted = True
+        vault_transaction.deleted_at = timezone.now()
+        vault_transaction.save()
+
+        return Response({
+            'message': 'Transação excluída com sucesso',
+            'vault': VaultSerializer(vault).data,
+            'reversed_amount': float(amount)
+        }, status=status.HTTP_200_OK)
 
 
 # ============== Financial Goals Views ==============

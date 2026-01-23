@@ -47,6 +47,11 @@ urlpatterns = [
         views.AllVaultTransactionsView.as_view(),
         name='all-vault-transactions'
     ),
+    path(
+        'vault-transactions/<int:pk>/',
+        views.VaultTransactionUpdateView.as_view(),
+        name='vault-transaction-update'
+    ),
 
     # Metas Financeiras CRUD
     path(

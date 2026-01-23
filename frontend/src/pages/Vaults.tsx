@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, Vault, ArrowDownToLine, ArrowUpFromLine, RefreshCcw } from 'lucide-react';
+import { Plus, Pencil, Trash2, Vault, ArrowDownToLine, ArrowUpFromLine, RefreshCcw, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -15,7 +15,8 @@ import { useAlertDialog } from '@/hooks/use-alert-dialog';
 import { formatCurrency } from '@/lib/formatters';
 import { PageHeader } from '@/components/common/PageHeader';
 import { DataTable, type Column } from '@/components/common/DataTable';
-import type { Vault as VaultType, VaultFormData, Account } from '@/types';
+import type { Vault as VaultType, VaultFormData, Account, VaultTransaction } from '@/types';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { PageContainer } from '@/components/common/PageContainer';
 import { cn } from '@/lib/utils';
 
@@ -31,11 +32,19 @@ export default function Vaults() {
   const [operationAmount, setOperationAmount] = useState<string>('');
   const [operationDescription, setOperationDescription] = useState<string>('');
 
+  // Transactions dialog state
+  const [isTransactionsDialogOpen, setIsTransactionsDialogOpen] = useState(false);
+  const [transactions, setTransactions] = useState<VaultTransaction[]>([]);
+  const [transactionsFilter, setTransactionsFilter] = useState<string>('all');
+  const [editingTransaction, setEditingTransaction] = useState<VaultTransaction | null>(null);
+  const [editTransactionAmount, setEditTransactionAmount] = useState<string>('');
+  const [editTransactionDescription, setEditTransactionDescription] = useState<string>('');
+
   // Form state
   const [formData, setFormData] = useState<VaultFormData>({
     description: '',
     account: 0,
-    yield_rate: 0,
+    annual_yield_rate: 0,
     is_active: true,
     notes: '',
   });
@@ -76,7 +85,7 @@ export default function Vaults() {
     setFormData({
       description: '',
       account: accounts[0]?.id || 0,
-      yield_rate: 0,
+      annual_yield_rate: 0,
       is_active: true,
       notes: '',
     });
@@ -88,7 +97,7 @@ export default function Vaults() {
     setFormData({
       description: vault.description,
       account: vault.account,
-      yield_rate: parseFloat(vault.yield_rate) * 100, // Convert to percentage
+      annual_yield_rate: vault.annual_yield_rate_percentage, // Already in percentage
       is_active: vault.is_active,
       notes: vault.notes || '',
     });
@@ -127,7 +136,7 @@ export default function Vaults() {
       setIsSubmitting(true);
       const dataToSend = {
         ...formData,
-        yield_rate: formData.yield_rate / 100, // Convert from percentage
+        annual_yield_rate: formData.annual_yield_rate / 100, // Convert from percentage to decimal
       };
 
       if (selectedVault) {
@@ -232,6 +241,85 @@ export default function Vaults() {
     setIsWithdrawDialogOpen(true);
   };
 
+  const openTransactionsDialog = async (vault: VaultType) => {
+    setSelectedVault(vault);
+    setTransactionsFilter('all');
+    setEditingTransaction(null);
+    try {
+      const data = await vaultsService.getTransactions(vault.id);
+      setTransactions(data);
+      setIsTransactionsDialogOpen(true);
+    } catch (error: any) {
+      toast({ title: 'Erro ao carregar transações', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const loadTransactions = async () => {
+    if (!selectedVault) return;
+    try {
+      const typeFilter = transactionsFilter === 'all' ? undefined : transactionsFilter;
+      const data = await vaultsService.getTransactions(selectedVault.id, typeFilter);
+      setTransactions(data);
+    } catch (error: any) {
+      toast({ title: 'Erro ao carregar transações', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const startEditTransaction = (transaction: VaultTransaction) => {
+    setEditingTransaction(transaction);
+    setEditTransactionAmount(transaction.amount);
+    setEditTransactionDescription(transaction.description || '');
+  };
+
+  const cancelEditTransaction = () => {
+    setEditingTransaction(null);
+    setEditTransactionAmount('');
+    setEditTransactionDescription('');
+  };
+
+  const handleUpdateTransaction = async () => {
+    if (!editingTransaction) return;
+    const amount = parseFloat(editTransactionAmount);
+    if (isNaN(amount) || amount <= 0) {
+      toast({ title: 'Valor inválido', description: 'Informe um valor válido.', variant: 'destructive' });
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await vaultsService.updateTransaction(editingTransaction.id, {
+        amount,
+        description: editTransactionDescription || undefined,
+      });
+      toast({ title: 'Transação atualizada', description: 'A transação foi atualizada com sucesso.' });
+      cancelEditTransaction();
+      loadTransactions();
+      loadData();
+    } catch (error: any) {
+      toast({ title: 'Erro ao atualizar', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteTransaction = async (transaction: VaultTransaction) => {
+    const confirmed = await showConfirm({
+      title: 'Excluir transação de rendimento',
+      description: `Tem certeza que deseja excluir esta transação de ${formatCurrency(parseFloat(transaction.amount))}? O valor será revertido do saldo do cofre.`,
+    });
+
+    if (confirmed) {
+      try {
+        await vaultsService.deleteTransaction(transaction.id);
+        toast({ title: 'Transação excluída', description: 'A transação foi excluída e o saldo revertido.' });
+        loadTransactions();
+        loadData();
+      } catch (error: any) {
+        toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' });
+      }
+    }
+  };
+
   // Calculate totals
   const totalBalance = vaults.reduce((sum, v) => sum + parseFloat(v.current_balance), 0);
   const totalYield = vaults.reduce((sum, v) => sum + parseFloat(v.accumulated_yield), 0);
@@ -278,7 +366,12 @@ export default function Vaults() {
       key: 'yield_rate',
       label: 'Taxa',
       render: (vault) => (
-        <span>{vault.yield_rate_percentage.toFixed(4)}% ao dia</span>
+        <div>
+          <div className="font-medium">{vault.annual_yield_rate_percentage.toFixed(2)}% ao ano</div>
+          <div className="text-xs text-muted-foreground">
+            {vault.daily_yield_rate_percentage.toFixed(4)}% ao dia
+          </div>
+        </div>
       ),
     },
     {
@@ -321,6 +414,14 @@ export default function Vaults() {
             disabled={!vault.is_active || vault.pending_yield <= 0}
           >
             <RefreshCcw className="h-4 w-4 text-info" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => openTransactionsDialog(vault)}
+            title="Ver Transações"
+          >
+            <History className="h-4 w-4" />
           </Button>
           <Button
             variant="ghost"
@@ -432,18 +533,18 @@ export default function Vaults() {
               </Select>
             </div>
             <div>
-              <Label htmlFor="yield_rate">Taxa de Rendimento (% ao dia)</Label>
+              <Label htmlFor="annual_yield_rate">Taxa de Rendimento (% ao ano)</Label>
               <Input
-                id="yield_rate"
+                id="annual_yield_rate"
                 type="number"
-                step="0.0001"
+                step="0.01"
                 min="0"
-                value={formData.yield_rate}
-                onChange={(e) => setFormData({ ...formData, yield_rate: parseFloat(e.target.value) || 0 })}
-                placeholder="Ex: 0.0329"
+                value={formData.annual_yield_rate}
+                onChange={(e) => setFormData({ ...formData, annual_yield_rate: parseFloat(e.target.value) || 0 })}
+                placeholder="Ex: 12.00"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Deixe 0 para cofres sem rendimento
+                Deixe 0 para cofres sem rendimento. Ex: 12 = 12% ao ano
               </p>
             </div>
             <div>
@@ -571,6 +672,179 @@ export default function Vaults() {
             </Button>
             <Button variant="destructive" onClick={handleWithdraw} disabled={isSubmitting || !operationAmount}>
               {isSubmitting ? 'Sacando...' : 'Sacar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Transactions Dialog */}
+      <Dialog open={isTransactionsDialogOpen} onOpenChange={setIsTransactionsDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Transações do Cofre</DialogTitle>
+            <DialogDescription>
+              {selectedVault && (
+                <>
+                  Histórico de transações do cofre "{selectedVault.description}".
+                  <br />
+                  Saldo atual: {formatCurrency(parseFloat(selectedVault.current_balance))} | Rendimentos: {formatCurrency(parseFloat(selectedVault.accumulated_yield))}
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Filter */}
+            <div className="flex items-center gap-2">
+              <Label>Filtrar por tipo:</Label>
+              <Select
+                value={transactionsFilter}
+                onValueChange={(value) => {
+                  setTransactionsFilter(value);
+                  setTimeout(loadTransactions, 0);
+                }}
+              >
+                <SelectTrigger className="w-48">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="deposit">Depósitos</SelectItem>
+                  <SelectItem value="withdrawal">Saques</SelectItem>
+                  <SelectItem value="yield">Rendimentos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Transactions Table */}
+            <div className="border rounded-md">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>Valor</TableHead>
+                    <TableHead>Descrição</TableHead>
+                    <TableHead>Saldo Após</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {transactions.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                        Nenhuma transação encontrada
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    transactions.map((transaction) => (
+                      <TableRow key={transaction.id}>
+                        <TableCell>
+                          {new Date(transaction.transaction_date).toLocaleDateString('pt-BR')}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              transaction.transaction_type === 'deposit'
+                                ? 'default'
+                                : transaction.transaction_type === 'withdrawal'
+                                ? 'destructive'
+                                : 'secondary'
+                            }
+                          >
+                            {transaction.transaction_type_display}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {editingTransaction?.id === transaction.id ? (
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0.01"
+                              value={editTransactionAmount}
+                              onChange={(e) => setEditTransactionAmount(e.target.value)}
+                              className="w-24"
+                            />
+                          ) : (
+                            <span
+                              className={cn(
+                                transaction.transaction_type === 'deposit' || transaction.transaction_type === 'yield'
+                                  ? 'text-success'
+                                  : 'text-destructive'
+                              )}
+                            >
+                              {transaction.transaction_type === 'withdrawal' ? '-' : '+'}
+                              {formatCurrency(parseFloat(transaction.amount))}
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {editingTransaction?.id === transaction.id ? (
+                            <Input
+                              value={editTransactionDescription}
+                              onChange={(e) => setEditTransactionDescription(e.target.value)}
+                              className="w-40"
+                            />
+                          ) : (
+                            transaction.description || '-'
+                          )}
+                        </TableCell>
+                        <TableCell>{formatCurrency(parseFloat(transaction.balance_after))}</TableCell>
+                        <TableCell className="text-right">
+                          {transaction.transaction_type === 'yield' && (
+                            <>
+                              {editingTransaction?.id === transaction.id ? (
+                                <div className="flex items-center justify-end gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={handleUpdateTransaction}
+                                    disabled={isSubmitting}
+                                  >
+                                    Salvar
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={cancelEditTransaction}
+                                  >
+                                    Cancelar
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center justify-end gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => startEditTransaction(transaction)}
+                                    title="Editar"
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTransaction(transaction)}
+                                    title="Excluir"
+                                  >
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsTransactionsDialogOpen(false)}>
+              Fechar
             </Button>
           </DialogFooter>
         </DialogContent>

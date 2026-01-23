@@ -59,6 +59,10 @@ class VaultSerializer(serializers.ModelSerializer):
     total_deposits = serializers.SerializerMethodField()
     total_withdrawals = serializers.SerializerMethodField()
     recent_transactions = serializers.SerializerMethodField()
+    yield_rate_percentage = serializers.SerializerMethodField()
+    annual_yield_rate_percentage = serializers.SerializerMethodField()
+    daily_yield_rate = serializers.SerializerMethodField()
+    daily_yield_rate_percentage = serializers.SerializerMethodField()
 
     class Meta:
         model = Vault
@@ -74,6 +78,10 @@ class VaultSerializer(serializers.ModelSerializer):
             'accumulated_yield',
             'yield_rate',
             'yield_rate_percentage',
+            'annual_yield_rate',
+            'annual_yield_rate_percentage',
+            'daily_yield_rate',
+            'daily_yield_rate_percentage',
             'last_yield_date',
             'pending_yield',
             'is_active',
@@ -97,11 +105,21 @@ class VaultSerializer(serializers.ModelSerializer):
             'updated_by',
         ]
 
-    yield_rate_percentage = serializers.SerializerMethodField()
-
     def get_yield_rate_percentage(self, obj):
-        """Retorna a taxa de rendimento em formato de porcentagem."""
+        """Retorna a taxa de rendimento diária (legado) em formato de porcentagem."""
         return float(obj.yield_rate * 100)
+
+    def get_annual_yield_rate_percentage(self, obj):
+        """Retorna a taxa de rendimento anual em formato de porcentagem."""
+        return float(obj.annual_yield_rate * 100)
+
+    def get_daily_yield_rate(self, obj):
+        """Retorna a taxa de rendimento diária calculada."""
+        return float(obj.daily_yield_rate)
+
+    def get_daily_yield_rate_percentage(self, obj):
+        """Retorna a taxa de rendimento diária em formato de porcentagem."""
+        return float(obj.daily_yield_rate * 100)
 
     def get_pending_yield(self, obj):
         """Calcula o rendimento pendente (não aplicado)."""
@@ -169,7 +187,15 @@ class VaultYieldUpdateSerializer(serializers.Serializer):
         max_digits=10,
         decimal_places=6,
         min_value=Decimal('0'),
-        required=False
+        required=False,
+        help_text="Taxa de rendimento diária (legado)"
+    )
+    annual_yield_rate = serializers.DecimalField(
+        max_digits=8,
+        decimal_places=4,
+        min_value=Decimal('0'),
+        required=False,
+        help_text="Taxa de rendimento anual (ex: 0.12 = 12% ao ano)"
     )
     accumulated_yield = serializers.DecimalField(
         max_digits=15,
@@ -186,6 +212,21 @@ class VaultYieldUpdateSerializer(serializers.Serializer):
         allow_null=True,
         help_text="Data a partir da qual recalcular os rendimentos"
     )
+
+
+class VaultTransactionUpdateSerializer(serializers.ModelSerializer):
+    """Serializer para atualizar transações de rendimento do cofre."""
+    class Meta:
+        model = VaultTransaction
+        fields = ['amount', 'description', 'transaction_date']
+
+    def validate(self, data):
+        """Valida que apenas transações de rendimento podem ser editadas."""
+        if self.instance and self.instance.transaction_type != 'yield':
+            raise serializers.ValidationError(
+                "Apenas transações de rendimento podem ser editadas."
+            )
+        return data
 
 
 class VaultSummarySerializer(serializers.Serializer):

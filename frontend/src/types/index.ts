@@ -1539,6 +1539,10 @@ export interface Vault {
   accumulated_yield: string;
   yield_rate: string;
   yield_rate_percentage: number;
+  annual_yield_rate: string;
+  annual_yield_rate_percentage: number;
+  daily_yield_rate: number;
+  daily_yield_rate_percentage: number;
   last_yield_date?: string;
   pending_yield: number;
   is_active: boolean;
@@ -1555,9 +1559,33 @@ export interface Vault {
 export interface VaultFormData {
   description: string;
   account: number;
-  yield_rate: number;
+  yield_rate?: number;
+  annual_yield_rate: number;
   is_active: boolean;
   notes?: string;
+}
+
+export interface VaultTransactionUpdateData {
+  amount?: number;
+  description?: string;
+  transaction_date?: string;
+}
+
+export interface VaultTransactionUpdateResponse {
+  message: string;
+  transaction: VaultTransaction;
+  vault: Vault;
+  adjustment: {
+    old_amount: number;
+    new_amount: number;
+    difference: number;
+  };
+}
+
+export interface VaultTransactionDeleteResponse {
+  message: string;
+  vault: Vault;
+  reversed_amount: number;
 }
 
 export interface VaultDepositData {
