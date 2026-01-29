@@ -6,6 +6,7 @@ import { Loader2, Shield, Users, Check, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { membersService } from '@/services/members-service';
 import { permissionsService, type Permission } from '@/services/permissions-service';
+import { getErrorMessage } from '@/utils/error-utils';
 import type { Member } from '@/types';
 
 // Mapeamento de apps para nomes amigáveis

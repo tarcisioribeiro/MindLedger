@@ -31,6 +31,7 @@ import { passwordsService } from '@/services/passwords-service';
 import { membersService } from '@/services/members-service';
 import { useToast } from '@/hooks/use-toast';
 import { useAlertDialog } from '@/hooks/use-alert-dialog';
+import { getErrorMessage } from '@/utils/error-utils';
 import { formatDate } from '@/lib/formatters';
 import { PageHeader } from '@/components/common/PageHeader';
 import { LoadingState } from '@/components/common/LoadingState';

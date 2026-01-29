@@ -4,6 +4,7 @@ import { SearchInput } from '@/components/common/SearchInput';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useAlertDialog } from '@/hooks/use-alert-dialog';
+import { getErrorMessage } from '@/utils/error-utils';
 import { authorsService } from '@/services/authors-service';
 import type { Author, AuthorFormData } from '@/types';
 import { Plus, Edit, Trash2, BookOpen, User, UserPen, Calendar } from 'lucide-react';

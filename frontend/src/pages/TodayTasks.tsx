@@ -7,6 +7,7 @@ import { taskInstancesService } from '@/services/task-instances-service';
 import { appService } from '@/services/app-service';
 import { useToast } from '@/hooks/use-toast';
 import type { TaskInstance } from '@/types';
+import { getErrorMessage } from '@/utils/error-utils';
 import { formatLocalDate } from '@/lib/utils';
 
 export default function TodayTasks() {

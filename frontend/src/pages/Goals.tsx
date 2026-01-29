@@ -18,6 +18,7 @@ import { goalsService } from '@/services/goals-service';
 import { routineTasksService } from '@/services/routine-tasks-service';
 import { useToast } from '@/hooks/use-toast';
 import { useAlertDialog } from '@/hooks/use-alert-dialog';
+import { getErrorMessage } from '@/utils/error-utils';
 import type { Goal, RoutineTask } from '@/types';
 import { goalSchema } from '@/lib/validations';
 import { z } from 'zod';

@@ -19,6 +19,7 @@ import { accountsService } from '@/services/accounts-service';
 import { creditCardsService } from '@/services/credit-cards-service';
 import { useToast } from '@/hooks/use-toast';
 import { useAlertDialog } from '@/hooks/use-alert-dialog';
+import { getErrorMessage } from '@/utils/error-utils';
 import { formatCurrency } from '@/lib/formatters';
 import { TRANSLATIONS } from '@/config/constants';
 import type { FixedExpense, FixedExpenseFormData, Account, CreditCard } from '@/types';

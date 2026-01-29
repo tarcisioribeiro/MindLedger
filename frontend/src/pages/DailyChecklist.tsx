@@ -44,6 +44,7 @@ import { dailyReflectionsService } from '@/services/daily-reflections-service';
 import { membersService } from '@/services/members-service';
 import { appService } from '@/services/app-service';
 import { useToast } from '@/hooks/use-toast';
+import { getErrorMessage } from '@/utils/error-utils';
 import {
   MOOD_CHOICES,
   type TaskInstance,

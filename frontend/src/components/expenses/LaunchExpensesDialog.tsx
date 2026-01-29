@@ -20,6 +20,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { fixedExpensesService } from '@/services/fixed-expenses-service';
 import { useToast } from '@/hooks/use-toast';
+import { getErrorMessage } from '@/utils/error-utils';
 import { formatCurrency } from '@/lib/formatters';
 import type { FixedExpense, BulkGenerateRequest } from '@/types';
 

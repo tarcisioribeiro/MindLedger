@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useAlertDialog } from '@/hooks/use-alert-dialog';
+import { getErrorMessage } from '@/utils/error-utils';
 import { formatDate } from '@/lib/formatters';
 import { readingsService } from '@/services/readings-service';
 import { booksService } from '@/services/books-service';

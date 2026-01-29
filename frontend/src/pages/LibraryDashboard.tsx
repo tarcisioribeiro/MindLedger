@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { libraryDashboardService, type LibraryDashboardStats } from '@/services/library-dashboard-service';
 import { useToast } from '@/hooks/use-toast';
 import { PageHeader } from '@/components/common/PageHeader';
+import { getErrorMessage } from '@/utils/error-utils';
 import { LoadingState } from '@/components/common/LoadingState';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';

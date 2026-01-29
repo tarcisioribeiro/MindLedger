@@ -9,6 +9,7 @@ import { MemberForm } from '@/components/members/MemberForm';
 import { membersService } from '@/services/members-service';
 import { useToast } from '@/hooks/use-toast';
 import { useAlertDialog } from '@/hooks/use-alert-dialog';
+import { getErrorMessage } from '@/utils/error-utils';
 import type { Member, MemberFormData } from '@/types';
 import { format } from 'date-fns';
 import { PageContainer } from '@/components/common/PageContainer';

@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { securityDashboardService, type SecurityDashboardStats } from '@/services/security-dashboard-service';
 import { useToast } from '@/hooks/use-toast';
 import { PageHeader } from '@/components/common/PageHeader';
+import { getErrorMessage } from '@/utils/error-utils';
 import { LoadingState } from '@/components/common/LoadingState';
 import { useChartColors, usePasswordStrengthColors } from '@/lib/chart-colors';
 import { ChartContainer } from '@/components/charts';

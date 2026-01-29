@@ -48,9 +48,16 @@ class CreditCardCreateListView(generics.ListCreateAPIView):
         Ordenação padrão por nome
     """
     permission_classes = (IsAuthenticated, GlobalDefaultPermission,)
-    queryset = CreditCard.objects.filter(is_deleted=False).select_related('associated_account')
     serializer_class = CreditCardSerializer
     ordering = ['name']
+
+    def get_queryset(self):
+        # Usa defer() para excluir campo criptografado na listagem (performance)
+        return CreditCard.objects.filter(
+            is_deleted=False
+        ).select_related(
+            'associated_account'
+        ).defer('_card_number')
 
 
 class CreditCardRetrieveUpdateDestroyView(

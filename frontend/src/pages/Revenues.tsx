@@ -17,6 +17,7 @@ import { loansService } from '@/services/loans-service';
 import { useToast } from '@/hooks/use-toast';
 import { useAlertDialog } from '@/hooks/use-alert-dialog';
 import { useAuthStore } from '@/stores/auth-store';
+import { getErrorMessage } from '@/utils/error-utils';
 import { translate } from '@/config/constants';
 import { formatCurrency, formatDateTime } from '@/lib/formatters';
 import { sumByProperty } from '@/lib/helpers';

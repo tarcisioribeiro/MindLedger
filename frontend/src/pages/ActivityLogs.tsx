@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { ScrollText } from 'lucide-react';
 import { activityLogsService } from '@/services/activity-logs-service';
 import { useToast } from '@/hooks/use-toast';
+import { getErrorMessage } from '@/utils/error-utils';
 import { PageHeader } from '@/components/common/PageHeader';
 import { LoadingState } from '@/components/common/LoadingState';
 import {

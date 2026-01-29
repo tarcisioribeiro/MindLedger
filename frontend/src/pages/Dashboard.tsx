@@ -14,6 +14,7 @@ import { creditCardsService } from '@/services/credit-cards-service';
 import { creditCardBillsService } from '@/services/credit-card-bills-service';
 import { useToast } from '@/hooks/use-toast';
 import { translate, TRANSLATIONS } from '@/config/constants';
+import { getErrorMessage } from '@/utils/error-utils';
 import { formatCurrency } from '@/lib/formatters';
 import { PageHeader } from '@/components/common/PageHeader';
 import { LoadingState } from '@/components/common/LoadingState';

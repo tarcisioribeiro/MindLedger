@@ -8,7 +8,7 @@ interface FormFieldProps {
   error?: string;
   required?: boolean;
   description?: string;
-  children: React.ReactElement;
+  children: React.ReactElement<React.HTMLProps<HTMLElement>>;
   className?: string;
 }
 

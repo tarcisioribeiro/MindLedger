@@ -12,6 +12,7 @@ import { creditCardsService } from '@/services/credit-cards-service';
 import { useToast } from '@/hooks/use-toast';
 import { useAlertDialog } from '@/hooks/use-alert-dialog';
 import { useAuthStore } from '@/stores/auth-store';
+import { getErrorMessage } from '@/utils/error-utils';
 import { translate, TRANSLATIONS } from '@/config/constants';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import { getMemberDisplayName } from '@/lib/receipt-utils';
