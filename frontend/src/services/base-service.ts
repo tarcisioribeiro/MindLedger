@@ -1,4 +1,4 @@
-import { apiClient } from './api-client';
+import { apiClient, type RequestData } from './api-client';
 import type { PaginatedResponse } from '@/types';
 
 /**
@@ -74,14 +74,14 @@ export abstract class BaseService<
    * Cria um novo recurso.
    */
   async create(data: CreateData): Promise<T> {
-    return apiClient.post<T>(this.endpoint, data);
+    return apiClient.post<T>(this.endpoint, data as RequestData);
   }
 
   /**
    * Atualiza um recurso existente (PUT - substituicao completa).
    */
   async update(id: number, data: UpdateData): Promise<T> {
-    return apiClient.put<T>(`${this.endpoint}${id}/`, data);
+    return apiClient.put<T>(`${this.endpoint}${id}/`, data as RequestData);
   }
 
   /**

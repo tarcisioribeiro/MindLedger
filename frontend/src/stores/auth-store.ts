@@ -81,10 +81,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isLoading: false,
       });
     } catch (error: unknown) {
-      let errorMessage = error.message || 'Login failed';
+      const err = error as Error;
+      let errorMessage = err.message || 'Login failed';
 
       // Handle specific error cases
-      if (error.name === 'PermissionError') {
+      if (err.name === 'PermissionError') {
         errorMessage = 'Superusuários não podem acessar o frontend. Por favor, faça login com um usuário regular.';
       }
 

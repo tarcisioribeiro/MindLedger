@@ -18,12 +18,14 @@ interface DRFErrorResponse {
  * Tipo para dados de requisicao (body).
  * Aceita objetos, FormData, ou valores primitivos.
  */
-export type RequestData = Record<string, unknown> | FormData | null | undefined;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type RequestData = Record<string, any> | FormData | null | undefined;
 
 /**
  * Tipo para parametros de query string.
  */
-export type QueryParams = Record<string, string | number | boolean | string[] | number[] | undefined>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type QueryParams = Record<string, any>;
 
 // ============================================================================
 // Custom Error Classes

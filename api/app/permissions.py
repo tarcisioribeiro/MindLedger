@@ -16,8 +16,13 @@ class GlobalDefaultPermission(permissions.BasePermission):
 
     def _get_model_permission_codename(self, method, view):
         try:
-            model_name = view.queryset.model._meta.model_name
-            app_label = view.queryset.model._meta.app_label
+            # Tentar obter o queryset - pode ser atributo ou método
+            queryset = view.queryset
+            if queryset is None and hasattr(view, 'get_queryset'):
+                queryset = view.get_queryset()
+
+            model_name = queryset.model._meta.model_name
+            app_label = queryset.model._meta.app_label
             action = self._get_action_sufix(method)
             return f'{app_label}.{action}_{model_name}'
         except AttributeError:

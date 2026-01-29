@@ -42,7 +42,7 @@ services:
     environment:
       TZ: America/Sao_Paulo
     ports:
-      - "${REDIS_PORT:-39103}:39103"
+      - "${REDIS_PORT:-39103}:6379"
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
@@ -63,7 +63,7 @@ services:
       TZ: America/Sao_Paulo
       OLLAMA_HOST: 0.0.0.0
     ports:
-      - "${OLLAMA_PORT:-39104}:39104"
+      - "${OLLAMA_PORT:-39104}:11434"
     volumes:
       - ollama_data:/root/.ollama
     restart: unless-stopped
@@ -101,8 +101,8 @@ services:
       - LOG_FORMAT=${LOG_FORMAT:-json}
       - PYTHONUNBUFFERED=1
       - DJANGO_SETTINGS_MODULE=app.settings
-      - REDIS_URL=redis://redis:39103/0
-      - OLLAMA_HOST=${OLLAMA_HOST:-http://ollama:39104}
+      - REDIS_URL=redis://redis:6379/0
+      - OLLAMA_HOST=${OLLAMA_HOST:-http://ollama:11434}
     depends_on:
       db:
         condition: service_healthy
