@@ -69,8 +69,8 @@ export default function Vaults() {
       ]);
       setVaults(vaultsData);
       setAccounts(accountsData);
-    } catch (error: any) {
-      toast({ title: 'Erro ao carregar dados', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro ao carregar dados', description: getErrorMessage(error), variant: 'destructive' });
     } finally {
       setIsLoading(false);
     }
@@ -129,8 +129,8 @@ export default function Vaults() {
         await vaultsService.delete(id);
         toast({ title: 'Cofre excluído', description: 'O cofre foi excluído com sucesso.' });
         loadData();
-      } catch (error: any) {
-        toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' });
+      } catch (error: unknown) {
+        toast({ title: 'Erro ao excluir', description: getErrorMessage(error), variant: 'destructive' });
       }
     }
   };
@@ -152,8 +152,8 @@ export default function Vaults() {
       }
       setIsDialogOpen(false);
       loadData();
-    } catch (error: any) {
-      toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro ao salvar', description: getErrorMessage(error), variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
     }
@@ -178,8 +178,8 @@ export default function Vaults() {
       setOperationAmount('');
       setOperationDescription('');
       loadData();
-    } catch (error: any) {
-      toast({ title: 'Erro no depósito', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro no depósito', description: getErrorMessage(error), variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
     }
@@ -204,8 +204,8 @@ export default function Vaults() {
       setOperationAmount('');
       setOperationDescription('');
       loadData();
-    } catch (error: any) {
-      toast({ title: 'Erro no saque', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro no saque', description: getErrorMessage(error), variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
     }
@@ -226,8 +226,8 @@ export default function Vaults() {
         });
       }
       loadData();
-    } catch (error: any) {
-      toast({ title: 'Erro ao aplicar rendimento', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro ao aplicar rendimento', description: getErrorMessage(error), variant: 'destructive' });
     }
   };
 
@@ -253,8 +253,8 @@ export default function Vaults() {
       const data = await vaultsService.getTransactions(vault.id);
       setTransactions(data);
       setIsTransactionsDialogOpen(true);
-    } catch (error: any) {
-      toast({ title: 'Erro ao carregar transações', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro ao carregar transações', description: getErrorMessage(error), variant: 'destructive' });
     }
   };
 
@@ -264,8 +264,8 @@ export default function Vaults() {
       const typeFilter = transactionsFilter === 'all' ? undefined : transactionsFilter;
       const data = await vaultsService.getTransactions(selectedVault.id, typeFilter);
       setTransactions(data);
-    } catch (error: any) {
-      toast({ title: 'Erro ao carregar transações', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro ao carregar transações', description: getErrorMessage(error), variant: 'destructive' });
     }
   };
 
@@ -299,8 +299,8 @@ export default function Vaults() {
       cancelEditTransaction();
       loadTransactions();
       loadData();
-    } catch (error: any) {
-      toast({ title: 'Erro ao atualizar', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro ao atualizar', description: getErrorMessage(error), variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
     }
@@ -318,8 +318,8 @@ export default function Vaults() {
         toast({ title: 'Transação excluída', description: 'A transação foi excluída e o saldo revertido.' });
         loadTransactions();
         loadData();
-      } catch (error: any) {
-        toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' });
+      } catch (error: unknown) {
+        toast({ title: 'Erro ao excluir', description: getErrorMessage(error), variant: 'destructive' });
       }
     }
   };

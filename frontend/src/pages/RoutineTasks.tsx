@@ -42,10 +42,10 @@ export default function RoutineTasks() {
       setIsLoading(true);
       const tasksData = await routineTasksService.getAll();
       setTasks(tasksData);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao carregar dados',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {
@@ -82,10 +82,10 @@ export default function RoutineTasks() {
         description: 'A tarefa foi excluída com sucesso.',
       });
       loadData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao excluir tarefa',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     }
@@ -116,10 +116,10 @@ export default function RoutineTasks() {
       }
       setIsDialogOpen(false);
       loadData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao salvar',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {

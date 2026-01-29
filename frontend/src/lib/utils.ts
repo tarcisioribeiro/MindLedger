@@ -62,3 +62,29 @@ export function toLocalDate(value: string | Date | undefined): Date | undefined 
   if (value instanceof Date) return value;
   return parseLocalDate(value);
 }
+
+/**
+ * Extrai mensagem de erro de forma segura de qualquer tipo de erro.
+ * Util para usar em catch blocks onde o erro e do tipo unknown.
+ *
+ * @example
+ * ```ts
+ * try {
+ *   await api.get('/users');
+ * } catch (error: unknown) {
+ *   toast({ title: 'Erro', description: getErrorMessage(error) });
+ * }
+ * ```
+ */
+export function getErrorMessage(error: unknown, fallback = 'Ocorreu um erro inesperado'): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === 'string') {
+    return error;
+  }
+  if (error && typeof error === 'object' && 'message' in error) {
+    return String(error.message);
+  }
+  return fallback;
+}

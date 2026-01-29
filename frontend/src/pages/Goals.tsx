@@ -48,10 +48,10 @@ export default function Goals() {
       ]);
       setGoals(goalsData);
       setTasks(tasksData);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao carregar dados',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {
@@ -88,10 +88,10 @@ export default function Goals() {
         description: 'O objetivo foi excluído com sucesso.',
       });
       loadData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao excluir objetivo',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     }
@@ -114,10 +114,10 @@ export default function Goals() {
         description: `Progresso atualizado para ${goal.days_active} dias.`,
       });
       loadData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao recalcular',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     }
@@ -142,10 +142,10 @@ export default function Goals() {
         description: 'O progresso foi resetado. Comece novamente!',
       });
       loadData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao resetar',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     }
@@ -175,10 +175,10 @@ export default function Goals() {
       }
       setIsDialogOpen(false);
       loadData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao salvar',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {

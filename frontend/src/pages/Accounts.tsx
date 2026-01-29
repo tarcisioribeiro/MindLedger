@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAlertDialog } from '@/hooks/use-alert-dialog';
 import { translate } from '@/config/constants';
 import { formatCurrency, formatDate } from '@/lib/formatters';
+import { getErrorMessage } from '@/lib/utils';
 import { PageHeader } from '@/components/common/PageHeader';
 import { DataTable, type Column } from '@/components/common/DataTable';
 import type { Account, AccountFormData } from '@/types';
@@ -38,10 +39,10 @@ export default function Accounts() {
       setIsLoading(true);
       const accountsData = await accountsService.getAll();
       setAccounts(accountsData);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao carregar dados',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {
@@ -77,10 +78,10 @@ export default function Accounts() {
         description: 'A conta foi excluída com sucesso.',
       });
       loadData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao excluir',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     }
@@ -104,10 +105,10 @@ export default function Accounts() {
       }
       setIsDialogOpen(false);
       loadData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao salvar',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {

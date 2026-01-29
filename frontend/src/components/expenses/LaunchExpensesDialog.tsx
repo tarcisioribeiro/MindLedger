@@ -121,10 +121,10 @@ export const LaunchExpensesDialog = ({
 
       onSuccess();
       onClose();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao lançar despesas',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {

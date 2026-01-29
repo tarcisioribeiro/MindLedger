@@ -83,8 +83,8 @@ export default function Dashboard() {
       setCreditCardBills(billsData);
       setCreditCardExpensesByCategory(ccExpensesByCategoryData);
       setBalanceForecast(forecastData);
-    } catch (error: any) {
-      toast({ title: 'Erro ao carregar dados', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro ao carregar dados', description: getErrorMessage(error), variant: 'destructive' });
     } finally {
       setIsLoading(false);
     }
@@ -102,8 +102,8 @@ export default function Dashboard() {
       }
       const data = await dashboardService.getCreditCardExpensesByCategory(params);
       setCreditCardExpensesByCategory(data);
-    } catch (error: any) {
-      toast({ title: 'Erro ao carregar despesas por categoria', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro ao carregar despesas por categoria', description: getErrorMessage(error), variant: 'destructive' });
     }
   };
 

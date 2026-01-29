@@ -58,8 +58,8 @@ export default function FinancialGoals() {
       ]);
       setGoals(goalsData);
       setVaults(vaultsData);
-    } catch (error: any) {
-      toast({ title: 'Erro ao carregar dados', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro ao carregar dados', description: getErrorMessage(error), variant: 'destructive' });
     } finally {
       setIsLoading(false);
     }
@@ -93,8 +93,8 @@ export default function FinancialGoals() {
         notes: goal.notes || '',
       });
       setIsDialogOpen(true);
-    } catch (error: any) {
-      toast({ title: 'Erro ao carregar meta', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro ao carregar meta', description: getErrorMessage(error), variant: 'destructive' });
     }
   };
 
@@ -109,8 +109,8 @@ export default function FinancialGoals() {
         await financialGoalsService.delete(id);
         toast({ title: 'Meta excluída', description: 'A meta foi excluída com sucesso.' });
         loadData();
-      } catch (error: any) {
-        toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' });
+      } catch (error: unknown) {
+        toast({ title: 'Erro ao excluir', description: getErrorMessage(error), variant: 'destructive' });
       }
     }
   };
@@ -133,8 +133,8 @@ export default function FinancialGoals() {
       }
       setIsDialogOpen(false);
       loadData();
-    } catch (error: any) {
-      toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro ao salvar', description: getErrorMessage(error), variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
     }
@@ -146,8 +146,8 @@ export default function FinancialGoals() {
       setSelectedGoalForVaults(goal);
       setSelectedVaultIds(goal.vaults);
       setIsVaultsDialogOpen(true);
-    } catch (error: any) {
-      toast({ title: 'Erro ao carregar meta', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro ao carregar meta', description: getErrorMessage(error), variant: 'destructive' });
     }
   };
 
@@ -172,8 +172,8 @@ export default function FinancialGoals() {
       toast({ title: 'Cofres atualizados', description: 'Os cofres da meta foram atualizados.' });
       setIsVaultsDialogOpen(false);
       loadData();
-    } catch (error: any) {
-      toast({ title: 'Erro ao atualizar cofres', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro ao atualizar cofres', description: getErrorMessage(error), variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
     }
@@ -191,8 +191,8 @@ export default function FinancialGoals() {
         });
       }
       loadData();
-    } catch (error: any) {
-      toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro', description: getErrorMessage(error), variant: 'destructive' });
     }
   };
 

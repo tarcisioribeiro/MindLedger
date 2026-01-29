@@ -60,10 +60,10 @@ export default function Permissions() {
       }));
 
       setAvailableApps(apps);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao carregar dados',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {
@@ -89,10 +89,10 @@ export default function Permissions() {
       setIsLoadingPermissions(true);
       const response = await permissionsService.getMemberPermissions(member.id);
       setMemberPermissions(new Set(response.permissions));
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao carregar permissões',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {
@@ -140,10 +140,10 @@ export default function Permissions() {
         title: 'Permissões atualizadas',
         description: `Permissões do membro ${selectedMember.name} foram atualizadas com sucesso.`,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao salvar permissões',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {

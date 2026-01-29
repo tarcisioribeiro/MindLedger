@@ -31,10 +31,10 @@ export default function ActivityLogs() {
       setIsLoading(true);
       const data = await activityLogsService.getAll();
       setLogs(data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao carregar dados',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {

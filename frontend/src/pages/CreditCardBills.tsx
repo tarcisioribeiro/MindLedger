@@ -55,8 +55,8 @@ export default function CreditCardBills() {
       setBills(billsData);
       setFilteredBills(billsData);
       setCreditCards(cardsData);
-    } catch (error: any) {
-      toast({ title: 'Erro ao carregar dados', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro ao carregar dados', description: getErrorMessage(error), variant: 'destructive' });
     } finally {
       setIsLoading(false);
     }
@@ -125,8 +125,8 @@ export default function CreditCardBills() {
       }
       setIsDialogOpen(false);
       loadData();
-    } catch (error: any) {
-      toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro ao salvar', description: getErrorMessage(error), variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
     }
@@ -158,8 +158,8 @@ export default function CreditCardBills() {
       await creditCardBillsService.delete(id);
       toast({ title: 'Fatura excluída', description: 'A fatura foi excluída com sucesso.' });
       loadData();
-    } catch (error: any) {
-      toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro ao excluir', description: getErrorMessage(error), variant: 'destructive' });
     }
   };
 
@@ -179,8 +179,8 @@ export default function CreditCardBills() {
       });
       setIsPaymentDialogOpen(false);
       loadData();
-    } catch (error: any) {
-      toast({ title: 'Erro ao processar pagamento', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro ao processar pagamento', description: getErrorMessage(error), variant: 'destructive' });
     } finally {
       setIsPaymentSubmitting(false);
     }

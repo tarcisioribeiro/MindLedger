@@ -38,10 +38,10 @@ export default function Authors() {
       setLoading(true);
       const data = await authorsService.getAll();
       setAuthors(data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao carregar autores',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {
@@ -77,10 +77,10 @@ export default function Authors() {
         description: 'O autor foi excluído com sucesso.',
       });
       loadAuthors();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao excluir autor',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     }
@@ -104,10 +104,10 @@ export default function Authors() {
       }
       setIsDialogOpen(false);
       loadAuthors();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao salvar',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {

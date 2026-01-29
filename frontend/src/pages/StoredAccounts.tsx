@@ -61,10 +61,10 @@ export default function StoredAccounts() {
       setAccounts(accountsData);
       setFinanceAccounts(financeAccountsData);
       setCurrentUserMember(memberData);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao carregar dados',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {
@@ -101,10 +101,10 @@ export default function StoredAccounts() {
         description: 'A conta foi excluída com sucesso.',
       });
       loadData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao excluir',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     }
@@ -140,10 +140,10 @@ export default function StoredAccounts() {
         title: 'Senhas reveladas',
         description: 'As senhas da conta foram descriptografadas com sucesso.',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao revelar senhas',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {
@@ -182,10 +182,10 @@ export default function StoredAccounts() {
       }
       setIsDialogOpen(false);
       loadData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao salvar',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {

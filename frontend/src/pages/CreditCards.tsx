@@ -40,8 +40,8 @@ export default function CreditCards() {
       ]);
       setCreditCards(cardsData);
       setAccounts(accountsData);
-    } catch (error: any) {
-      toast({ title: 'Erro ao carregar dados', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro ao carregar dados', description: getErrorMessage(error), variant: 'destructive' });
     } finally {
       setIsLoading(false);
     }
@@ -59,8 +59,8 @@ export default function CreditCards() {
       }
       setIsDialogOpen(false);
       loadData();
-    } catch (error: any) {
-      toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro ao salvar', description: getErrorMessage(error), variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
     }
@@ -94,8 +94,8 @@ export default function CreditCards() {
       await creditCardsService.delete(id);
       toast({ title: 'Cartão excluído', description: 'O cartão foi excluído com sucesso.' });
       loadData();
-    } catch (error: any) {
-      toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro ao excluir', description: getErrorMessage(error), variant: 'destructive' });
     }
   };
 

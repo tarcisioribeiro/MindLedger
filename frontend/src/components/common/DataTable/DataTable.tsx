@@ -79,9 +79,14 @@ export function DataTable<T>({
   pagination,
   actions,
 }: DataTableProps<T>) {
-  // Loading state
+  // Loading state - usa skeleton para melhor perceived performance
   if (isLoading) {
-    return <LoadingState />;
+    return (
+      <LoadingState
+        skeleton="table"
+        skeletonConfig={{ rows: 5, columns: columns.length + (actions ? 1 : 0) }}
+      />
+    );
   }
 
   // Empty state

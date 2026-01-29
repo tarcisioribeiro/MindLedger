@@ -159,7 +159,7 @@ class CreditCard(BaseModel):
         """
         try:
             return FieldEncryption.decrypt_data(self._security_code)
-        except ValidationError:
+        except (ValidationError, DecryptionError):
             return None
 
     @security_code.setter

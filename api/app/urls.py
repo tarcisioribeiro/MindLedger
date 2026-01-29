@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 from app.health import health_check, ready_check, live_check
 from app.views import current_date
 
@@ -35,6 +36,10 @@ urlpatterns = [
     path('api/v1/', include('vaults.urls')),
     # AI Assistant Module
     path('api/v1/ai/', include('ai_assistant.urls')),
+    # API Documentation (OpenAPI/Swagger)
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 ]
 
 if settings.DEBUG:

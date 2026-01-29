@@ -46,10 +46,10 @@ export default function Readings() {
       ]);
       setReadings(readingsData);
       setBooks(booksData);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao carregar dados',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {
@@ -93,10 +93,10 @@ export default function Readings() {
         description: 'A leitura foi excluída com sucesso.',
       });
       loadData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao excluir leitura',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     }
@@ -120,10 +120,10 @@ export default function Readings() {
       }
       setIsDialogOpen(false);
       loadData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao salvar',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {

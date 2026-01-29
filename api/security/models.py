@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from app.models import BaseModel
-from app.encryption import FieldEncryption
+from app.encryption import FieldEncryption, DecryptionError
 
 
 # ============================================================================
@@ -41,7 +41,7 @@ class Password(BaseModel):
         if self._password:
             try:
                 return FieldEncryption.decrypt_data(self._password)
-            except Exception:
+            except DecryptionError:
                 return None
         return None
 
@@ -95,7 +95,7 @@ class StoredCreditCard(BaseModel):
         if self._card_number:
             try:
                 return FieldEncryption.decrypt_data(self._card_number)
-            except Exception:
+            except DecryptionError:
                 return None
         return None
 
@@ -117,7 +117,7 @@ class StoredCreditCard(BaseModel):
                 if full_number and len(full_number) >= 4:
                     return '*' * (len(full_number) - 4) + full_number[-4:]
                 return full_number
-            except Exception:
+            except DecryptionError:
                 return None
         return None
 
@@ -126,7 +126,7 @@ class StoredCreditCard(BaseModel):
         if self._security_code:
             try:
                 return FieldEncryption.decrypt_data(self._security_code)
-            except Exception:
+            except DecryptionError:
                 return None
         return None
 
@@ -181,7 +181,7 @@ class StoredBankAccount(BaseModel):
         if self._account_number:
             try:
                 return FieldEncryption.decrypt_data(self._account_number)
-            except Exception:
+            except DecryptionError:
                 return None
         return None
 
@@ -200,7 +200,7 @@ class StoredBankAccount(BaseModel):
                 if full_number and len(full_number) >= 4:
                     return '*' * (len(full_number) - 4) + full_number[-4:]
                 return full_number
-            except Exception:
+            except DecryptionError:
                 return None
         return None
 
@@ -209,7 +209,7 @@ class StoredBankAccount(BaseModel):
         if self._password:
             try:
                 return FieldEncryption.decrypt_data(self._password)
-            except Exception:
+            except DecryptionError:
                 return None
         return None
 
@@ -225,7 +225,7 @@ class StoredBankAccount(BaseModel):
         if self._digital_password:
             try:
                 return FieldEncryption.decrypt_data(self._digital_password)
-            except Exception:
+            except DecryptionError:
                 return None
         return None
 
@@ -286,7 +286,7 @@ class Archive(BaseModel):
         if self._encrypted_text:
             try:
                 return FieldEncryption.decrypt_data(self._encrypted_text)
-            except Exception:
+            except DecryptionError:
                 return None
         return None
 

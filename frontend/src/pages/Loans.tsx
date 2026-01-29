@@ -93,10 +93,10 @@ export default function Loans() {
       setLoans(Array.isArray(loansData) ? loansData : []);
       setAccounts(Array.isArray(accountsData) ? accountsData : []);
       setMembers(Array.isArray(membersData) ? membersData : []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao carregar dados',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
       setLoans([]);
@@ -179,10 +179,10 @@ export default function Loans() {
           description: 'O empréstimo foi excluído com sucesso.',
         });
         loadData();
-      } catch (error: any) {
+      } catch (error: unknown) {
         toast({
           title: 'Erro ao excluir',
-          description: error.message,
+          description: getErrorMessage(error),
           variant: 'destructive',
         });
       }
@@ -211,10 +211,10 @@ export default function Loans() {
       }
       setIsDialogOpen(false);
       loadData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao salvar',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {

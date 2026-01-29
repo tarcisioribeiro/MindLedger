@@ -179,10 +179,10 @@ export default function DailyChecklist() {
     try {
       const member = await membersService.getCurrentUserMember();
       setOwnerId(member.id);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao carregar usuário',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     }
@@ -210,10 +210,10 @@ export default function DailyChecklist() {
         setMood('');
         setReflectionId(undefined);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao carregar dados',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {
@@ -336,10 +336,10 @@ export default function DailyChecklist() {
 
       // Recarrega dados para obter IDs e contagens atualizados
       loadData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao salvar',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {
@@ -355,10 +355,10 @@ export default function DailyChecklist() {
         title: 'Tarefas sincronizadas',
         description: 'As tarefas foram atualizadas com os dados mais recentes.',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao sincronizar',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {

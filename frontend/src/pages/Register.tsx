@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { FormField } from '@/components/ui/form-field';
 import { useToast } from '@/hooks/use-toast';
 import { authService } from '@/services/auth-service';
 import { Loader2 } from 'lucide-react';
@@ -22,7 +22,12 @@ export default function Register() {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<RegisterFormData>();
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm<RegisterFormData>();
 
   const password = watch('password');
 
@@ -53,10 +58,12 @@ export default function Register() {
       });
 
       navigate('/login');
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Ocorreu um erro ao tentar cadastrar. Tente novamente.';
       toast({
         title: 'Erro ao cadastrar',
-        description: error.message || 'Ocorreu um erro ao tentar cadastrar. Tente novamente.',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
@@ -75,25 +82,18 @@ export default function Register() {
             <p className="mt-2">Crie sua conta</p>
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nome Completo *</Label>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+            <FormField id="name" label="Nome Completo" error={errors.name?.message} required>
               <Input
-                id="name"
                 type="text"
                 {...register('name', { required: 'Nome é obrigatório' })}
                 placeholder="Seu nome completo"
                 disabled={isLoading}
               />
-              {errors.name && (
-                <p className="text-sm text-destructive">{errors.name.message}</p>
-              )}
-            </div>
+            </FormField>
 
-            <div className="space-y-2">
-              <Label htmlFor="document">CPF *</Label>
+            <FormField id="document" label="CPF" error={errors.document?.message} required>
               <Input
-                id="document"
                 type="text"
                 {...register('document', {
                   required: 'CPF é obrigatório',
@@ -106,29 +106,24 @@ export default function Register() {
                 maxLength={11}
                 disabled={isLoading}
               />
-              {errors.document && (
-                <p className="text-sm text-destructive">{errors.document.message}</p>
-              )}
-            </div>
+            </FormField>
 
-            <div className="space-y-2">
-              <Label htmlFor="phone">Telefone *</Label>
+            <FormField id="phone" label="Telefone" error={errors.phone?.message} required>
               <Input
-                id="phone"
                 type="tel"
                 {...register('phone', { required: 'Telefone é obrigatório' })}
                 placeholder="(00) 00000-0000"
                 disabled={isLoading}
               />
-              {errors.phone && (
-                <p className="text-sm text-destructive">{errors.phone.message}</p>
-              )}
-            </div>
+            </FormField>
 
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+            <FormField
+              id="email"
+              label="Email"
+              error={errors.email?.message}
+              description="Opcional, mas recomendado para recuperação de conta"
+            >
               <Input
-                id="email"
                 type="email"
                 {...register('email', {
                   pattern: {
@@ -139,15 +134,10 @@ export default function Register() {
                 placeholder="seu@email.com"
                 disabled={isLoading}
               />
-              {errors.email && (
-                <p className="text-sm text-destructive">{errors.email.message}</p>
-              )}
-            </div>
+            </FormField>
 
-            <div className="space-y-2">
-              <Label htmlFor="username">Nome de Usuário *</Label>
+            <FormField id="username" label="Nome de Usuário" error={errors.username?.message} required>
               <Input
-                id="username"
                 type="text"
                 {...register('username', {
                   required: 'Nome de usuário é obrigatório',
@@ -159,15 +149,10 @@ export default function Register() {
                 placeholder="usuario"
                 disabled={isLoading}
               />
-              {errors.username && (
-                <p className="text-sm text-destructive">{errors.username.message}</p>
-              )}
-            </div>
+            </FormField>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha *</Label>
+            <FormField id="password" label="Senha" error={errors.password?.message} required>
               <Input
-                id="password"
                 type="password"
                 {...register('password', {
                   required: 'Senha é obrigatória',
@@ -179,30 +164,24 @@ export default function Register() {
                 placeholder="••••••••"
                 disabled={isLoading}
               />
-              {errors.password && (
-                <p className="text-sm text-destructive">{errors.password.message}</p>
-              )}
-            </div>
+            </FormField>
 
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirmar Senha *</Label>
+            <FormField
+              id="confirmPassword"
+              label="Confirmar Senha"
+              error={errors.confirmPassword?.message}
+              required
+            >
               <Input
-                id="confirmPassword"
                 type="password"
                 {...register('confirmPassword', {
                   required: 'Confirmação de senha é obrigatória',
-                  validate: (value) =>
-                    value === password || 'As senhas não coincidem',
+                  validate: (value) => value === password || 'As senhas não coincidem',
                 })}
                 placeholder="••••••••"
                 disabled={isLoading}
               />
-              {errors.confirmPassword && (
-                <p className="text-sm text-destructive">
-                  {errors.confirmPassword.message}
-                </p>
-              )}
-            </div>
+            </FormField>
 
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (

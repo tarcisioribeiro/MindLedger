@@ -68,10 +68,10 @@ export default function Archives() {
       ]);
       setArchives(archivesData);
       setMembers(membersData);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao carregar dados',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {
@@ -91,10 +91,10 @@ export default function Archives() {
         const data = await archivesService.reveal(archive.id);
         // Adiciona o texto descriptografado ao objeto archive
         setSelectedArchive({ ...archive, text_content: data.text_content });
-      } catch (error: any) {
+      } catch (error: unknown) {
         toast({
           title: 'Erro ao carregar conteúdo',
-          description: error.message,
+          description: getErrorMessage(error),
           variant: 'destructive',
         });
         // Ainda abre o diálogo, mas sem o conteúdo
@@ -125,10 +125,10 @@ export default function Archives() {
         description: 'O arquivo foi excluído com sucesso.',
       });
       loadData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao excluir',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     }
@@ -164,10 +164,10 @@ export default function Archives() {
         title: 'Conteúdo revelado',
         description: 'O conteúdo do arquivo foi descriptografado com sucesso.',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao revelar conteúdo',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {
@@ -196,10 +196,10 @@ export default function Archives() {
         title: 'Download iniciado',
         description: 'O arquivo está sendo baixado.',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao baixar arquivo',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     }
@@ -223,10 +223,10 @@ export default function Archives() {
       }
       setIsDialogOpen(false);
       loadData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao salvar',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {

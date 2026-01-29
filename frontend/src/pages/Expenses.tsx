@@ -69,8 +69,8 @@ export default function Expenses() {
       setAccounts(accountsData);
       setLoans(Array.isArray(loansData) ? loansData : []);
       setPayables(Array.isArray(payablesData) ? payablesData : []);
-    } catch (error: any) {
-      toast({ title: 'Erro ao carregar dados', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro ao carregar dados', description: getErrorMessage(error), variant: 'destructive' });
     } finally {
       setIsLoading(false);
     }
@@ -128,8 +128,8 @@ export default function Expenses() {
       }
       setIsDialogOpen(false);
       loadData();
-    } catch (error: any) {
-      toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro ao salvar', description: getErrorMessage(error), variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
     }
@@ -161,8 +161,8 @@ export default function Expenses() {
       await expensesService.delete(id);
       toast({ title: 'Despesa excluída', description: 'A despesa foi excluída com sucesso.' });
       loadData();
-    } catch (error: any) {
-      toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro ao excluir', description: getErrorMessage(error), variant: 'destructive' });
     }
   };
 

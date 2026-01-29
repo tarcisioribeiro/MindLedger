@@ -38,10 +38,10 @@ export default function Publishers() {
       setLoading(true);
       const data = await publishersService.getAll();
       setPublishers(data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao carregar editoras',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {
@@ -77,10 +77,10 @@ export default function Publishers() {
         description: 'A editora foi excluída com sucesso.',
       });
       loadPublishers();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao excluir editora',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     }
@@ -104,10 +104,10 @@ export default function Publishers() {
       }
       setIsDialogOpen(false);
       loadPublishers();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao salvar',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {

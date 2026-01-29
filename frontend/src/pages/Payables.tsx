@@ -80,10 +80,10 @@ export default function Payables() {
       ]);
       setPayables(Array.isArray(payablesData) ? payablesData : []);
       setCurrentUserMember(memberData);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao carregar dados',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
       setPayables([]);
@@ -135,10 +135,10 @@ export default function Payables() {
           description: 'O valor a pagar foi excluído com sucesso.',
         });
         loadData();
-      } catch (error: any) {
+      } catch (error: unknown) {
         toast({
           title: 'Erro ao excluir',
-          description: error.message,
+          description: getErrorMessage(error),
           variant: 'destructive',
         });
       }
@@ -170,10 +170,10 @@ export default function Payables() {
       }
       setIsDialogOpen(false);
       loadData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao salvar',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {

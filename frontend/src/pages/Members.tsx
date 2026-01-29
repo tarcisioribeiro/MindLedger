@@ -31,8 +31,8 @@ export default function Members() {
       setIsLoading(true);
       const data = await membersService.getAll();
       setMembers(data);
-    } catch (error: any) {
-      toast({ title: 'Erro ao carregar dados', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro ao carregar dados', description: getErrorMessage(error), variant: 'destructive' });
     } finally {
       setIsLoading(false);
     }
@@ -50,8 +50,8 @@ export default function Members() {
       }
       setIsDialogOpen(false);
       loadData();
-    } catch (error: any) {
-      toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro ao salvar', description: getErrorMessage(error), variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
     }
@@ -70,8 +70,8 @@ export default function Members() {
       await membersService.delete(id);
       toast({ title: 'Membro excluído', description: 'O membro foi excluído com sucesso.' });
       loadData();
-    } catch (error: any) {
-      toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro ao excluir', description: getErrorMessage(error), variant: 'destructive' });
     }
   };
 

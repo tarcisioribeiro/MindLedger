@@ -51,10 +51,10 @@ export default function FixedExpenses() {
       setFixedExpenses(expensesData);
       setAccounts(accountsData);
       setCreditCards(cardsData);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao carregar dados',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {
@@ -80,10 +80,10 @@ export default function FixedExpenses() {
       }
       setIsDialogOpen(false);
       loadData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao salvar',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {
@@ -109,10 +109,10 @@ export default function FixedExpenses() {
         description: 'A despesa fixa foi excluída com sucesso.',
       });
       loadData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao excluir',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     }

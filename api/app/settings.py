@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'django_filters',
+    'drf_spectacular',
     'app',
     'authentication',
     'accounts',
@@ -173,7 +174,31 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'anon': '100/minute',  # Aumentado para desenvolvimento
         'user': '1000/minute'   # Aumentado para desenvolvimento
-    }
+    },
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+# OpenAPI/Swagger Documentation (drf-spectacular)
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'MindLedger API',
+    'DESCRIPTION': 'API para gerenciamento financeiro pessoal',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,
+    'SCHEMA_PATH_PREFIX': '/api/v1',
+    'TAGS': [
+        {'name': 'auth', 'description': 'Autenticacao e registro'},
+        {'name': 'accounts', 'description': 'Contas bancarias'},
+        {'name': 'credit_cards', 'description': 'Cartoes de credito'},
+        {'name': 'expenses', 'description': 'Despesas'},
+        {'name': 'revenues', 'description': 'Receitas'},
+        {'name': 'loans', 'description': 'Emprestimos'},
+        {'name': 'transfers', 'description': 'Transferencias'},
+        {'name': 'dashboard', 'description': 'Dashboard e estatisticas'},
+        {'name': 'security', 'description': 'Gerenciador de senhas'},
+        {'name': 'library', 'description': 'Biblioteca de livros'},
+        {'name': 'personal_planning', 'description': 'Planejamento pessoal'},
+    ],
 }
 
 # Caching Configuration

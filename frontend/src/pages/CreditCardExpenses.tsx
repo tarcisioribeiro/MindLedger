@@ -179,8 +179,8 @@ export default function CreditCardExpenses() {
           setBillFilter(sortedBills[0].id.toString());
         }
       }
-    } catch (error: any) {
-      toast({ title: 'Erro ao carregar dados', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro ao carregar dados', description: getErrorMessage(error), variant: 'destructive' });
     } finally {
       setIsLoading(false);
     }
@@ -275,8 +275,8 @@ export default function CreditCardExpenses() {
 
       setIsDialogOpen(false);
       loadData(true);
-    } catch (error: any) {
-      toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro ao salvar', description: getErrorMessage(error), variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
     }
@@ -319,8 +319,8 @@ export default function CreditCardExpenses() {
       await creditCardPurchasesService.delete(purchaseId);
       toast({ title: 'Compra excluída', description: 'A compra e suas parcelas foram excluídas com sucesso.' });
       loadData(true);
-    } catch (error: any) {
-      toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro ao excluir', description: getErrorMessage(error), variant: 'destructive' });
     }
   };
 
@@ -332,8 +332,8 @@ export default function CreditCardExpenses() {
         description: `Status da parcela atualizado com sucesso.`,
       });
       loadData(true);
-    } catch (error: any) {
-      toast({ title: 'Erro ao atualizar', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro ao atualizar', description: getErrorMessage(error), variant: 'destructive' });
     }
   };
 
@@ -351,8 +351,8 @@ export default function CreditCardExpenses() {
       toast({ title: 'Parcela atualizada', description: 'A parcela foi atualizada com sucesso.' });
       setIsInstallmentDialogOpen(false);
       loadData(true);
-    } catch (error: any) {
-      toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro ao salvar', description: getErrorMessage(error), variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
     }

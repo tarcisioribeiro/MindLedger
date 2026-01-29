@@ -20,10 +20,10 @@ export default function DailyReflections() {
       setIsLoading(true);
       // TODO: Implementar chamada ao service
       setReflections([]);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao carregar reflexões',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive'
       });
     } finally {

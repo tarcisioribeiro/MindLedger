@@ -50,10 +50,10 @@ export default function PersonalPlanningDashboard() {
       setIsLoading(true);
       const data = await personalPlanningDashboardService.getStats();
       setStats(data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao carregar dados',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive'
       });
     } finally {

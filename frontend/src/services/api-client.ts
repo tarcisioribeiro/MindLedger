@@ -2,7 +2,33 @@ import axios, { type AxiosInstance, AxiosError, type InternalAxiosRequestConfig 
 import Cookies from 'js-cookie';
 import { API_CONFIG } from '@/config/constants';
 
-// Custom error classes
+// ============================================================================
+// Types
+// ============================================================================
+
+/**
+ * Formato de resposta de erro do Django REST Framework.
+ */
+interface DRFErrorResponse {
+  detail?: string;
+  [field: string]: string | string[] | undefined;
+}
+
+/**
+ * Tipo para dados de requisicao (body).
+ * Aceita objetos, FormData, ou valores primitivos.
+ */
+type RequestData = Record<string, unknown> | FormData | null | undefined;
+
+/**
+ * Tipo para parametros de query string.
+ */
+type QueryParams = Record<string, string | number | boolean | string[] | number[] | undefined>;
+
+// ============================================================================
+// Custom Error Classes
+// ============================================================================
+
 export class AuthenticationError extends Error {
   constructor(message: string) {
     super(message);
@@ -33,6 +59,10 @@ export class PermissionError extends Error {
     this.name = 'PermissionError';
   }
 }
+
+// ============================================================================
+// API Client
+// ============================================================================
 
 class ApiClient {
   private client: AxiosInstance;
@@ -68,7 +98,7 @@ class ApiClient {
 
         return config;
       },
-      (error) => Promise.reject(error)
+      (error: unknown) => Promise.reject(error)
     );
 
     // Response interceptor - Handle token refresh
@@ -138,6 +168,40 @@ class ApiClient {
     );
   }
 
+  /**
+   * Formata mensagem de erro do Django REST Framework.
+   */
+  private formatErrorMessage(data: unknown): string {
+    if (typeof data === 'string') {
+      return data;
+    }
+
+    if (data && typeof data === 'object') {
+      const errorData = data as DRFErrorResponse;
+
+      if (errorData.detail) {
+        return errorData.detail;
+      }
+
+      // Handle Django REST Framework validation errors
+      const errorMessages: string[] = [];
+
+      for (const [field, errors] of Object.entries(errorData)) {
+        if (Array.isArray(errors)) {
+          errorMessages.push(`${field}: ${errors.join(', ')}`);
+        } else if (typeof errors === 'string') {
+          errorMessages.push(`${field}: ${errors}`);
+        }
+      }
+
+      if (errorMessages.length > 0) {
+        return errorMessages.join('\n');
+      }
+    }
+
+    return 'Ocorreu um erro desconhecido';
+  }
+
   private handleError(error: AxiosError): Error {
     const response = error.response;
 
@@ -145,68 +209,45 @@ class ApiClient {
       return new Error('Erro de rede. Por favor, verifique sua conexão.');
     }
 
-    const data = response.data as any;
-
-    // Format error messages from Django REST Framework
-    const formatErrorMessage = (data: any): string => {
-      if (typeof data === 'string') {
-        return data;
-      }
-
-      if (data.detail) {
-        return data.detail;
-      }
-
-      // Handle Django REST Framework validation errors
-      if (data && typeof data === 'object') {
-        const errorMessages: string[] = [];
-
-        for (const [field, errors] of Object.entries(data)) {
-          if (Array.isArray(errors)) {
-            errorMessages.push(`${field}: ${errors.join(', ')}`);
-          } else if (typeof errors === 'string') {
-            errorMessages.push(`${field}: ${errors}`);
-          }
-        }
-
-        if (errorMessages.length > 0) {
-          return errorMessages.join('\n');
-        }
-      }
-
-      return 'Ocorreu um erro desconhecido';
-    };
+    const data = response.data as unknown;
 
     switch (response.status) {
-      case 400:
+      case 400: {
+        const errorData = data as Record<string, string[]> | undefined;
         return new ValidationError(
-          formatErrorMessage(data) || 'Erro de validação',
-          data.errors || data
+          this.formatErrorMessage(data) || 'Erro de validação',
+          errorData && typeof errorData === 'object' && !('detail' in errorData)
+            ? errorData
+            : {}
         );
+      }
       case 401:
         return new AuthenticationError(
-          formatErrorMessage(data) || 'Falha na autenticação'
+          this.formatErrorMessage(data) || 'Falha na autenticação'
         );
       case 403:
         return new PermissionError(
-          formatErrorMessage(data) || 'Você não tem permissão para realizar esta ação'
+          this.formatErrorMessage(data) || 'Você não tem permissão para realizar esta ação'
         );
       case 404:
         return new NotFoundError(
-          formatErrorMessage(data) || 'Recurso não encontrado'
+          this.formatErrorMessage(data) || 'Recurso não encontrado'
         );
       case 500:
         return new Error(
-          formatErrorMessage(data) || 'Erro interno do servidor. Por favor, tente novamente mais tarde.'
+          this.formatErrorMessage(data) || 'Erro interno do servidor. Por favor, tente novamente mais tarde.'
         );
       default:
         return new Error(
-          formatErrorMessage(data) || `Ocorreu um erro (${response.status})`
+          this.formatErrorMessage(data) || `Ocorreu um erro (${response.status})`
         );
     }
   }
 
-  // Token management
+  // ============================================================================
+  // Token Management
+  // ============================================================================
+
   // NOTA: Os tokens access_token e refresh_token são httpOnly cookies
   // gerenciados pelo backend. Não podemos (e não devemos) acessá-los via JavaScript.
   // Eles são enviados automaticamente pelo navegador em cada requisição.
@@ -244,13 +285,16 @@ class ApiClient {
     }
   }
 
-  // HTTP methods
-  async get<T = any>(url: string, params?: Record<string, any>): Promise<T> {
+  // ============================================================================
+  // HTTP Methods
+  // ============================================================================
+
+  async get<T>(url: string, params?: QueryParams): Promise<T> {
     const response = await this.client.get<T>(url, { params });
     return response.data;
   }
 
-  async post<T = any>(url: string, data?: any): Promise<T> {
+  async post<T>(url: string, data?: RequestData): Promise<T> {
     if (import.meta.env.DEV) {
       console.log('POST Request:', { url, data });
     }
@@ -258,17 +302,17 @@ class ApiClient {
     return response.data;
   }
 
-  async put<T = any>(url: string, data?: any): Promise<T> {
+  async put<T>(url: string, data?: RequestData): Promise<T> {
     const response = await this.client.put<T>(url, data);
     return response.data;
   }
 
-  async patch<T = any>(url: string, data?: any): Promise<T> {
+  async patch<T>(url: string, data?: RequestData): Promise<T> {
     const response = await this.client.patch<T>(url, data);
     return response.data;
   }
 
-  async delete<T = any>(url: string): Promise<T> {
+  async delete<T>(url: string): Promise<T> {
     const response = await this.client.delete<T>(url);
     return response.data;
   }

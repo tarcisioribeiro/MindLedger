@@ -31,10 +31,10 @@ export default function TodayTasks() {
       // Get instances for today
       const response = await taskInstancesService.getForDate(today);
       setTasks(response.instances);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao carregar tarefas',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive'
       });
     } finally {

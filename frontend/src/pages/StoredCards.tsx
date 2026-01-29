@@ -53,10 +53,10 @@ export default function StoredCards() {
       setCards(cardsData);
       setCreditCards(creditCardsData);
       setCurrentUserMember(memberData);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao carregar dados',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {
@@ -93,10 +93,10 @@ export default function StoredCards() {
         description: 'O cartão foi excluído com sucesso.',
       });
       loadData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao excluir',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     }
@@ -121,10 +121,10 @@ export default function StoredCards() {
         title: 'Dados revelados',
         description: 'Os dados do cartão foram descriptografados com sucesso.',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao revelar dados',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {
@@ -163,10 +163,10 @@ export default function StoredCards() {
       }
       setIsDialogOpen(false);
       loadData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao salvar',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {

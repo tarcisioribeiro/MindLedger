@@ -80,7 +80,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isAuthenticated: true,
         isLoading: false,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       let errorMessage = error.message || 'Login failed';
 
       // Handle specific error cases
