@@ -1,6 +1,35 @@
 // API Configuration
+// Calcula a URL da API dinamicamente baseada no hostname atual
+// Isso permite que o app funcione tanto em localhost quanto em IPs de rede
+const getApiBaseUrl = (): string => {
+  // URL padrão da API (definida em build-time ou fallback)
+  const defaultApiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:39100';
+
+  // Se estamos no browser, calcular dinamicamente para IPs de rede
+  if (typeof window !== 'undefined') {
+    const { hostname, protocol } = window.location;
+
+    // Se o hostname não é localhost/127.0.0.1, usar o mesmo hostname para API
+    // Isso permite acesso via IP da rede (ex: 192.168.2.200)
+    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+      // Extrai a porta da URL padrão ou usa 39100
+      let apiPort = '39100';
+      try {
+        const url = new URL(defaultApiUrl);
+        apiPort = url.port || '39100';
+      } catch {
+        // Se falhar ao parsear URL, usa porta padrão
+      }
+      return `${protocol}//${hostname}:${apiPort}`;
+    }
+  }
+
+  // Fallback para URL padrão
+  return defaultApiUrl;
+};
+
 export const API_CONFIG = {
-  BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:30001',
+  BASE_URL: getApiBaseUrl(),
   ENDPOINTS: {
     // Authentication
     LOGIN: '/api/v1/authentication/token/',
