@@ -1,5 +1,10 @@
 from django.contrib import admin
-from credit_cards.models import CreditCard, CreditCardBill, CreditCardExpense
+from credit_cards.models import (
+    CreditCard,
+    CreditCardBill,
+    CreditCardPurchase,
+    CreditCardInstallment,
+)
 
 
 @admin.register(CreditCard)
@@ -12,13 +17,26 @@ class CreditCardBillAdmin(admin.ModelAdmin):
     list_display = ('year', 'month')
 
 
-@admin.register(CreditCardExpense)
-class CreditCardExpenseAdmin(admin.ModelAdmin):
+@admin.register(CreditCardPurchase)
+class CreditCardPurchaseAdmin(admin.ModelAdmin):
     list_display = (
         'id',
         'description',
-        'value',
-        'date',
+        'total_value',
+        'purchase_date',
         'card',
-        'installment'
+        'total_installments'
+    )
+
+
+@admin.register(CreditCardInstallment)
+class CreditCardInstallmentAdmin(admin.ModelAdmin):
+    list_display = (
+        'id',
+        'purchase',
+        'installment_number',
+        'value',
+        'due_date',
+        'bill',
+        'payed'
     )

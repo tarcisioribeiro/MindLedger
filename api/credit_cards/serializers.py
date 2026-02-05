@@ -6,7 +6,6 @@ import calendar
 from credit_cards.models import (
     CreditCard,
     CreditCardBill,
-    CreditCardExpense,
     CreditCardPurchase,
     CreditCardInstallment,
 )
@@ -229,20 +228,8 @@ class CreditCardBillsSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 
-class CreditCardExpensesSerializer(serializers.ModelSerializer):
-    value = serializers.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-        coerce_to_string=False
-    )
-
-    class Meta:
-        model = CreditCardExpense
-        fields = '__all__'
-
-
 # ============================================================================
-# NEW SERIALIZERS FOR PURCHASE AND INSTALLMENT
+# SERIALIZERS FOR PURCHASE AND INSTALLMENT
 # ============================================================================
 
 class CreditCardInstallmentSerializer(serializers.ModelSerializer):

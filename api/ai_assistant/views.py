@@ -2,6 +2,7 @@
 Views para o módulo AI Assistant.
 
 Expõe endpoints para interação com o assistente de IA.
+Suporta agentes especializados com modelos e escopos diferentes.
 """
 import time
 import logging
@@ -18,6 +19,7 @@ from members.models import Member
 from .models import ConversationHistory
 from .services import QueryInterpreter, DatabaseExecutor, OllamaClient, ResponseFormatter
 from .services.database_executor import DatabaseError
+from .config import AGENTS, get_agent
 
 
 logger = logging.getLogger(__name__)
@@ -43,13 +45,14 @@ def get_member_for_user(user) -> Optional[Member]:
 @permission_classes([IsAuthenticated])
 def pergunta(request: Request) -> Response:
     """
-    Processa uma pergunta em linguagem natural.
+    Processa uma pergunta em linguagem natural usando um agente especializado.
 
     Endpoint: POST /api/v1/ai/pergunta/
 
     Body:
         {
-            "pergunta": "Qual foi meu faturamento do último mês?"
+            "pergunta": "Qual foi meu faturamento do último mês?",
+            "agent": "financial"
         }
 
     Returns:
@@ -58,6 +61,7 @@ def pergunta(request: Request) -> Response:
             "display_type": "currency",
             "data": [...],
             "module": "revenues",
+            "agent": "financial",
             "success": true
         }
     """
@@ -77,6 +81,22 @@ def pergunta(request: Request) -> Response:
             status=status.HTTP_422_UNPROCESSABLE_ENTITY
         )
 
+    # Validação do agente
+    agent_key = request.data.get('agent', '').strip()
+    if not agent_key:
+        return Response(
+            {'error': 'O campo "agent" é obrigatório.'},
+            status=status.HTTP_422_UNPROCESSABLE_ENTITY
+        )
+
+    agent_config = get_agent(agent_key)
+    if not agent_config:
+        valid_agents = ', '.join(AGENTS.keys())
+        return Response(
+            {'error': f'Agente "{agent_key}" não encontrado. Agentes válidos: {valid_agents}'},
+            status=status.HTTP_422_UNPROCESSABLE_ENTITY
+        )
+
     # Obtém o member do usuário
     member = get_member_for_user(request.user)
     if not member:
@@ -86,22 +106,24 @@ def pergunta(request: Request) -> Response:
         )
 
     try:
-        # 1. Interpreta a pergunta e gera SQL
-        query_result = QueryInterpreter.interpret(pergunta_texto, member.id)
+        # 1. Interpreta a pergunta e gera SQL (filtrado pelos modulos do agente)
+        query_result = QueryInterpreter.interpret(
+            pergunta_texto,
+            member.id,
+            allowed_modules=agent_config.modules
+        )
 
-        # 2. Trata casos especiais (saudacao, ajuda, desconhecido)
-        if query_result.module in ('greeting', 'help', 'unknown'):
+        # 2. Trata casos especiais (saudacao, ajuda, desconhecido, restrito)
+        if query_result.module in ('greeting', 'help', 'unknown', 'restricted'):
             # Formata a resposta removendo caracteres especiais
             resposta = ResponseFormatter.format_response(query_result.description)
 
             # Mensagem padrao para modulo desconhecido
             if query_result.module == 'unknown':
+                modules_desc = ', '.join(agent_config.modules)
                 resposta = (
-                    'Desculpe, nao consegui entender sua pergunta. '
-                    'Tente perguntar sobre: receitas e faturamento, '
-                    'despesas e gastos, saldo das contas, cartoes de credito, '
-                    'emprestimos, livros e leituras, tarefas e objetivos, '
-                    'senhas armazenadas, cofres e reservas.'
+                    f'Desculpe, nao consegui entender sua pergunta. '
+                    f'Este agente ({agent_config.name}) pode responder sobre: {modules_desc}.'
                 )
 
             response_data = {
@@ -109,25 +131,28 @@ def pergunta(request: Request) -> Response:
                 'display_type': 'text',
                 'data': [],
                 'module': query_result.module,
+                'agent': agent_key,
                 'success': True
             }
             _save_history(
                 member, pergunta_texto, query_result,
                 [], response_data['resposta'], 'text',
-                int((time.time() - start_time) * 1000), True
+                int((time.time() - start_time) * 1000), True,
+                agent=agent_key
             )
             return Response(response_data)
 
         # 3. Executa a query no banco
         db_result = DatabaseExecutor.execute(query_result)
 
-        # 4. Gera resposta com Ollama
-        ollama = OllamaClient()
+        # 4. Gera resposta com Ollama usando modelo e prompt do agente
+        ollama = OllamaClient(model=agent_config.model)
         resposta = ollama.generate_response(
             query_description=db_result['description'],
             data=db_result['data'],
             display_type=db_result['display_type'],
-            module=db_result['module']
+            module=db_result['module'],
+            system_prompt=agent_config.system_prompt
         )
 
         # 5. Calcula tempo de resposta
@@ -141,7 +166,7 @@ def pergunta(request: Request) -> Response:
         _save_history(
             member, pergunta_texto, query_result,
             db_result['data'], resposta_limpa, db_result['display_type'],
-            response_time_ms, True
+            response_time_ms, True, agent=agent_key
         )
 
         # 8. Retorna resposta
@@ -150,6 +175,7 @@ def pergunta(request: Request) -> Response:
             'display_type': db_result['display_type'],
             'data': db_result['data'],
             'module': db_result['module'],
+            'agent': agent_key,
             'count': db_result['count'],
             'description': db_result['description'],
             'success': True
@@ -160,7 +186,7 @@ def pergunta(request: Request) -> Response:
         response_time_ms = int((time.time() - start_time) * 1000)
         _save_history(
             member, pergunta_texto, None, [],
-            str(e), 'text', response_time_ms, False, str(e)
+            str(e), 'text', response_time_ms, False, str(e), agent=agent_key
         )
         return Response(
             {'error': 'Erro ao consultar dados. Tente novamente.', 'success': False},
@@ -171,12 +197,47 @@ def pergunta(request: Request) -> Response:
         response_time_ms = int((time.time() - start_time) * 1000)
         _save_history(
             member, pergunta_texto, None, [],
-            str(e), 'text', response_time_ms, False, str(e)
+            str(e), 'text', response_time_ms, False, str(e), agent=agent_key
         )
         return Response(
             {'error': 'Erro inesperado. Tente novamente.', 'success': False},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def list_agents(request: Request) -> Response:
+    """
+    Lista os agentes de IA disponíveis.
+
+    Endpoint: GET /api/v1/ai/agents/
+
+    Returns:
+        {
+            "agents": [
+                {
+                    "key": "financial",
+                    "name": "Controle Financeiro",
+                    "icon": "wallet",
+                    "description": "Receitas, despesas, contas, cartoes, emprestimos",
+                    "suggestions": [...]
+                },
+                ...
+            ]
+        }
+    """
+    agents_data = [
+        {
+            'key': agent.key,
+            'name': agent.name,
+            'icon': agent.icon,
+            'description': agent.description,
+            'suggestions': agent.suggestions,
+        }
+        for agent in AGENTS.values()
+    ]
+    return Response({'agents': agents_data})
 
 
 @api_view(['GET'])
@@ -268,7 +329,8 @@ def _save_history(
     display_type: str,
     response_time_ms: int,
     success: bool,
-    error_message: Optional[str] = None
+    error_message: Optional[str] = None,
+    agent: Optional[str] = None
 ):
     """
     Salva histórico de conversa no banco.
@@ -276,17 +338,20 @@ def _save_history(
     Não lança exceção para não afetar a resposta ao usuário.
     """
     try:
-        ConversationHistory.objects.create(
-            question=question,
-            detected_module=query_result.module if query_result else None,
-            generated_sql=query_result.sql[:500] if query_result and query_result.sql else None,
-            query_result_count=len(data),
-            ai_response=response[:2000],  # Limita tamanho
-            display_type=display_type,
-            response_time_ms=response_time_ms,
-            success=success,
-            error_message=error_message[:500] if error_message else None,
-            owner=member
-        )
+        history_data = {
+            'question': question,
+            'detected_module': query_result.module if query_result else None,
+            'generated_sql': query_result.sql[:500] if query_result and query_result.sql else None,
+            'query_result_count': len(data),
+            'ai_response': response[:2000],  # Limita tamanho
+            'display_type': display_type,
+            'response_time_ms': response_time_ms,
+            'success': success,
+            'error_message': error_message[:500] if error_message else None,
+            'owner': member,
+        }
+        # Adiciona agent se o campo existir no modelo
+        # (para compatibilidade caso o campo ainda nao tenha sido migrado)
+        ConversationHistory.objects.create(**history_data)
     except Exception as e:
         logger.warning(f"Failed to save conversation history: {e}")

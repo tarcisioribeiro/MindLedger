@@ -6,7 +6,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardHeader, CardDescription, CardContent } from '@/components/ui/card';
+import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Moon, Sun } from 'lucide-react';
 
 export default function Login() {
@@ -51,9 +51,6 @@ export default function Login() {
           <div className="mx-auto flex items-center justify-center">
             <img src={logo} alt="MindLedger" className="w-64 h-auto" />
           </div>
-          <CardDescription>
-            Entre com suas credenciais para acessar o sistema
-          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">

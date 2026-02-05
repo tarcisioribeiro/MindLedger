@@ -9,7 +9,7 @@ import {
   mapExpenseToReceipt,
   mapRevenueToReceipt,
   mapCreditCardBillToReceipt,
-  mapCreditCardBillWithItemsToReceipt,
+  mapCreditCardBillWithBillItemsToReceipt,
   mapCreditCardPurchaseToReceipt,
   mapLoanToReceipt,
   mapPayableToReceipt,
@@ -22,14 +22,14 @@ import type {
   Revenue,
   CreditCardBill,
   CreditCardPurchase,
-  CreditCardInstallment,
+  BillItem,
   Loan,
   Payable,
   Transfer,
   Vault,
   VaultTransaction,
 } from '@/types';
-import { creditCardInstallmentsService } from '@/services/credit-card-installments-service';
+import { creditCardBillsService } from '@/services/credit-card-bills-service';
 import { FileText, Image, Receipt, Eye, Loader2 } from 'lucide-react';
 
 // Type for different data sources
@@ -65,25 +65,25 @@ export function ReceiptButton({
 }: ReceiptButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const [billInstallments, setBillInstallments] = useState<CreditCardInstallment[]>([]);
-  const [isLoadingInstallments, setIsLoadingInstallments] = useState(false);
+  const [billItems, setBillItems] = useState<BillItem[]>([]);
+  const [isLoadingItems, setIsLoadingItems] = useState(false);
   const receiptRef = useRef<HTMLDivElement>(null);
   const { isGenerating, generateReceipt } = useReceiptGenerator();
 
-  // Load installments for credit card bills
-  const loadBillInstallments = useCallback(async () => {
-    if (source.type === 'credit_card_bill' && billInstallments.length === 0) {
-      setIsLoadingInstallments(true);
+  // Load all items (expenses + installments) for credit card bills
+  const loadBillItems = useCallback(async () => {
+    if (source.type === 'credit_card_bill' && billItems.length === 0) {
+      setIsLoadingItems(true);
       try {
-        const installments = await creditCardInstallmentsService.getByBill(source.data.id);
-        setBillInstallments(installments);
+        const response = await creditCardBillsService.getBillItems(source.data.id);
+        setBillItems(response.items);
       } catch (error) {
-        console.error('Erro ao carregar parcelas da fatura:', error);
+        console.error('Erro ao carregar itens da fatura:', error);
       } finally {
-        setIsLoadingInstallments(false);
+        setIsLoadingItems(false);
       }
     }
-  }, [source, billInstallments.length]);
+  }, [source, billItems.length]);
 
   // Convert source data to ReceiptData
   const getReceiptData = useCallback((): ReceiptData => {
@@ -93,11 +93,11 @@ export function ReceiptButton({
       case 'revenue':
         return mapRevenueToReceipt(source.data, memberName);
       case 'credit_card_bill':
-        // Use version with installments if available
-        if (billInstallments.length > 0) {
-          return mapCreditCardBillWithItemsToReceipt(
+        // Use version with bill items if available (includes both expenses and installments)
+        if (billItems.length > 0) {
+          return mapCreditCardBillWithBillItemsToReceipt(
             source.data,
-            billInstallments,
+            billItems,
             memberName
           );
         }
@@ -123,7 +123,7 @@ export function ReceiptButton({
           memberName
         );
     }
-  }, [source, memberName, billInstallments]);
+  }, [source, memberName, billItems]);
 
   const receiptData = getReceiptData();
 
@@ -151,7 +151,7 @@ export function ReceiptButton({
         onOpenChange={(open) => {
           setIsOpen(open);
           if (open) {
-            loadBillInstallments();
+            loadBillItems();
           }
         }}
       >
@@ -170,7 +170,7 @@ export function ReceiptButton({
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-48 p-2" align="end">
-          {isLoadingInstallments ? (
+          {isLoadingItems ? (
             <div className="flex items-center justify-center py-4">
               <Loader2 className="w-4 h-4 animate-spin mr-2" />
               <span className="text-sm text-muted-foreground">Carregando...</span>

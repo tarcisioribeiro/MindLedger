@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, Filter, CreditCard as CreditCardIcon, Receipt, Wallet } from 'lucide-react';
+import { Plus, Pencil, Trash2, Filter, CreditCard as CreditCardIcon, Receipt, Wallet, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -184,6 +184,23 @@ export default function CreditCardBills() {
       toast({ title: 'Erro ao processar pagamento', description: getErrorMessage(error), variant: 'destructive' });
     } finally {
       setIsPaymentSubmitting(false);
+    }
+  };
+
+  const handleReopenBill = async (bill: CreditCardBill) => {
+    const confirmed = await showConfirm({
+      title: 'Reabrir fatura',
+      description: `Deseja reabrir a fatura de ${translate('months', bill.month)}/${bill.year}? Isso permitirá adicionar ou remover lançamentos.`,
+      confirmText: 'Reabrir',
+      cancelText: 'Cancelar',
+    });
+    if (!confirmed) return;
+    try {
+      await creditCardBillsService.reopenBill(bill.id);
+      toast({ title: 'Fatura reaberta', description: 'A fatura foi reaberta com sucesso.' });
+      loadData();
+    } catch (error: unknown) {
+      toast({ title: 'Erro ao reabrir fatura', description: getErrorMessage(error), variant: 'destructive' });
     }
   };
 
@@ -384,6 +401,16 @@ export default function CreditCardBills() {
                 title="Pagar fatura"
               >
                 <Wallet className="w-4 h-4 text-primary" />
+              </Button>
+            )}
+            {(bill.closed || bill.status === 'paid' || bill.status === 'closed') && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleReopenBill(bill)}
+                title="Reabrir fatura"
+              >
+                <RotateCcw className="w-4 h-4 text-amber-500" />
               </Button>
             )}
             <Button variant="ghost" size="icon" onClick={() => handleEdit(bill)}>

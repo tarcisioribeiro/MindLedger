@@ -1,28 +1,7 @@
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from decimal import Decimal
-from .models import CreditCardExpense, CreditCardBill, CreditCardInstallment
-
-
-@receiver(post_save, sender=CreditCardExpense)
-@receiver(post_delete, sender=CreditCardExpense)
-def update_bill_totals_legacy(sender, instance, **kwargs):
-    """
-    LEGACY: Signal para o modelo antigo CreditCardExpense.
-    Mantido para compatibilidade com dados existentes.
-
-    Signal para atualizar automaticamente o total da fatura e o pagamento mínimo
-    quando uma despesa de cartão é criada, atualizada ou deletada.
-
-    Regras:
-    - total_amount = soma de todas as despesas da fatura
-    - minimum_payment = 10% do total_amount
-    """
-    # Verifica se a despesa está associada a uma fatura
-    if not instance.bill:
-        return
-
-    _recalculate_bill_total(instance.bill)
+from .models import CreditCardBill, CreditCardInstallment
 
 
 @receiver(post_save, sender=CreditCardInstallment)
@@ -45,24 +24,17 @@ def update_bill_totals_installment(sender, instance, **kwargs):
 
 def _recalculate_bill_total(bill):
     """
-    Recalcula o total de uma fatura baseado nas parcelas e despesas associadas.
+    Recalcula o total de uma fatura baseado nas parcelas associadas.
     """
     total = Decimal('0.00')
 
-    # Soma parcelas do novo modelo
+    # Soma parcelas
     installments = CreditCardInstallment.objects.filter(
         bill=bill,
         is_deleted=False,
         purchase__is_deleted=False
     )
     total += sum(Decimal(str(inst.value)) for inst in installments)
-
-    # Soma despesas do modelo legado
-    expenses = CreditCardExpense.objects.filter(
-        bill=bill,
-        is_deleted=False
-    )
-    total += sum(Decimal(str(expense.value)) for expense in expenses)
 
     # Atualiza o total e o pagamento mínimo (10%)
     bill.total_amount = total

@@ -599,6 +599,7 @@ class OllamaClient:
     Cliente para API do Ollama.
 
     Usa o endpoint /api/chat para gerar respostas em linguagem natural.
+    Suporta modelos e prompts de sistema customizados para agentes especializados.
     """
 
     DEFAULT_HOST = 'http://localhost:11434'
@@ -607,16 +608,16 @@ class OllamaClient:
 
     def __init__(
         self,
-        host: Optional[str] = None,
         model: Optional[str] = None,
+        host: Optional[str] = None,
         timeout: Optional[int] = None
     ):
         """
         Inicializa o cliente Ollama.
 
         Args:
+            model: Modelo a ser usado. Se None, usa OLLAMA_MODEL env ou default.
             host: URL do servidor Ollama (default: localhost:11434)
-            model: Modelo a ser usado (default: llama3.2)
             timeout: Timeout em segundos (default: 120)
         """
         self.host = host or os.getenv('OLLAMA_HOST', self.DEFAULT_HOST)
@@ -628,7 +629,8 @@ class OllamaClient:
         query_description: str,
         data: List[Dict[str, Any]],
         display_type: str,
-        module: str
+        module: str,
+        system_prompt: Optional[str] = None
     ) -> str:
         """
         Gera resposta em linguagem natural usando Ollama.
@@ -641,11 +643,14 @@ class OllamaClient:
             data: Dados retornados pela query
             display_type: Tipo de exibicao (text, table, list, currency, password)
             module: Modulo consultado
+            system_prompt: Prompt de sistema customizado (opcional).
+                          Se None, usa o prompt padrao.
 
         Returns:
             Resposta em portugues brasileiro, limpa e formatada
         """
         prompt = self._build_prompt(query_description, data, display_type, module)
+        effective_system_prompt = system_prompt or self._get_system_prompt()
 
         try:
             response = requests.post(
@@ -655,7 +660,7 @@ class OllamaClient:
                     'messages': [
                         {
                             'role': 'system',
-                            'content': self._get_system_prompt()
+                            'content': effective_system_prompt
                         },
                         {
                             'role': 'user',

@@ -9,14 +9,12 @@ from decimal import Decimal
 from credit_cards.models import (
     CreditCard,
     CreditCardBill,
-    CreditCardExpense,
     CreditCardPurchase,
     CreditCardInstallment,
 )
 from credit_cards.serializers import (
     CreditCardSerializer,
     CreditCardBillsSerializer,
-    CreditCardExpensesSerializer,
     CreditCardPurchaseSerializer,
     CreditCardPurchaseCreateSerializer,
     CreditCardPurchaseUpdateSerializer,
@@ -140,62 +138,8 @@ class CreditCardBillRetrieveUpdateDestroyView(
     serializer_class = CreditCardBillsSerializer
 
 
-class CreditCardExpenseCreateListView(generics.ListCreateAPIView):
-    """
-    ViewSet para listar e criar despesas de cartão de crédito.
-
-    Permite:
-    - GET: Lista todas as despesas do cartão ordenadas por data
-    - POST: Cria uma nova despesa no cartão
-
-    Attributes
-    ----------
-    permission_classes : tuple
-        Permissões necessárias (IsAuthenticated, GlobalDefaultPermission)
-    queryset : QuerySet
-        QuerySet das despesas (exclui deletadas) com cartão e conta associada carregados
-    serializer_class : class
-        Serializer usado para validação e serialização
-    ordering : list
-        Ordenação por data e ID (descendente)
-    """
-    permission_classes = (IsAuthenticated, GlobalDefaultPermission,)
-    queryset = CreditCardExpense.objects.filter(is_deleted=False).select_related(
-        'card', 'card__associated_account'
-    )
-    serializer_class = CreditCardExpensesSerializer
-    ordering = ['-date', '-id']
-
-
-class CreditCardExpenseRetrieveUpdateDestroyView(
-    generics.RetrieveUpdateDestroyAPIView
-):
-    """
-    ViewSet para operações individuais em despesas de cartão.
-
-    Permite:
-    - GET: Recupera uma despesa específica
-    - PUT/PATCH: Atualiza uma despesa existente
-    - DELETE: Remove uma despesa
-
-    Attributes
-    ----------
-    permission_classes : tuple
-        Permissões necessárias (IsAuthenticated, GlobalDefaultPermission)
-    queryset : QuerySet
-        QuerySet das despesas (exclui deletadas) com cartão e conta associada carregados
-    serializer_class : class
-        Serializer usado para validação e serialização
-    """
-    permission_classes = (IsAuthenticated, GlobalDefaultPermission,)
-    queryset = CreditCardExpense.objects.filter(is_deleted=False).select_related(
-        'card', 'card__associated_account'
-    )
-    serializer_class = CreditCardExpensesSerializer
-
-
 # ============================================================================
-# NEW VIEWS FOR PURCHASE AND INSTALLMENT
+# VIEWS FOR PURCHASE AND INSTALLMENT
 # ============================================================================
 
 class CreditCardPurchaseCreateListView(generics.ListCreateAPIView):
@@ -389,6 +333,8 @@ class PayCreditCardBillView(APIView):
         bill.payment_date = payment_date
 
         # 5. Atualizar status da fatura conforme regras de negócio
+        # Regra: Só fecha a fatura automaticamente se o valor total estiver pago
+        # Pagamentos parciais não fecham a fatura
         new_paid_amount = Decimal(str(bill.paid_amount))
         total_amount = Decimal(str(bill.total_amount))
 
@@ -404,13 +350,7 @@ class PayCreditCardBillView(APIView):
                 is_deleted=False,
                 payed=False
             ).update(payed=True)
-
-        elif bill.due_date and payment_date >= bill.due_date:
-            # Pagamento parcial após o vencimento
-            if bill.status != 'overdue':
-                bill.status = 'closed'
-            bill.closed = True
-        # Se pagamento parcial antes do vencimento, mantém status atual
+        # Pagamentos parciais mantêm o status atual (não fecham a fatura)
 
         bill.save()
 
@@ -440,5 +380,128 @@ class PayCreditCardBillView(APIView):
                 'id': account.id,
                 'name': account.account_name,
                 'balance': str(account.current_balance),
+            }
+        }, status=status.HTTP_200_OK)
+
+
+class BillItemsView(APIView):
+    """
+    View para listar todos os itens de uma fatura.
+
+    GET /api/v1/credit-cards-bills/{id}/items/
+
+    Retorna uma lista de todas as parcelas (CreditCardInstallment) associadas a uma fatura.
+    """
+    permission_classes = (IsAuthenticated, GlobalDefaultPermission,)
+    queryset = CreditCardBill.objects.all()
+
+    def get(self, request, pk):
+        # Buscar a fatura
+        try:
+            bill = CreditCardBill.objects.get(pk=pk, is_deleted=False)
+        except CreditCardBill.DoesNotExist:
+            return Response(
+                {'detail': 'Fatura não encontrada'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        items = []
+
+        # Buscar parcelas (CreditCardInstallment)
+        installments = CreditCardInstallment.objects.filter(
+            bill=bill,
+            is_deleted=False,
+            purchase__is_deleted=False
+        ).select_related('purchase', 'purchase__card', 'purchase__member').order_by('-due_date', '-id')
+
+        for inst in installments:
+            items.append({
+                'id': inst.id,
+                'type': 'installment',
+                'description': inst.purchase.description,
+                'value': float(inst.value),
+                'date': inst.due_date.isoformat() if inst.due_date else None,
+                'category': inst.purchase.category,
+                'installment_number': inst.installment_number,
+                'total_installments': inst.purchase.total_installments,
+                'merchant': inst.purchase.merchant,
+                'payed': inst.payed,
+                'member_id': inst.purchase.member_id,
+                'member_name': inst.purchase.member.name if inst.purchase.member else None,
+                'notes': inst.purchase.notes,
+                'purchase_date': inst.purchase.purchase_date.isoformat() if inst.purchase.purchase_date else None,
+            })
+
+        # Ordenar por data (mais recente primeiro) e depois por valor
+        items.sort(key=lambda x: (x['date'] or '', -x['value']), reverse=True)
+
+        # Calcular totais
+        total_value = sum(item['value'] for item in items)
+        total_paid = sum(item['value'] for item in items if item['payed'])
+        total_pending = total_value - total_paid
+
+        return Response({
+            'bill_id': bill.id,
+            'bill_month': bill.month,
+            'bill_year': bill.year,
+            'total_items': len(items),
+            'total_value': total_value,
+            'total_paid': total_paid,
+            'total_pending': total_pending,
+            'paid_count': sum(1 for item in items if item['payed']),
+            'pending_count': sum(1 for item in items if not item['payed']),
+            'items': items,
+        }, status=status.HTTP_200_OK)
+
+
+class ReopenCreditCardBillView(APIView):
+    """
+    View para reabrir uma fatura de cartão de crédito.
+
+    POST /api/v1/credit-cards-bills/{id}/reopen/
+
+    Lógica:
+    1. Busca a fatura
+    2. Verifica se a fatura está fechada ou paga
+    3. Reabre a fatura (closed=False, status='open')
+    """
+    permission_classes = (IsAuthenticated, GlobalDefaultPermission,)
+    queryset = CreditCardBill.objects.all()
+
+    @transaction.atomic
+    def post(self, request, pk):
+        # 1. Buscar a fatura
+        try:
+            bill = CreditCardBill.objects.select_related(
+                'credit_card'
+            ).get(pk=pk, is_deleted=False)
+        except CreditCardBill.DoesNotExist:
+            return Response(
+                {'detail': 'Fatura não encontrada'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # 2. Verificar se a fatura pode ser reaberta
+        if not bill.closed and bill.status == 'open':
+            return Response(
+                {'detail': 'Esta fatura já está aberta'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 3. Reabrir a fatura
+        bill.closed = False
+        bill.status = 'open'
+        bill.save()
+
+        return Response({
+            'message': 'Fatura reaberta com sucesso',
+            'bill': {
+                'id': bill.id,
+                'month': bill.month,
+                'year': bill.year,
+                'total_amount': str(bill.total_amount),
+                'paid_amount': str(bill.paid_amount),
+                'status': bill.status,
+                'closed': bill.closed,
             }
         }, status=status.HTTP_200_OK)

@@ -1,19 +1,37 @@
 /**
  * Service para comunicação com o AI Assistant.
+ *
+ * Suporta agentes especializados com modelos e escopos diferentes.
  */
 import { apiClient } from './api-client';
-import type { AiResponse, AiHealthResponse, AiHistoryResponse } from '@/types';
+import type {
+  AiResponse,
+  AiHealthResponse,
+  AiHistoryResponse,
+  AiAgentsResponse,
+} from '@/types';
 
 class AiAssistantService {
   private readonly baseUrl = '/api/v1/ai';
 
   /**
-   * Envia uma pergunta para o assistente de IA.
+   * Envia uma pergunta para um agente especializado.
+   *
+   * @param pergunta - A pergunta em linguagem natural
+   * @param agent - O key do agente a ser usado (ex: 'financial', 'security')
    */
-  async pergunta(pergunta: string): Promise<AiResponse> {
+  async pergunta(pergunta: string, agent: string): Promise<AiResponse> {
     return apiClient.post<AiResponse>(`${this.baseUrl}/pergunta/`, {
       pergunta,
+      agent,
     });
+  }
+
+  /**
+   * Obtém a lista de agentes disponíveis.
+   */
+  async getAgents(): Promise<AiAgentsResponse> {
+    return apiClient.get<AiAgentsResponse>(`${this.baseUrl}/agents/`);
   }
 
   /**

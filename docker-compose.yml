@@ -66,6 +66,8 @@ services:
       - "${OLLAMA_PORT:-39104}:11434"
     volumes:
       - ollama_data:/root/.ollama
+      - ./docker/ollama/init-models.sh:/init-models.sh:ro
+    entrypoint: ["/bin/bash", "-c", "/init-models.sh & ollama serve"]
     restart: unless-stopped
     # GPU support - uncomment the following lines if you have NVIDIA GPU
     # deploy:

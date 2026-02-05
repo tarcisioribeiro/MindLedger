@@ -1,6 +1,6 @@
 import { apiClient } from './api-client';
 import { API_CONFIG } from '@/config/constants';
-import type { CreditCardBill, CreditCardBillFormData, BillPaymentFormData, BillPaymentResponse, PaginatedResponse } from '@/types';
+import type { CreditCardBill, CreditCardBillFormData, BillPaymentFormData, BillPaymentResponse, PaginatedResponse, BillItemsResponse } from '@/types';
 
 class CreditCardBillsService {
   async getAll(params?: Record<string, any>): Promise<CreditCardBill[]> {
@@ -38,6 +38,19 @@ class CreditCardBillsService {
 
   async payBill(billId: number, data: BillPaymentFormData): Promise<BillPaymentResponse> {
     return apiClient.post<BillPaymentResponse>(`${API_CONFIG.ENDPOINTS.CREDIT_CARD_BILLS}${billId}/pay/`, data);
+  }
+
+  async reopenBill(billId: number): Promise<{ message: string; bill: CreditCardBill }> {
+    return apiClient.post<{ message: string; bill: CreditCardBill }>(`${API_CONFIG.ENDPOINTS.CREDIT_CARD_BILLS}${billId}/reopen/`, {});
+  }
+
+  /**
+   * Busca todos os itens de uma fatura (despesas legadas + parcelas).
+   * Este método retorna uma lista unificada de todos os lançamentos da fatura,
+   * incluindo despesas fixas (CreditCardExpense) e parcelas de compras (CreditCardInstallment).
+   */
+  async getBillItems(billId: number): Promise<BillItemsResponse> {
+    return apiClient.get<BillItemsResponse>(`${API_CONFIG.ENDPOINTS.CREDIT_CARD_BILLS}${billId}/items/`);
   }
 }
 

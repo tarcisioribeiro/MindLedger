@@ -19,7 +19,7 @@ from expenses.serializers import (
 )
 from expenses.filters import ExpenseFilter
 from app.permissions import GlobalDefaultPermission
-from credit_cards.models import CreditCardBill, CreditCardExpense
+from credit_cards.models import CreditCardBill, CreditCardPurchase, CreditCardInstallment
 
 
 class ExpenseCreateListView(generics.ListCreateAPIView):
@@ -237,12 +237,6 @@ class BulkGenerateFixedExpensesView(APIView):
         month = serializer.validated_data['month']
         expense_values = serializer.validated_data['expense_values']
 
-        # Verificar se já foi gerado para este mês
-        if FixedExpenseGenerationLog.objects.filter(month=month, is_deleted=False).exists():
-            return Response({
-                'error': f'Despesas fixas já foram geradas para {month}'
-            }, status=status.HTTP_400_BAD_REQUEST)
-
         created_expenses = []
         year, month_num = month.split('-')
         fixed_expense_ids = []
@@ -276,28 +270,69 @@ class BulkGenerateFixedExpensesView(APIView):
                         request.user
                     )
 
-                    # Criar despesa de cartão
-                    card_expense = CreditCardExpense.objects.create(
+                    # Verificar se já existe uma compra similar para evitar duplicação
+                    # Uma compra é considerada duplicada se tem a mesma descrição,
+                    # mesmo cartão e a parcela está na mesma fatura
+                    existing_installment = CreditCardInstallment.objects.filter(
+                        purchase__description=fixed_exp.description,
+                        purchase__card=fixed_exp.credit_card,
+                        bill=bill,
+                        is_deleted=False,
+                        purchase__is_deleted=False
+                    ).first()
+
+                    if existing_installment:
+                        # Despesa já existe para este mês - pular criação
+                        continue
+
+                    # Criar compra de cartão (CreditCardPurchase)
+                    purchase = CreditCardPurchase.objects.create(
                         description=fixed_exp.description,
-                        value=item['value'],
-                        date=expense_date,
-                        horary=timezone.now().time(),
+                        total_value=item['value'],
+                        purchase_date=expense_date,
+                        purchase_time=timezone.now().time(),
                         category=fixed_exp.category,
                         card=fixed_exp.credit_card,
-                        bill=bill,
-                        installment=1,
                         total_installments=1,
-                        payed=False,
-                        merchant=fixed_exp.merchant,
-                        notes=fixed_exp.notes,
+                        merchant=fixed_exp.merchant or '',
                         member=fixed_exp.member,
+                        notes=fixed_exp.notes or '',
                         created_by=request.user,
                         updated_by=request.user
                     )
-                    # Nota: O signal update_bill_totals irá atualizar automaticamente
-                    # o total da fatura e o pagamento mínimo
+
+                    # Criar parcela única vinculada à fatura (CreditCardInstallment)
+                    CreditCardInstallment.objects.create(
+                        purchase=purchase,
+                        installment_number=1,
+                        value=item['value'],
+                        due_date=expense_date,
+                        bill=bill,
+                        payed=False,
+                        created_by=request.user,
+                        updated_by=request.user
+                    )
+                    # Nota: O signal update_bill_totals_installment irá atualizar
+                    # automaticamente o total da fatura e o pagamento mínimo
                 else:
                     # Despesa de conta bancária (fluxo original)
+                    # Verificar se já existe uma despesa gerada pelo mesmo template
+                    # para o mesmo mês
+                    month_start = datetime(int(year), int(month_num), 1).date()
+                    last_day = monthrange(int(year), int(month_num))[1]
+                    month_end = datetime(int(year), int(month_num), last_day).date()
+
+                    existing_expense = Expense.objects.filter(
+                        fixed_expense_template=fixed_exp,
+                        date__gte=month_start,
+                        date__lte=month_end,
+                        is_deleted=False
+                    ).first()
+
+                    if existing_expense:
+                        # Despesa já existe para este mês - pular criação
+                        continue
+
                     expense = Expense.objects.create(
                         description=fixed_exp.description,
                         value=item['value'],
@@ -320,15 +355,26 @@ class BulkGenerateFixedExpensesView(APIView):
                 fixed_exp.last_generated_month = month
                 fixed_exp.save()
 
-            # Criar log de geração
-            FixedExpenseGenerationLog.objects.create(
-                month=month,
-                generated_by=request.user,
-                total_generated=len(created_expenses),
-                fixed_expense_ids=fixed_expense_ids,
-                created_by=request.user,
-                updated_by=request.user
-            )
+            # Criar ou atualizar log de geração
+            existing_log = FixedExpenseGenerationLog.objects.filter(month=month).first()
+            if existing_log:
+                # Atualizar log existente - adicionar novos IDs às despesas já geradas
+                existing_ids = existing_log.fixed_expense_ids or []
+                updated_ids = list(set(existing_ids + fixed_expense_ids))
+                existing_log.fixed_expense_ids = updated_ids
+                existing_log.total_generated = len(updated_ids)
+                existing_log.updated_by = request.user
+                existing_log.save()
+            else:
+                # Criar novo log
+                FixedExpenseGenerationLog.objects.create(
+                    month=month,
+                    generated_by=request.user,
+                    total_generated=len(fixed_expense_ids),
+                    fixed_expense_ids=fixed_expense_ids,
+                    created_by=request.user,
+                    updated_by=request.user
+                )
 
             # Serializar resposta
             response_data = {

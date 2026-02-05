@@ -28,18 +28,17 @@ urlpatterns = [
         views.PayCreditCardBillView.as_view(),
         name='credit-card-bill-pay'
     ),
-    # Legacy endpoints (deprecated, use purchases/installments instead)
     path(
-        'credit-cards-expenses/',
-        views.CreditCardExpenseCreateListView.as_view(),
-        name='credit_card-expense-create-list'
+        'credit-cards-bills/<int:pk>/reopen/',
+        views.ReopenCreditCardBillView.as_view(),
+        name='credit-card-bill-reopen'
     ),
     path(
-        'credit-cards-expenses/<int:pk>/',
-        views.CreditCardExpenseRetrieveUpdateDestroyView.as_view(),
-        name='credit-card-expense-detail-view'
+        'credit-cards-bills/<int:pk>/items/',
+        views.BillItemsView.as_view(),
+        name='credit-card-bill-items'
     ),
-    # New endpoints for Purchases and Installments
+    # Endpoints for Purchases and Installments
     path(
         'credit-cards-purchases/',
         views.CreditCardPurchaseCreateListView.as_view(),

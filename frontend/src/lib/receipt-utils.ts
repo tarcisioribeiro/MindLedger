@@ -19,6 +19,7 @@ import type {
   CreditCardBill,
   CreditCardPurchase,
   CreditCardInstallment,
+  BillItem,
   Loan,
   Payable,
   Transfer,
@@ -101,6 +102,7 @@ export function mapCreditCardBillToReceipt(
 
 /**
  * Maps a CreditCardBill with its installments to ReceiptData with statement
+ * @deprecated Use mapCreditCardBillWithBillItemsToReceipt for unified bill items
  */
 export function mapCreditCardBillWithItemsToReceipt(
   bill: CreditCardBill,
@@ -117,6 +119,51 @@ export function mapCreditCardBillWithItemsToReceipt(
     totalInstallments: inst.total_installments,
     merchant: inst.merchant,
     payed: inst.payed,
+  }));
+
+  const paidItems = statementItems.filter((i) => i.payed).length;
+
+  return {
+    type: 'credit_card_bill',
+    typeLabel: RECEIPT_TYPE_LABELS.credit_card_bill,
+    // Use \u00A0 (non-breaking space) for consistent rendering in html2canvas
+    description: `Fatura\u00A0${translate('months', bill.month)}/${bill.year}\u00A0-\u00A0${bill.credit_card_name || 'Cartão'}`,
+    value: parseFloat(bill.total_amount),
+    date: bill.due_date || bill.invoice_ending_date,
+    category: 'fatura_cartao',
+    status: bill.status,
+    statusLabel: STATUS_LABELS[bill.status] || bill.status,
+    cardName: bill.credit_card_name,
+    accountName: bill.credit_card_associated_account_name,
+    memberName,
+    generatedAt: new Date(),
+    // Extrato detalhado
+    statementItems,
+    totalItems: statementItems.length,
+    totalPaidItems: paidItems,
+    totalPendingItems: statementItems.length - paidItems,
+  };
+}
+
+/**
+ * Maps a CreditCardBill with its unified items (expenses + installments) to ReceiptData with statement
+ * This is the preferred method as it includes both legacy expenses and new installments
+ */
+export function mapCreditCardBillWithBillItemsToReceipt(
+  bill: CreditCardBill,
+  items: BillItem[],
+  memberName: string
+): ReceiptData {
+  const statementItems: ReceiptStatementItem[] = items.map((item) => ({
+    description: item.description || 'Despesa',
+    category: item.category || 'others',
+    categoryLabel: autoTranslate(item.category || 'others'),
+    value: item.value,
+    date: item.date || '',
+    installmentNumber: item.installment_number,
+    totalInstallments: item.total_installments,
+    merchant: item.merchant || undefined,
+    payed: item.payed,
   }));
 
   const paidItems = statementItems.filter((i) => i.payed).length;

@@ -115,9 +115,12 @@ export const LaunchExpensesDialog = ({
 
       const response = await fixedExpensesService.bulkGenerate(request);
 
+      // Formatar mês para exibição (YYYY-MM -> Mês/Ano)
+      const monthLabel = monthOptions.find(m => m.value === selectedMonth)?.label || selectedMonth;
+
       toast({
         title: 'Despesas lançadas com sucesso!',
-        description: `${response.created_count} despesas foram criadas para ${selectedMonth}`,
+        description: `${response.created_count} despesas foram criadas para ${monthLabel}`,
       });
 
       onSuccess();

@@ -775,7 +775,12 @@ class QueryInterpreter:
         return None
 
     @classmethod
-    def interpret(cls, question: str, member_id: int) -> QueryResult:
+    def interpret(
+        cls,
+        question: str,
+        member_id: int,
+        allowed_modules: Optional[List[str]] = None
+    ) -> QueryResult:
         """
         Interpreta uma pergunta e retorna a query SQL correspondente.
 
@@ -787,6 +792,8 @@ class QueryInterpreter:
         Args:
             question: Pergunta em portugues
             member_id: ID do membro para filtrar dados
+            allowed_modules: Lista de modulos permitidos para este agente.
+                           Se None, todos os modulos sao permitidos.
 
         Returns:
             QueryResult com SQL, parametros e metadados
@@ -840,6 +847,36 @@ class QueryInterpreter:
             aggregation = cls._detect_aggregation(question)
             if module == 'unknown':
                 module = cls._detect_module(question)
+
+        # Verifica se o modulo detectado e permitido para este agente
+        if allowed_modules and module not in allowed_modules and module != 'unknown':
+            # Mapeamento de modulos para nomes amigaveis
+            module_names = {
+                'revenues': 'receitas e faturamento',
+                'expenses': 'despesas e gastos',
+                'accounts': 'contas bancarias',
+                'credit_cards': 'cartoes de credito',
+                'loans': 'emprestimos',
+                'transfers': 'transferencias',
+                'vaults': 'cofres e reservas',
+                'library': 'livros e leituras',
+                'personal_planning': 'tarefas e planejamento',
+                'security': 'senhas e credenciais',
+            }
+            module_friendly = module_names.get(module, module)
+            return QueryResult(
+                module='restricted',
+                sql='',
+                params=(),
+                display_type='text',
+                description=(
+                    f'Esta pergunta parece ser sobre {module_friendly}. '
+                    f'Por favor, selecione o agente correto para este tipo de consulta.'
+                ),
+                confidence=processed.confidence,
+                detected_intent=processed.intent.intent.value,
+                processing_metadata=processed.metadata
+            )
 
         # Usa categorias extraidas ou fallback para deteccao tradicional
         category = None

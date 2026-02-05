@@ -278,6 +278,37 @@ export interface BillPaymentResponse {
   };
 }
 
+// Credit Card Bill Item Types (unified view of expenses + installments)
+export interface BillItem {
+  id: number;
+  type: 'expense' | 'installment';
+  description: string;
+  value: number;
+  date: string | null;
+  category: string;
+  installment_number: number;
+  total_installments: number;
+  merchant?: string | null;
+  payed: boolean;
+  member_id?: number | null;
+  member_name?: string | null;
+  notes?: string | null;
+  purchase_date?: string;
+}
+
+export interface BillItemsResponse {
+  bill_id: number;
+  bill_month: string;
+  bill_year: string;
+  total_items: number;
+  total_value: number;
+  total_paid: number;
+  total_pending: number;
+  paid_count: number;
+  pending_count: number;
+  items: BillItem[];
+}
+
 // Credit Card Expense Types
 export interface CreditCardExpense {
   id: number;
@@ -1721,6 +1752,18 @@ export interface FinancialGoalVaultsResponse {
 // AI ASSISTANT MODULE TYPES
 // ============================================================================
 
+export interface AiAgent {
+  key: string;
+  name: string;
+  icon: string;
+  description: string;
+  suggestions: string[];
+}
+
+export interface AiAgentsResponse {
+  agents: AiAgent[];
+}
+
 export interface AiMessage {
   id: string;
   role: 'user' | 'assistant';
@@ -1728,6 +1771,7 @@ export interface AiMessage {
   displayType?: string;
   data?: Record<string, unknown>[];
   module?: string;
+  agent?: string;
   timestamp?: string;
 }
 
@@ -1736,6 +1780,7 @@ export interface AiResponse {
   display_type: string;
   data: Record<string, unknown>[];
   module: string;
+  agent?: string;
   count: number;
   description: string;
   success: boolean;
@@ -1746,6 +1791,7 @@ export interface AiHistoryItem {
   question: string;
   response: string;
   module: string;
+  agent?: string;
   display_type: string;
   success: boolean;
   created_at: string;
@@ -1760,4 +1806,5 @@ export interface AiHealthResponse {
   ollama: 'healthy' | 'unavailable';
   database: 'healthy' | 'unavailable';
   model: string;
+  healthy: boolean;
 }
