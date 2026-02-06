@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Library, BookOpen, User, Building2, FileText, BookMarked, BookCheck, Star, Clock } from 'lucide-react';
+import { Library, BookOpen, User, Building2, FileText, BookMarked, BookCheck, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { libraryDashboardService, type LibraryDashboardStats } from '@/services/library-dashboard-service';
 import { useToast } from '@/hooks/use-toast';
@@ -56,23 +56,6 @@ export default function LibraryDashboard() {
   };
 
   const COLORS = useChartColors();
-
-  const renderStars = (rating: number) => {
-    return (
-      <div className="flex gap-0.5">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <Star
-            key={star}
-            className={`h-4 w-4 ${
-              star <= rating
-                ? 'fill-warning text-warning'
-                : 'fill-muted text-muted'
-            }`}
-          />
-        ))}
-      </div>
-    );
-  };
 
   if (isLoading) {
     return <LoadingState fullScreen />;
@@ -265,7 +248,7 @@ export default function LibraryDashboard() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Livros por Gênero */}
         <Card>
           <CardHeader>
@@ -307,41 +290,6 @@ export default function LibraryDashboard() {
             />
           </CardContent>
         </Card>
-
-        {/* Top 3 Avaliações */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Top 3 Avaliações</CardTitle>
-            <p className="text-sm">Livros mais bem avaliados</p>
-          </CardHeader>
-          <CardContent>
-            {!stats || stats.top_rated_books.length === 0 ? (
-              <div className="h-64 flex items-center justify-center">
-                Nenhum livro avaliado
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {stats.top_rated_books.map((book, index) => (
-                  <div
-                    key={index}
-                    className="flex items-start gap-4 p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                  >
-                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold">
-                      {index + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm truncate">{book.title}</p>
-                      <p className="text-xs mt-1">
-                        {book.authors_names.join(', ')}
-                      </p>
-                      <div className="mt-2">{renderStars(book.rating)}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
       </div>
 
       {/* Row 5: Timeline e Top Autores */}
@@ -350,18 +298,27 @@ export default function LibraryDashboard() {
         <Card>
           <CardHeader>
             <CardTitle>Linha do Tempo de Leitura</CardTitle>
-            <p className="text-sm">Páginas lidas por mês (últimos 6 meses)</p>
+            <p className="text-sm">Páginas lidas por dia (últimos 6 meses)</p>
           </CardHeader>
           <CardContent>
             <ChartContainer
               chartId="library-reading-timeline"
-              data={stats?.reading_timeline_monthly || []}
+              data={stats?.reading_timeline || []}
               dataKey="pages_read"
-              nameKey="month"
+              nameKey="date"
               formatter={(value) => value.toString()}
               colors={COLORS}
               emptyMessage="Nenhuma leitura registrada"
               lockChartType="line"
+              xAxisTickFormatter={(value: string) => {
+                try {
+                  const [year, month] = value.split('-');
+                  const date = new Date(Number(year), Number(month) - 1);
+                  return format(date, "MMM/yyyy", { locale: ptBR });
+                } catch {
+                  return value;
+                }
+              }}
               dualYAxis={{
                 left: { dataKey: 'pages_read', label: 'Páginas', color: COLORS[0] },
                 right: { dataKey: 'reading_time_hours', label: 'Horas', color: COLORS[1] }
@@ -402,7 +359,7 @@ export default function LibraryDashboard() {
         <Card>
           <CardHeader>
             <CardTitle>Distribuição de Avaliações</CardTitle>
-            <p className="text-sm">Livros por faixa de avaliação (1-10)</p>
+            <p className="text-sm">Livros por avaliação em estrelas</p>
           </CardHeader>
           <CardContent>
             <ChartContainer

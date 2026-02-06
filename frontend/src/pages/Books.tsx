@@ -156,16 +156,16 @@ export default function Books() {
       book.publisher_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const getStatusColor = (status: string) => {
+  const getStatusVariant = (status: string): 'success' | 'info' | 'warning' => {
     switch (status) {
       case 'read':
-        return 'bg-success';
+        return 'success';
       case 'reading':
-        return 'bg-info';
+        return 'info';
       case 'to_read':
-        return 'bg-muted';
+        return 'warning';
       default:
-        return 'bg-muted';
+        return 'warning';
     }
   };
 
@@ -247,8 +247,7 @@ export default function Books() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between text-sm">
                   <Badge
-                    className={getStatusColor(book.read_status)}
-                    variant="default"
+                    variant={getStatusVariant(book.read_status)}
                   >
                     {book.read_status_display}
                   </Badge>

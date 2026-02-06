@@ -50,8 +50,8 @@
     --info-foreground: 48 100% 96%;
 
     /* Borders e Inputs - Selection suavizada */
-    --border: 240 19% 84%;
-    --input: 240 19% 84%;
+    --border: 240 19% 72%;
+    --input: 240 19% 72%;
     --ring: 252 54% 54%;
 
     /* Border radius */
@@ -127,8 +127,8 @@
     --info-foreground: 235 15% 18%;
 
     /* Borders e Inputs - Selection (#44475A) */
-    --border: 232 14% 31%;
-    --input: 232 14% 31%;
+    --border: 232 14% 42%;
+    --input: 232 14% 42%;
     --ring: 265 89% 78%; /* Purple (#BD93F9) */
 
     /* Category colors - Dracula palette */

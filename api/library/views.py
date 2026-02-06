@@ -633,29 +633,28 @@ class LibraryDashboardStatsView(APIView):
                     'count': count
                 })
 
-        # Timeline mensal (últimos 6 meses)
-        from django.db.models.functions import TruncMonth
+        # Timeline diária (últimos 6 meses)
         from datetime import timedelta
 
         six_months_ago = timezone.now() - timedelta(days=180)
 
-        reading_timeline_monthly = list(
+        reading_timeline = list(
             readings_qs
             .filter(reading_date__gte=six_months_ago)
-            .annotate(month=TruncMonth('reading_date'))
-            .values('month')
+            .values('reading_date')
             .annotate(
                 pages_read=Sum('pages_read'),
                 reading_time_minutes=Sum('reading_time')
             )
-            .order_by('month')
+            .order_by('reading_date')
         )
 
-        # Formatar month e adicionar reading_time_hours
-        for item in reading_timeline_monthly:
-            item['month'] = item['month'].strftime('%Y-%m')
+        # Formatar date e adicionar reading_time_hours
+        for item in reading_timeline:
+            item['date'] = item['reading_date'].isoformat()
             item['reading_time_hours'] = round(item['reading_time_minutes'] / 60, 1)
             del item['reading_time_minutes']
+            del item['reading_date']
 
         # Top 5 autores por quantidade de livros
         top_authors = list(
@@ -670,14 +669,14 @@ class LibraryDashboardStatsView(APIView):
             .values('name', 'books_count')
         )
 
-        # Distribuição de ratings (agrupado em 5 faixas)
+        # Distribuição de ratings (1-5 estrelas)
         rating_distribution = []
         rating_ranges = [
-            ('1-2', 1, 2),
-            ('3-4', 3, 4),
-            ('5-6', 5, 6),
-            ('7-8', 7, 8),
-            ('9-10', 9, 10)
+            ('1 estrela', 1, 1),
+            ('2 estrelas', 2, 2),
+            ('3 estrelas', 3, 3),
+            ('4 estrelas', 4, 4),
+            ('5 estrelas', 5, 5),
         ]
 
         for range_label, min_rating, max_rating in rating_ranges:
@@ -708,7 +707,7 @@ class LibraryDashboardStatsView(APIView):
             'most_read_author': most_read_author,
             'most_read_publisher': most_read_publisher,
             'reading_status_distribution': reading_status_distribution,
-            'reading_timeline_monthly': reading_timeline_monthly,
+            'reading_timeline': reading_timeline,
             'top_authors': top_authors,
             'rating_distribution': rating_distribution,
         }

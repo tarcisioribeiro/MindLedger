@@ -26,6 +26,7 @@ interface EnhancedLineChartProps {
   dualYAxis?: DualYAxisConfig;
   height?: number;
   withArea?: boolean;
+  xAxisTickFormatter?: (value: string) => string;
 }
 
 /**
@@ -52,6 +53,7 @@ export const EnhancedLineChart = ({
   dualYAxis,
   height = 300,
   withArea = true,
+  xAxisTickFormatter,
 }: EnhancedLineChartProps) => {
   // Gera IDs únicos para gradientes
   const getGradientId = useChartGradientId('line-area');
@@ -133,6 +135,7 @@ export const EnhancedLineChart = ({
           tickLine={false}
           axisLine={{ stroke: 'hsl(var(--border))' }}
           dy={8}
+          tickFormatter={xAxisTickFormatter}
         />
 
         {dualYAxis ? (

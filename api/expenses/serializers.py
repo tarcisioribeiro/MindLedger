@@ -59,6 +59,50 @@ class FixedExpenseCreateUpdateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("O dia deve estar entre 1 e 31")
         return value
 
+    def validate(self, attrs):
+        """
+        Valida exclusividade mútua entre account e credit_card.
+        Também garante que pelo menos um seja fornecido na criação.
+        """
+        account = attrs.get('account')
+        credit_card = attrs.get('credit_card')
+
+        # Na criação, verificar se pelo menos um foi fornecido
+        if self.instance is None:
+            if not account and not credit_card:
+                raise serializers.ValidationError({
+                    'account': 'Selecione uma conta bancária ou um cartão de crédito.',
+                    'credit_card': 'Selecione uma conta bancária ou um cartão de crédito.'
+                })
+            if account and credit_card:
+                raise serializers.ValidationError({
+                    'account': 'Não é possível selecionar tanto conta quanto cartão de crédito. Escolha apenas um.',
+                    'credit_card': 'Não é possível selecionar tanto conta quanto cartão de crédito. Escolha apenas um.'
+                })
+
+        return attrs
+
+    def update(self, instance, validated_data):
+        """
+        Garante exclusividade mútua entre account e credit_card durante update.
+        Quando um é fornecido, o outro é automaticamente limpo.
+        """
+        # Se credit_card foi fornecido (e não é None explícito), limpar account
+        if 'credit_card' in validated_data:
+            if validated_data['credit_card'] is not None:
+                validated_data['account'] = None
+        # Se account foi fornecido (e não é None explícito), limpar credit_card
+        elif 'account' in validated_data:
+            if validated_data['account'] is not None:
+                validated_data['credit_card'] = None
+
+        # Atualizar campos
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        instance.save()
+        return instance
+
 
 # Bulk Operations Serializers
 

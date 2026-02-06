@@ -52,8 +52,8 @@ export interface LibraryDashboardStats {
     status_display: string;
     count: number;
   }>;
-  reading_timeline_monthly: Array<{
-    month: string;
+  reading_timeline: Array<{
+    date: string;
     pages_read: number;
     reading_time_hours: number;
   }>;
