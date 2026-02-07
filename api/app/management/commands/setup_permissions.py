@@ -39,6 +39,7 @@ class Command(BaseCommand):
             'personal_planning': ['routinetask', 'taskinstance', 'goal', 'dailyreflection'],
             'vaults': ['vault', 'vaulttransaction', 'financialgoal'],
             'ai_assistant': ['conversationhistory'],
+            'notifications': ['notification'],
         }
 
         # Define the permissions: view, add, change, delete (full CRUD)

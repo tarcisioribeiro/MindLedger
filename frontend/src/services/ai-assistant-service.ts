@@ -19,11 +19,17 @@ class AiAssistantService {
    *
    * @param pergunta - A pergunta em linguagem natural
    * @param agent - O key do agente a ser usado (ex: 'financial', 'security')
+   * @param conversationHistory - Historico de conversa recente (opcional)
    */
-  async pergunta(pergunta: string, agent: string): Promise<AiResponse> {
+  async pergunta(
+    pergunta: string,
+    agent: string,
+    conversationHistory?: Array<{ role: string; content: string }>
+  ): Promise<AiResponse> {
     return apiClient.post<AiResponse>(`${this.baseUrl}/pergunta/`, {
       pergunta,
       agent,
+      conversation_history: conversationHistory || [],
     });
   }
 

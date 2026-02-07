@@ -32,6 +32,7 @@ interface ChartContainerProps {
   defaultType?: ChartType;
   lockChartType?: ChartType;
   xAxisTickFormatter?: (value: string) => string;
+  tooltipLabelFormatter?: (label: string | number) => string;
 }
 
 /**
@@ -63,6 +64,7 @@ export const ChartContainer = ({
   defaultType = 'pie',
   lockChartType,
   xAxisTickFormatter,
+  tooltipLabelFormatter,
 }: ChartContainerProps) => {
   const { chartType: storedChartType, cycleChartType } = useChartType(chartId, defaultType);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -181,6 +183,7 @@ export const ChartContainer = ({
               height={height}
               withArea={withArea}
               xAxisTickFormatter={xAxisTickFormatter}
+              tooltipLabelFormatter={tooltipLabelFormatter}
             />
           )}
         </motion.div>

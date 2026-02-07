@@ -630,7 +630,12 @@ class OllamaClient:
         data: List[Dict[str, Any]],
         display_type: str,
         module: str,
-        system_prompt: Optional[str] = None
+        system_prompt: Optional[str] = None,
+        user_question: Optional[str] = None,
+        conversation_history: Optional[List[Dict[str, str]]] = None,
+        temperature: Optional[float] = None,
+        top_p: Optional[float] = None,
+        num_predict: Optional[int] = None,
     ) -> str:
         """
         Gera resposta em linguagem natural usando Ollama.
@@ -645,32 +650,47 @@ class OllamaClient:
             module: Modulo consultado
             system_prompt: Prompt de sistema customizado (opcional).
                           Se None, usa o prompt padrao.
+            user_question: Pergunta original do usuario (opcional).
+            conversation_history: Historico de conversa recente (opcional).
+            temperature: Temperatura do modelo (opcional).
+            top_p: Top-p sampling (opcional).
+            num_predict: Numero maximo de tokens (opcional).
 
         Returns:
             Resposta em portugues brasileiro, limpa e formatada
         """
-        prompt = self._build_prompt(query_description, data, display_type, module)
+        prompt = self._build_prompt(
+            query_description, data, display_type, module,
+            user_question=user_question
+        )
         effective_system_prompt = system_prompt or self._get_system_prompt()
+
+        # Constroi lista de mensagens com historico de conversa
+        messages = [{'role': 'system', 'content': effective_system_prompt}]
+
+        # Adiciona ultimas mensagens de conversa (max 6 = 3 pares)
+        if conversation_history:
+            for msg in conversation_history[-6:]:
+                if isinstance(msg, dict) and 'role' in msg and 'content' in msg:
+                    messages.append({
+                        'role': msg['role'],
+                        'content': msg['content']
+                    })
+
+        # Adiciona mensagem atual
+        messages.append({'role': 'user', 'content': prompt})
 
         try:
             response = requests.post(
                 f'{self.host}/api/chat',
                 json={
                     'model': self.model,
-                    'messages': [
-                        {
-                            'role': 'system',
-                            'content': effective_system_prompt
-                        },
-                        {
-                            'role': 'user',
-                            'content': prompt
-                        }
-                    ],
+                    'messages': messages,
                     'stream': False,
                     'options': {
-                        'temperature': 0.7,
-                        'num_predict': 500,
+                        'temperature': temperature or 0.3,
+                        'top_p': top_p or 0.9,
+                        'num_predict': num_predict or 600,
                     }
                 },
                 timeout=self.timeout
@@ -737,7 +757,8 @@ Se nao houver dados, diga que nao encontrou registros."""
         query_description: str,
         data: List[Dict[str, Any]],
         display_type: str,
-        module: str
+        module: str,
+        user_question: Optional[str] = None
     ) -> str:
         """Constrói o prompt estruturado com XML tags."""
         # Formata os dados de acordo com o tipo
@@ -753,8 +774,15 @@ Se nao houver dados, diga que nao encontrou registros."""
             # Para outros tipos, formata como lista/tabela
             data_str = self._format_general_data(data)
 
-        return f"""<context>
-O usuario fez uma pergunta sobre {self._get_module_description(module)}.
+        # Inclui a pergunta original se disponivel
+        question_section = ""
+        if user_question:
+            question_section = f"""<user_question>{user_question}</user_question>
+
+"""
+
+        return f"""{question_section}<context>
+Modulo: {self._get_module_description(module)}.
 Consulta realizada: {query_description}
 </context>
 
@@ -763,7 +791,7 @@ Consulta realizada: {query_description}
 </data>
 
 <instruction>
-Transforme os dados acima em uma resposta natural e amigavel em portugues.
+Responda a pergunta do usuario com base nos dados acima.
 {"Formate valores monetarios como R$ X.XXX,XX." if display_type == 'currency' else ""}
 {"IMPORTANTE: Nao revele senhas completas diretamente. Apenas confirme que encontrou a credencial." if display_type == 'password' else ""}
 Se nao houver dados, informe educadamente que nao encontrou registros.

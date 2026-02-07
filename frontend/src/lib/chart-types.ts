@@ -78,6 +78,7 @@ export interface ChartTooltipProps {
   payload?: TooltipPayloadItem[];
   label?: string | number;
   formatter?: (value: number | string) => string;
+  labelFormatter?: (label: string | number) => string;
 }
 
 // Props do container de gráficos

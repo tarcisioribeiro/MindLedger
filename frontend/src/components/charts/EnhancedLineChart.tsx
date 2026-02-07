@@ -27,6 +27,7 @@ interface EnhancedLineChartProps {
   height?: number;
   withArea?: boolean;
   xAxisTickFormatter?: (value: string) => string;
+  tooltipLabelFormatter?: (label: string | number) => string;
 }
 
 /**
@@ -54,6 +55,7 @@ export const EnhancedLineChart = ({
   height = 300,
   withArea = true,
   xAxisTickFormatter,
+  tooltipLabelFormatter,
 }: EnhancedLineChartProps) => {
   // Gera IDs únicos para gradientes
   const getGradientId = useChartGradientId('line-area');
@@ -169,7 +171,7 @@ export const EnhancedLineChart = ({
         )}
 
         <Tooltip
-          content={<EnhancedTooltip formatter={formatter} />}
+          content={<EnhancedTooltip formatter={formatter} labelFormatter={tooltipLabelFormatter} />}
           cursor={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1, strokeDasharray: '4 4' }}
         />
 

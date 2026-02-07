@@ -1,4 +1,5 @@
 import { apiClient } from './api-client';
+import { formatLocalDate } from '@/lib/utils';
 import type {
   TaskInstance,
   TaskInstanceFormData,
@@ -92,7 +93,7 @@ class TaskInstancesService {
    * Helper: Formata a data atual no formato YYYY-MM-DD.
    */
   getTodayDate(): string {
-    return new Date().toISOString().split('T')[0];
+    return formatLocalDate(new Date());
   }
 
   /**

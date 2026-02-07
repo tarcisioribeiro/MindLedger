@@ -258,18 +258,105 @@ class QuestionProcessor:
         return intent_result.intent == IntentType.HELP
 
     @classmethod
-    def get_greeting_response(cls) -> str:
-        """Retorna resposta para saudacao."""
+    def get_greeting_response(cls, agent_config=None) -> str:
+        """Retorna resposta para saudacao, contextualizada pelo agente."""
+        if agent_config:
+            agent_greetings = {
+                'financial': (
+                    "Ola! Sou o assistente de Controle Financeiro do MindLedger. "
+                    "Posso ajudar voce com informacoes sobre receitas, despesas, "
+                    "saldos, cartoes de credito, emprestimos, transferencias e cofres. "
+                    "O que voce gostaria de saber?"
+                ),
+                'security': (
+                    "Ola! Sou o assistente de Seguranca do MindLedger. "
+                    "Posso ajudar voce a consultar suas senhas e credenciais "
+                    "armazenadas de forma segura. O que voce precisa?"
+                ),
+                'planning': (
+                    "Ola! Sou o assistente de Planejamento Pessoal do MindLedger. "
+                    "Posso ajudar voce com suas tarefas, habitos, objetivos e metas. "
+                    "Como posso ajudar?"
+                ),
+                'reading': (
+                    "Ola! Sou o assistente de Leitura do MindLedger. "
+                    "Posso ajudar voce com informacoes sobre seus livros, "
+                    "sessoes de leitura e progresso. O que voce gostaria de saber?"
+                ),
+            }
+            return agent_greetings.get(agent_config.key, (
+                f"Ola! Sou o assistente {agent_config.name} do MindLedger. "
+                f"Posso ajudar com: {agent_config.description}. "
+                "O que voce gostaria de saber?"
+            ))
+
         return (
-            "Ola! Sou o assistente financeiro do MindLedger. "
+            "Ola! Sou o assistente do MindLedger. "
             "Posso ajudar voce com informacoes sobre suas financas, "
             "como despesas, receitas, saldos, cartoes, e muito mais. "
             "O que voce gostaria de saber?"
         )
 
     @classmethod
-    def get_help_response(cls) -> str:
-        """Retorna resposta para pedido de ajuda."""
+    def get_help_response(cls, agent_config=None) -> str:
+        """Retorna resposta para pedido de ajuda, contextualizada pelo agente."""
+        if agent_config:
+            agent_help = {
+                'financial': (
+                    "Posso ajudar com consultas financeiras. Exemplos:\n\n"
+                    "Receitas:\n"
+                    "  - Quanto recebi este mes?\n"
+                    "  - Qual meu faturamento em janeiro?\n\n"
+                    "Despesas:\n"
+                    "  - Quanto gastei este mes?\n"
+                    "  - Quais minhas maiores despesas?\n"
+                    "  - Despesas por categoria?\n\n"
+                    "Contas:\n"
+                    "  - Qual meu saldo total?\n"
+                    "  - Saldo das minhas contas?\n\n"
+                    "Cartoes:\n"
+                    "  - Limite disponivel nos cartoes?\n"
+                    "  - Faturas abertas?\n\n"
+                    "Emprestimos:\n"
+                    "  - Quanto devo?\n"
+                    "  - Quem me deve?\n\n"
+                    "Voce pode usar periodos como: hoje, esta semana, "
+                    "mes passado, ultimos 3 meses, etc."
+                ),
+                'security': (
+                    "Posso ajudar com suas senhas e credenciais. Exemplos:\n\n"
+                    "  - Qual a senha do Netflix?\n"
+                    "  - Quais senhas tenho cadastradas?\n"
+                    "  - Login do Spotify?\n"
+                    "  - Senha do email do trabalho?\n\n"
+                    "As senhas sao exibidas parcialmente mascaradas por seguranca."
+                ),
+                'planning': (
+                    "Posso ajudar com seu planejamento pessoal. Exemplos:\n\n"
+                    "Tarefas:\n"
+                    "  - Quais sao minhas tarefas de hoje?\n"
+                    "  - Quais tarefas estao pendentes?\n\n"
+                    "Metas:\n"
+                    "  - Quais metas estao ativas?\n"
+                    "  - Qual minha taxa de conclusao?\n\n"
+                    "Rotinas:\n"
+                    "  - Quais sao minhas tarefas rotineiras?\n"
+                    "  - Quantas tarefas completei esta semana?"
+                ),
+                'reading': (
+                    "Posso ajudar com sua biblioteca pessoal. Exemplos:\n\n"
+                    "  - Quais livros estou lendo?\n"
+                    "  - Quantos livros ja li?\n"
+                    "  - Minhas sessoes de leitura recentes?\n"
+                    "  - Quais livros tenho para ler?\n\n"
+                    "Voce pode filtrar por periodo: este mes, esta semana, etc."
+                ),
+            }
+            return agent_help.get(agent_config.key, (
+                f"Este agente ({agent_config.name}) pode ajudar com: "
+                f"{agent_config.description}. Tente fazer uma pergunta!"
+            ))
+
         return (
             "Posso ajudar com diversas consultas. Aqui estao alguns exemplos:\n\n"
             "Financas:\n"

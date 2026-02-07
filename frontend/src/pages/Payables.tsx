@@ -63,7 +63,7 @@ export default function Payables() {
     description: '',
     value: 0,
     paid_value: 0,
-    date: new Date().toISOString().split('T')[0],
+    date: formatLocalDate(new Date()),
     category: 'others',
     status: 'active',
   });
@@ -100,7 +100,7 @@ export default function Payables() {
       description: '',
       value: 0,
       paid_value: 0,
-      date: new Date().toISOString().split('T')[0],
+      date: formatLocalDate(new Date()),
       category: 'others',
       status: 'active',
     });
@@ -352,7 +352,7 @@ export default function Payables() {
               <div>
                 <Label htmlFor="date">Data de Registro *</Label>
                 <DatePicker
-                  value={formData.date ? new Date(formData.date) : undefined}
+                  value={formData.date || undefined}
                   onChange={(date) => setFormData({ ...formData, date: date ? formatLocalDate(date) : '' })}
                   placeholder="Selecione a data"
                 />
@@ -361,7 +361,7 @@ export default function Payables() {
               <div>
                 <Label htmlFor="due_date">Data de Vencimento</Label>
                 <DatePicker
-                  value={formData.due_date ? new Date(formData.due_date) : undefined}
+                  value={formData.due_date || undefined}
                   onChange={(date) => setFormData({ ...formData, due_date: date ? formatLocalDate(date) : undefined })}
                   placeholder="Selecione a data de vencimento"
                 />

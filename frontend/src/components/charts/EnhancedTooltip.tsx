@@ -14,6 +14,7 @@ export const EnhancedTooltip = ({
   payload,
   label,
   formatter,
+  labelFormatter,
 }: ChartTooltipProps) => {
   if (!active || !payload || payload.length === 0) return null;
 
@@ -26,7 +27,7 @@ export const EnhancedTooltip = ({
       {/* Label/Título */}
       {label && (
         <p className="text-xs font-medium mb-2 pb-2 border-b border-border/50">
-          {label}
+          {labelFormatter ? labelFormatter(label) : label}
         </p>
       )}
 

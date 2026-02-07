@@ -122,7 +122,17 @@ export default function AiAssistant() {
     setIsLoading(true);
 
     try {
-      const response = await aiAssistantService.pergunta(pergunta, selectedAgent);
+      // Extrai historico de conversa do agente atual (ultimas 6 mensagens)
+      const history = messages
+        .filter((m) => m.agent === selectedAgent)
+        .slice(-6)
+        .map((m) => ({ role: m.role, content: m.content }));
+
+      const response = await aiAssistantService.pergunta(
+        pergunta,
+        selectedAgent,
+        history
+      );
 
       // Adiciona resposta do assistente
       const assistantMessage: AiMessage = {

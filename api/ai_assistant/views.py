@@ -105,12 +105,28 @@ def pergunta(request: Request) -> Response:
             status=status.HTTP_403_FORBIDDEN
         )
 
+    # Validacao e extracao do historico de conversa
+    conversation_history = request.data.get('conversation_history', [])
+    if not isinstance(conversation_history, list):
+        conversation_history = []
+    # Limita a 6 mensagens (3 pares user/assistant)
+    conversation_history = conversation_history[-6:]
+    # Valida formato de cada mensagem
+    conversation_history = [
+        msg for msg in conversation_history
+        if isinstance(msg, dict)
+        and isinstance(msg.get('role'), str)
+        and isinstance(msg.get('content'), str)
+        and msg['role'] in ('user', 'assistant')
+    ]
+
     try:
         # 1. Interpreta a pergunta e gera SQL (filtrado pelos modulos do agente)
         query_result = QueryInterpreter.interpret(
             pergunta_texto,
             member.id,
-            allowed_modules=agent_config.modules
+            allowed_modules=agent_config.modules,
+            agent_config=agent_config
         )
 
         # 2. Trata casos especiais (saudacao, ajuda, desconhecido, restrito)
@@ -152,7 +168,12 @@ def pergunta(request: Request) -> Response:
             data=db_result['data'],
             display_type=db_result['display_type'],
             module=db_result['module'],
-            system_prompt=agent_config.system_prompt
+            system_prompt=agent_config.system_prompt,
+            user_question=pergunta_texto,
+            conversation_history=conversation_history,
+            temperature=agent_config.temperature,
+            top_p=agent_config.top_p,
+            num_predict=agent_config.num_predict,
         )
 
         # 5. Calcula tempo de resposta

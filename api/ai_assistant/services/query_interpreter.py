@@ -779,7 +779,8 @@ class QueryInterpreter:
         cls,
         question: str,
         member_id: int,
-        allowed_modules: Optional[List[str]] = None
+        allowed_modules: Optional[List[str]] = None,
+        agent_config=None
     ) -> QueryResult:
         """
         Interpreta uma pergunta e retorna a query SQL correspondente.
@@ -811,7 +812,7 @@ class QueryInterpreter:
                 sql='',
                 params=(),
                 display_type='text',
-                description=QuestionProcessor.get_greeting_response(),
+                description=QuestionProcessor.get_greeting_response(agent_config),
                 confidence=processed.confidence,
                 detected_intent=processed.intent.intent.value,
                 processing_metadata=processed.metadata
@@ -823,7 +824,7 @@ class QueryInterpreter:
                 sql='',
                 params=(),
                 display_type='text',
-                description=QuestionProcessor.get_help_response(),
+                description=QuestionProcessor.get_help_response(agent_config),
                 confidence=processed.confidence,
                 detected_intent=processed.intent.intent.value,
                 processing_metadata=processed.metadata
@@ -912,8 +913,8 @@ class QueryInterpreter:
         period_desc: str, aggregation: str, category: Optional[str]
     ) -> QueryResult:
         """Gera query para módulo de receitas."""
-        base_conditions = "deleted_at IS NULL"
-        params: List[Any] = []
+        base_conditions = "deleted_at IS NULL AND member_id = %s"
+        params: List[Any] = [member_id]
 
         if start_date and end_date:
             base_conditions += " AND date BETWEEN %s AND %s"
@@ -1025,8 +1026,8 @@ class QueryInterpreter:
         period_desc: str, aggregation: str, category: Optional[str]
     ) -> QueryResult:
         """Gera query para módulo de despesas."""
-        base_conditions = "deleted_at IS NULL"
-        params: List[Any] = []
+        base_conditions = "deleted_at IS NULL AND member_id = %s"
+        params: List[Any] = [member_id]
 
         if start_date and end_date:
             base_conditions += " AND date BETWEEN %s AND %s"
@@ -1141,6 +1142,8 @@ class QueryInterpreter:
         """Gera query para módulo de contas bancárias."""
         question_lower = question.lower()
 
+        params: List[Any] = [member_id]
+
         # Saldo total
         if any(w in question_lower for w in ['total', 'soma', 'todos', 'todas']):
             sql = """
@@ -1149,6 +1152,7 @@ class QueryInterpreter:
                     COUNT(*) as quantidade_contas
                 FROM accounts_account
                 WHERE deleted_at IS NULL AND is_active = true
+                    AND owner_id = %s
             """
             display_type = 'currency'
             description = "Saldo total de todas as contas"
@@ -1161,6 +1165,7 @@ class QueryInterpreter:
                     current_balance as saldo
                 FROM accounts_account
                 WHERE deleted_at IS NULL AND is_active = true
+                    AND owner_id = %s
                 ORDER BY current_balance DESC
             """
             display_type = 'table'
@@ -1169,7 +1174,7 @@ class QueryInterpreter:
         return QueryResult(
             module='accounts',
             sql=sql,
-            params=(),
+            params=tuple(params),
             display_type=display_type,
             description=description
         )
@@ -1182,6 +1187,7 @@ class QueryInterpreter:
     ) -> QueryResult:
         """Gera query para módulo de cartões de crédito."""
         question_lower = question.lower()
+        params: List[Any] = [member_id]
 
         # Limite disponível
         if any(w in question_lower for w in ['limite', 'disponível', 'disponivel']):
@@ -1197,6 +1203,7 @@ class QueryInterpreter:
                     )) as limite_disponivel
                 FROM credit_cards_creditcard
                 WHERE deleted_at IS NULL AND is_active = true
+                    AND owner_id = %s
             """
             display_type = 'table'
             description = "Limite disponível dos cartões"
@@ -1212,6 +1219,7 @@ class QueryInterpreter:
                 FROM credit_cards_creditcardbill b
                 JOIN credit_cards_creditcard cc ON cc.id = b.credit_card_id
                 WHERE b.deleted_at IS NULL
+                    AND cc.owner_id = %s
                 ORDER BY b.year DESC, b.month DESC
                 LIMIT 5
             """
@@ -1227,6 +1235,7 @@ class QueryInterpreter:
                     closing_day as dia_fechamento
                 FROM credit_cards_creditcard
                 WHERE deleted_at IS NULL AND is_active = true
+                    AND owner_id = %s
             """
             display_type = 'table'
             description = "Cartões de crédito cadastrados"
@@ -1234,7 +1243,7 @@ class QueryInterpreter:
         return QueryResult(
             module='credit_cards',
             sql=sql,
-            params=(),
+            params=tuple(params),
             display_type=display_type,
             description=description
         )
@@ -1261,10 +1270,12 @@ class QueryInterpreter:
                 FROM loans_loan l
                 LEFT JOIN members_member m ON m.id = l.creditor_id
                 WHERE l.deleted_at IS NULL
+                    AND (l.benefited_id = %s OR l.creditor_id = %s)
                     AND l.category = 'borrowed'
                     AND l.status != 'paid'
                 ORDER BY l.date DESC
             """
+            params = (member_id, member_id)
             description = "Empréstimos que você deve"
         # O que me devem (empréstimos que fiz)
         elif any(w in question_lower for w in ['me devem', 'emprestei', 'emprestar']):
@@ -1279,10 +1290,12 @@ class QueryInterpreter:
                 FROM loans_loan l
                 LEFT JOIN members_member m ON m.id = l.benefited_id
                 WHERE l.deleted_at IS NULL
+                    AND (l.benefited_id = %s OR l.creditor_id = %s)
                     AND l.category = 'lent'
                     AND l.status != 'paid'
                 ORDER BY l.date DESC
             """
+            params = (member_id, member_id)
             description = "Empréstimos que você fez"
         else:
             sql = """
@@ -1294,15 +1307,17 @@ class QueryInterpreter:
                     l.date as data
                 FROM loans_loan l
                 WHERE l.deleted_at IS NULL
+                    AND (l.benefited_id = %s OR l.creditor_id = %s)
                 ORDER BY l.date DESC
                 LIMIT 10
             """
+            params = (member_id, member_id)
             description = "Últimos empréstimos"
 
         return QueryResult(
             module='loans',
             sql=sql,
-            params=(),
+            params=params,
             display_type='table',
             description=description
         )
@@ -1609,16 +1624,19 @@ class QueryInterpreter:
     ) -> QueryResult:
         """Gera query para módulo de cofres."""
         question_lower = question.lower()
+        params: List[Any] = [member_id]
 
         # Total em cofres
         if any(w in question_lower for w in ['total', 'soma', 'quanto tenho guardado']):
             sql = """
                 SELECT
-                    COALESCE(SUM(current_balance), 0) as total_guardado,
-                    COALESCE(SUM(accumulated_yield), 0) as total_rendimentos,
+                    COALESCE(SUM(v.current_balance), 0) as total_guardado,
+                    COALESCE(SUM(v.accumulated_yield), 0) as total_rendimentos,
                     COUNT(*) as quantidade_cofres
-                FROM vaults_vault
-                WHERE deleted_at IS NULL AND is_active = true
+                FROM vaults_vault v
+                JOIN accounts_account a ON a.id = v.account_id
+                WHERE v.deleted_at IS NULL AND v.is_active = true
+                    AND a.owner_id = %s
             """
             display_type = 'currency'
             description = "Total em cofres"
@@ -1633,6 +1651,7 @@ class QueryInterpreter:
                 FROM vaults_vault v
                 JOIN accounts_account a ON a.id = v.account_id
                 WHERE v.deleted_at IS NULL AND v.is_active = true
+                    AND a.owner_id = %s
                 ORDER BY v.current_balance DESC
             """
             display_type = 'table'
@@ -1641,7 +1660,7 @@ class QueryInterpreter:
         return QueryResult(
             module='vaults',
             sql=sql,
-            params=(),
+            params=tuple(params),
             display_type=display_type,
             description=description
         )
@@ -1653,8 +1672,8 @@ class QueryInterpreter:
         period_desc: str, aggregation: str, category: Optional[str]
     ) -> QueryResult:
         """Gera query para módulo de transferências."""
-        base_conditions = "t.deleted_at IS NULL"
-        params: List[Any] = []
+        base_conditions = "t.deleted_at IS NULL AND t.member_id = %s"
+        params: List[Any] = [member_id]
 
         if start_date and end_date:
             base_conditions += " AND t.date BETWEEN %s AND %s"

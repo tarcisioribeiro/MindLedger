@@ -74,6 +74,11 @@ export const API_CONFIG = {
     AI_HISTORICO: '/api/v1/ai/historico/',
     AI_HEALTH: '/api/v1/ai/health/',
 
+    // Notifications Module
+    NOTIFICATIONS: '/api/v1/notifications/',
+    NOTIFICATIONS_SUMMARY: '/api/v1/notifications/summary/',
+    NOTIFICATIONS_MARK_ALL_READ: '/api/v1/notifications/mark-all-read/',
+
     // Health
     HEALTH: '/api/v1/health/',
   },
@@ -543,6 +548,18 @@ export const TRANSLATIONS = {
     reflections: 'Reflexões',
   },
 
+  // Notification Types
+  notificationTypes: {
+    task_today: 'Tarefa do Dia',
+    task_overdue: 'Tarefa Atrasada',
+    payable_due_soon: 'Vencimento Próximo',
+    payable_overdue: 'Pagamento Atrasado',
+    loan_due_soon: 'Empréstimo Vencendo',
+    loan_overdue: 'Empréstimo Atrasado',
+    bill_due_soon: 'Fatura Vencendo',
+    bill_overdue: 'Fatura Atrasada',
+  },
+
   // Common Terms
   commonTerms: {
     total: 'Total',
@@ -645,6 +662,9 @@ export const REVERSE_TRANSLATIONS = {
   ),
   entityTypes: Object.fromEntries(
     Object.entries(TRANSLATIONS.entityTypes).map(([k, v]) => [v, k])
+  ),
+  notificationTypes: Object.fromEntries(
+    Object.entries(TRANSLATIONS.notificationTypes).map(([k, v]) => [v, k])
   ),
   commonTerms: Object.fromEntries(
     Object.entries(TRANSLATIONS.commonTerms).map(([k, v]) => [v, k])

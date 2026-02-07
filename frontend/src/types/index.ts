@@ -1808,3 +1808,35 @@ export interface AiHealthResponse {
   model: string;
   healthy: boolean;
 }
+
+// ============================================================================
+// NOTIFICATIONS MODULE TYPES
+// ============================================================================
+
+export type NotificationType =
+  | 'task_today'
+  | 'task_overdue'
+  | 'payable_due_soon'
+  | 'payable_overdue'
+  | 'loan_due_soon'
+  | 'loan_overdue'
+  | 'bill_due_soon'
+  | 'bill_overdue';
+
+export interface Notification {
+  id: number;
+  uuid: string;
+  notification_type: NotificationType;
+  notification_type_display: string;
+  title: string;
+  message: string;
+  is_read: boolean;
+  due_date: string | null;
+  content_type: string;
+  object_id: number;
+  created_at: string;
+}
+
+export interface NotificationSummary {
+  unread_count: number;
+}

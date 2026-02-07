@@ -66,7 +66,7 @@ export default function Loans() {
     description: '',
     value: 0,
     payed_value: 0,
-    date: new Date().toISOString().split('T')[0],
+    date: formatLocalDate(new Date()),
     horary: new Date().toTimeString().slice(0, 5),
     category: 'loans',
     account: 0,
@@ -126,7 +126,7 @@ export default function Loans() {
       description: '',
       value: 0,
       payed_value: 0,
-      date: new Date().toISOString().split('T')[0],
+      date: formatLocalDate(new Date()),
       horary: new Date().toTimeString().slice(0, 5),
       category: 'loans',
       account: accounts[0]?.id || 0,
@@ -410,7 +410,7 @@ export default function Loans() {
               <div>
                 <Label htmlFor="date">Data *</Label>
                 <DatePicker
-                  value={formData.date ? new Date(formData.date) : undefined}
+                  value={formData.date || undefined}
                   onChange={(date) => setFormData({ ...formData, date: date ? formatLocalDate(date) : '' })}
                   placeholder="Selecione a data"
                 />
@@ -515,7 +515,7 @@ export default function Loans() {
               <div>
                 <Label htmlFor="due_date">Data de Vencimento</Label>
                 <DatePicker
-                  value={formData.due_date ? new Date(formData.due_date) : undefined}
+                  value={formData.due_date || undefined}
                   onChange={(date) => setFormData({ ...formData, due_date: date ? formatLocalDate(date) : '' })}
                   placeholder="Selecione a data de vencimento"
                 />

@@ -312,11 +312,20 @@ export default function LibraryDashboard() {
               lockChartType="line"
               xAxisTickFormatter={(value: string) => {
                 try {
-                  const [year, month] = value.split('-');
-                  const date = new Date(Number(year), Number(month) - 1);
-                  return format(date, "MMM/yyyy", { locale: ptBR });
+                  const [year, month, day] = value.split('-');
+                  const date = new Date(Number(year), Number(month) - 1, Number(day));
+                  return format(date, "dd/MM/yy", { locale: ptBR });
                 } catch {
                   return value;
+                }
+              }}
+              tooltipLabelFormatter={(label: string | number) => {
+                try {
+                  const [year, month, day] = String(label).split('-');
+                  const date = new Date(Number(year), Number(month) - 1, Number(day));
+                  return format(date, "dd/MM/yyyy", { locale: ptBR });
+                } catch {
+                  return String(label);
                 }
               }}
               dualYAxis={{

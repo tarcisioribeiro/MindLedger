@@ -2,6 +2,34 @@ from django.db import models
 from django.utils import timezone
 from app.models import BaseModel
 from decimal import Decimal
+import datetime
+
+
+def count_business_days(start_date, end_date):
+    """
+    Conta dias úteis (seg-sex) entre start_date (exclusivo) e end_date (inclusivo).
+    """
+    if end_date <= start_date:
+        return 0
+
+    total_days = (end_date - start_date).days
+
+    # Semanas completas e dias restantes
+    full_weeks = total_days // 7
+    remaining_days = total_days % 7
+
+    # Cada semana completa tem 5 dias úteis
+    business_days = full_weeks * 5
+
+    # Contar dias úteis no período restante
+    # Começar do dia seguinte a start_date
+    current = start_date + datetime.timedelta(days=(full_weeks * 7) + 1)
+    for _ in range(remaining_days):
+        if current.weekday() < 5:  # 0=seg ... 4=sex
+            business_days += 1
+        current += datetime.timedelta(days=1)
+
+    return business_days
 
 
 VAULT_TRANSACTION_TYPES = (
@@ -94,7 +122,7 @@ class Vault(BaseModel):
         Se annual_yield_rate > 0, usa ela. Caso contrário, usa yield_rate (legado).
         """
         if self.annual_yield_rate > 0:
-            return (self.annual_yield_rate / Decimal('365')).quantize(Decimal('0.000001'))
+            return (self.annual_yield_rate / Decimal('252')).quantize(Decimal('0.000001'))
         return self.yield_rate
 
     def calculate_yield(self, as_of_date=None):
@@ -117,8 +145,8 @@ class Vault(BaseModel):
         if not self.last_yield_date or self.daily_yield_rate <= 0:
             return Decimal('0.00')
 
-        # Número de dias desde o último rendimento
-        days = (as_of_date - self.last_yield_date).days
+        # Número de dias úteis desde o último rendimento
+        days = count_business_days(self.last_yield_date, as_of_date)
         if days <= 0:
             return Decimal('0.00')
 

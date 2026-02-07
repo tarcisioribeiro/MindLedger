@@ -4,6 +4,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { Button } from '@/components/ui/button';
 import { Breadcrumb } from '@/components/layout/Breadcrumb';
 import { LogOut, Moon, Sun, Menu } from 'lucide-react';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 export const Header = () => {
   const { logout } = useAuthStore();
@@ -45,6 +46,8 @@ export const Header = () => {
               )}
             </div>
           </Button>
+
+          <NotificationBell />
 
           <Button
             variant="outline"

@@ -58,6 +58,8 @@ INSTALLED_APPS = [
     'payables',
     # Vaults Module (Cofres)
     'vaults',
+    # Notifications Module
+    'notifications',
     # AI Assistant Module
     'ai_assistant',
 ]
